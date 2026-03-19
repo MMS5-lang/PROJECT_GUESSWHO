@@ -51,10 +51,10 @@ module vga_timing_tb;
      */
 
     initial begin
-        rst = 1'b0;
-        #(RST_START_TIME) rst = 1'b1;
         rst = 1'b1;
-        #(RST_ACTIVE_TIME) rst = 1'b0;
+        #(RST_START_TIME) rst = 1'b0;
+        rst = 1'b0;
+        #(RST_ACTIVE_TIME) rst = 1'b1;
     end
 
 
@@ -92,13 +92,15 @@ module vga_timing_tb;
      */
 
     initial begin
+        /*
         @(posedge rst);
         @(negedge rst);
 
         wait (vsync == 1'b0);
         @(negedge vsync);
         @(negedge vsync);
-
+        */
+       #20ms;
         $finish;
     end
 
