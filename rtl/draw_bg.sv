@@ -9,7 +9,7 @@
 
 module draw_bg (
         input  logic clk,
-        input  logic rst,
+        input  logic rst_n,
 
         input  logic [10:0] vcount_in,
         input  logic        vsync_in,
@@ -45,8 +45,8 @@ module draw_bg (
      * Internal logic
      */
 
-    always_ff @(posedge clk) begin : bg_ff_blk
-        if (rst) begin
+    always_ff @(posedge clk or negedge rst_n) begin : bg_ff_blk
+        if (!rst_n) begin
             vcount_out <= '0;
             vsync_out  <= '0;
             vblnk_out  <= '0;
@@ -77,8 +77,9 @@ module draw_bg (
                 rgb_nxt = 12'h0_f_0;                // - - make a green line.
             else if (hcount_in == HOR_PIXELS - 1)   // - right edge:
                 rgb_nxt = 12'h0_0_f;                // - - make a blue line.
-
+            else if (( hcount_in >=350 && hcount_in<360) && (vcount_in>= 250 && vcount_in<350))
             // Add your code here.
+                rgb_nxt = 12'hf_0_f;
 
             else                                    // The rest of active display pixels:
                 rgb_nxt = 12'h8_8_8;                // - fill with gray.

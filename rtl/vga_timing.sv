@@ -9,7 +9,7 @@
 
 module vga_timing (
         input  logic clk,
-        input  logic rst,
+        input  logic rst_n,
         output logic [10:0] vcount,
         output logic vsync,
         output logic vblnk,
@@ -31,13 +31,22 @@ module vga_timing (
     
     /* Internal logic */
     
-    always_ff @(posedge clk or negedge rst) begin
-        if (!rst) begin
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
             vcount <= 'b0;
-            hcount<= 'b0;            
+            hcount<= 'b0; 
+            vsync  <= '0;
+            vblnk  <= '0;
+            hsync  <= '0;
+            hblnk  <= '0;           
         end else begin
             vcount <= vcount_nxt;
             hcount <= hcount_nxt;
+            vsync  <= vsync_nxt;
+            vblnk  <= vblnk_nxt;
+            hsync  <= hsync_nxt;
+            hblnk  <= hblnk_nxt;
+
         end
     end
     
@@ -53,8 +62,14 @@ module vga_timing (
                 end
             end else begin
                 hcount_nxt = hcount + 1;
+                vcount_nxt = vcount;
             end
+            hblnk_nxt = (hcount_nxt >= HOR_BLANK_START);
+            vblnk_nxt = (vcount_nxt >= VER_BLANK_START);
+
+        
+            hsync_nxt = (hcount_nxt >= HOR_SYNC_START && hcount_nxt < HOR_SYNC_START + HOR_SYNC_TIME);
+            vsync_nxt = (vcount_nxt >= VER_SYNC_START && vcount_nxt < VER_SYNC_START + VER_SYNC_TIME);
         end
     
-
 endmodule

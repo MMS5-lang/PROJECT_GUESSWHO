@@ -29,7 +29,7 @@ module vga_timing_tb;
      */
 
     logic clk;
-    logic rst;
+    logic rst_n;
 
     wire [10:0] vcount, hcount;
     wire        vsync,  hsync;
@@ -51,10 +51,10 @@ module vga_timing_tb;
      */
 
     initial begin
-        rst = 1'b1;
-        #(RST_START_TIME) rst = 1'b0;
-        rst = 1'b0;
-        #(RST_ACTIVE_TIME) rst = 1'b1;
+        rst_n = 1'b1;
+        #(RST_START_TIME) rst_n = 1'b0;
+        rst_n = 1'b0;
+        #(RST_ACTIVE_TIME) rst_n = 1'b1;
     end
 
 
@@ -64,7 +64,7 @@ module vga_timing_tb;
 
     vga_timing dut(
         .clk,
-        .rst,
+        .rst_n,
         .vcount,
         .vsync,
         .vblnk,
