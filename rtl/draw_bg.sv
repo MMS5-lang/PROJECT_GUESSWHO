@@ -77,10 +77,14 @@ module draw_bg (
                 rgb_nxt = 12'h0_f_0;                // - - make a green line.
             else if (hcount_in == HOR_PIXELS - 1)   // - right edge:
                 rgb_nxt = 12'h0_0_f;                // - - make a blue line.
-            else if (( hcount_in >=350 && hcount_in<360) && (vcount_in>= 250 && vcount_in<350))
-            // Add your code here.
+            //litera K
+            else if (( hcount_in >=100 && hcount_in<110) && (vcount_in>= 200 && vcount_in<400))
                 rgb_nxt = 12'hf_0_f;
-
+            else if ((hcount_in >= 110 && hcount_in < 200) && (vcount_in >= 405 - hcount_in) && (vcount_in <= 415 - hcount_in))
+                rgb_nxt = 12'hf_0_f;
+            else if ((hcount_in >= 110 && hcount_in < 200) && (vcount_in >= hcount_in + 185) && (vcount_in <= hcount_in + 195))
+                rgb_nxt = 12'hf_0_f;
+            //koniec litery K
             else                                    // The rest of active display pixels:
                 rgb_nxt = 12'h8_8_8;                // - fill with gray.
         end
