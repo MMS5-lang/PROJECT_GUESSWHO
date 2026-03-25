@@ -85,6 +85,28 @@ module draw_bg (
             else if ((hcount_in >= 110 && hcount_in < 200) && (vcount_in >= hcount_in + 185) && (vcount_in <= hcount_in + 195))
                 rgb_nxt = 12'hf_0_f;
             //koniec litery K
+
+            // Litera M
+            else if ((hcount_in >= 220 && hcount_in < 230 && vcount_in >= 200 && vcount_in < 400) ||
+                     (hcount_in >= 310 && hcount_in < 320 && vcount_in >= 200 && vcount_in < 400) ||
+                     (hcount_in >= 230 && hcount_in < 270 && vcount_in + 260 >= 2 * hcount_in && vcount_in + 250 <= 2 * hcount_in) ||
+                     (hcount_in >= 270 && hcount_in < 310 && vcount_in + 2 * hcount_in >= 820 && vcount_in + 2 * hcount_in <= 830))
+                rgb_nxt = 12'hf_0_f;
+
+
+            // Litera M
+            else if ((hcount_in >= 370 && hcount_in < 380 && vcount_in >= 200 && vcount_in < 400) ||
+                     (hcount_in >= 460 && hcount_in < 470 && vcount_in >= 200 && vcount_in < 400) ||
+                     (hcount_in >= 380 && hcount_in < 420 && vcount_in + 560 >= 2 * hcount_in && vcount_in + 550 <= 2 * hcount_in) ||
+                     (hcount_in >= 420 && hcount_in < 460 && vcount_in + 2 * hcount_in >= 1120 && vcount_in + 2 * hcount_in <= 1130))
+                rgb_nxt = 12'hf_0_f;
+
+            // Litera M
+            else if ((hcount_in >= 490 && hcount_in < 500 && vcount_in >= 200 && vcount_in < 400) ||
+                     (hcount_in >= 580 && hcount_in < 590 && vcount_in >= 200 && vcount_in < 400) ||
+                     (hcount_in >= 500 && hcount_in < 540 && vcount_in + 800 >= 2 * hcount_in && vcount_in + 790 <= 2 * hcount_in) ||
+                     (hcount_in >= 540 && hcount_in < 580 && vcount_in + 2 * hcount_in >= 1360 && vcount_in + 2 * hcount_in <= 1370))
+                rgb_nxt = 12'hf_0_f;
             else                                    // The rest of active display pixels:
                 rgb_nxt = 12'h8_8_8;                // - fill with gray.
         end
