@@ -30,24 +30,19 @@ module top_vga (
      */
 
     // VGA signals from timing
-    wire [10:0] vcount_tim, hcount_tim;
-    wire vsync_tim, hsync_tim;
-    wire vblnk_tim, hblnk_tim;
-
     // VGA signals from background
-    wire [10:0] vcount_bg, hcount_bg;
-    wire vsync_bg, hsync_bg;
-    wire vblnk_bg, hblnk_bg;
-    wire [11:0] rgb_bg;
+     vga_if if_tim ();
+     vga_if if_bg ();
+     vga_if if_rect ();
 
 
     /**
      * Signals assignments
      */
 
-    assign vs = vsync_bg;
-    assign hs = hsync_bg;
-    assign {r,g,b} = rgb_bg;
+     assign vs = if_rect.vsync;
+     assign hs = if_rect.hsync;
+     assign {r,g,b} = if_rect.rgb;
 
 
     /**
@@ -57,33 +52,33 @@ module top_vga (
     vga_timing u_vga_timing (
         .clk,
         .rst_n,
-        .vcount (vcount_tim),
-        .vsync  (vsync_tim),
-        .vblnk  (vblnk_tim),
-        .hcount (hcount_tim),
-        .hsync  (hsync_tim),
-        .hblnk  (hblnk_tim)
+        .vcount (if_tim.vcount),
+        .vsync  (if_tim.vsync),
+        .vblnk  (if_tim.vblnk),
+        .hcount (if_tim.hcount),
+        .hsync  (if_tim.hsync),
+        .hblnk  (if_tim.hblnk)
     );
 
     draw_bg u_draw_bg (
         .clk,
         .rst_n,
 
-        .vcount_in  (vcount_tim),
-        .vsync_in   (vsync_tim),
-        .vblnk_in   (vblnk_tim),
-        .hcount_in  (hcount_tim),
-        .hsync_in   (hsync_tim),
-        .hblnk_in   (hblnk_tim),
+        .in     (if_tim.in),
+        .out    (if_bg.out)
+    );
 
-        .vcount_out (vcount_bg),
-        .vsync_out  (vsync_bg),
-        .vblnk_out  (vblnk_bg),
-        .hcount_out (hcount_bg),
-        .hsync_out  (hsync_bg),
-        .hblnk_out  (hblnk_bg),
-
-        .rgb_out    (rgb_bg)
+    draw_rect #(
+        .X_POS(100),
+        .Y_POS(100),
+        .WIDTH(200),
+        .HEIGHT(150),
+        .COLOUR(12'hF00)
+    ) u_draw_rect (
+        .clk    (clk),
+        .rst_n  (rst_n),
+        .in     (if_bg.in),   // Prostokąt bierze tło z drugiego kabla...
+        .out    (if_rect.out) // ...i wypluwa gotowy obraz na trzeci kabel
     );
 
 endmodule
