@@ -69,16 +69,16 @@ module top_vga (
     );
 
     draw_rect #(
-        .X_POS(100),
-        .Y_POS(100),
-        .WIDTH(200),
-        .HEIGHT(150),
+        .X_POS(80),
+        .Y_POS(180), 
+        .WIDTH(530), 
+        .HEIGHT(240),    
+        .THICKNESS(5), 
         .COLOUR(12'hF00)
     ) u_draw_rect (
         .clk    (clk),
         .rst_n  (rst_n),
-        .in     (if_bg.in),   // Prostokąt bierze tło z drugiego kabla...
-        .out    (if_rect.out) // ...i wypluwa gotowy obraz na trzeci kabel
+        .in     (if_bg.in),   
+        .out    (if_rect.out) 
     );
-
 endmodule
