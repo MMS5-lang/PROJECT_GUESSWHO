@@ -9,8 +9,6 @@
 
  module draw_rect #(
     // Parametry obejmujące obszar inicjałów (X: 100-590, Y: 200-400) z marginesem
-    parameter int X_POS = 80,
-    parameter int Y_POS = 180,
     parameter int WIDTH = 530,
     parameter int HEIGHT = 240,
     parameter int THICKNESS = 5,
@@ -18,6 +16,8 @@
 )(
     input  logic clk,
     input  logic rst_n,
+    input logic [11:0] xpos,
+    input logic [11:0] ypos,
     vga_if.in    in,
     vga_if.out   out
 );
@@ -50,11 +50,11 @@ end
 always_comb begin : rect_comb_blk
     rgb_nxt = in.rgb;
 
-    if ((in.hcount >= X_POS) && (in.hcount < X_POS + WIDTH) && 
-        (in.vcount >= Y_POS) && (in.vcount < Y_POS + HEIGHT)) begin
+    if ((in.hcount >= xpos) && (in.hcount < xpos + WIDTH) && 
+        (in.vcount >= ypos) && (in.vcount < ypos + HEIGHT)) begin
         
-        if ((in.hcount < X_POS + THICKNESS) || (in.hcount >= X_POS + WIDTH - THICKNESS) ||
-            (in.vcount < Y_POS + THICKNESS) || (in.vcount >= Y_POS + HEIGHT - THICKNESS)) begin
+        if ((in.hcount < xpos + THICKNESS) || (in.hcount >= xpos + WIDTH - THICKNESS) ||
+            (in.vcount < ypos + THICKNESS) || (in.vcount >= ypos + HEIGHT - THICKNESS)) begin
             
             rgb_nxt = COLOUR;
         end

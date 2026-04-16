@@ -14,7 +14,10 @@
 
 module top_vga (
         input  logic clk,
+        input  logic clk_100MHz,
         input  logic rst_n,
+        inout  wire  ps2_clk,
+        inout  wire  ps2_data,       
         output logic vs,
         output logic hs,
         output logic [3:0] r,
@@ -28,7 +31,26 @@ module top_vga (
     /**
      * Local variables and signals
      */
+     logic [11:0] mouse_xpos;
+     logic [11:0] mouse_ypos;
+ 
+     logic [11:0] mouse_xpos_sync1, mouse_xpos_sync2;
+     logic [11:0] mouse_ypos_sync1, mouse_ypos_sync2;
 
+     always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            mouse_xpos_sync1 <= '0;
+            mouse_xpos_sync2 <= '0;
+            mouse_ypos_sync1 <= '0;
+            mouse_ypos_sync2 <= '0;
+        end else begin
+            mouse_xpos_sync1 <= mouse_xpos;
+            mouse_xpos_sync2 <= mouse_xpos_sync1;
+            
+            mouse_ypos_sync1 <= mouse_ypos;
+            mouse_ypos_sync2 <= mouse_ypos_sync1;
+        end
+    end
     // VGA signals from timing
     // VGA signals from background
      vga_if if_tim ();
@@ -63,7 +85,6 @@ module top_vga (
     draw_bg u_draw_bg (
         .clk,
         .rst_n,
-
         .in     (if_tim.in),
         .out    (if_bg.out)
     );
