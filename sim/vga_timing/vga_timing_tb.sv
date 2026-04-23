@@ -185,14 +185,7 @@
      * Main test
      * -------------------------------------------------------------------------- */
     initial begin
-        // @(negedge rst_n);
-        // @(posedge rst_n);
-    
-        /* TODO: modify this condition temporarily if needed */
-     /*   wait (vsync == 1'b0);
-        @(negedge vsync);
-        @(negedge vsync);
-    */
+        // Let assertions observe several complete frames.
         #20ms;
         $finish;
     end

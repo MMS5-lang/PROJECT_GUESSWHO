@@ -7,7 +7,7 @@
  * Draw background and initials using VGA interface.
  */
 
- module draw_bg (
+module draw_bg (
     input  logic clk,
     input  logic rst_n,
     vga_if.in    in,
@@ -42,50 +42,73 @@ always_ff @(posedge clk or negedge rst_n) begin : bg_ff_blk
 end
 
 always_comb begin : bg_comb_blk
-    if (in.vblnk || in.hblnk) begin             // Blanking region:
-        rgb_nxt = 12'h0_0_0;                    // - make it black.
-    end else begin                              // Active region:
-        if (in.vcount == 0)                     // - top edge:
-            rgb_nxt = 12'hf_f_0;                // - - make a yellow line.
-        else if (in.vcount == VER_PIXELS - 1)   // - bottom edge:
-            rgb_nxt = 12'hf_0_0;                // - - make a red line.
-        else if (in.hcount == 0)                // - left edge:
-            rgb_nxt = 12'h0_f_0;                // - - make a green line.
-        else if (in.hcount == HOR_PIXELS - 1)   // - right edge:
-            rgb_nxt = 12'h0_0_f;                // - - make a blue line.
-            
-        // litera K
-        else if ((in.hcount >= 100 && in.hcount < 110) && (in.vcount >= 200 && in.vcount < 400))
-            rgb_nxt = 12'hf_0_f;
-        else if ((in.hcount >= 110 && in.hcount < 200) && (in.vcount >= 405 - in.hcount) && (in.vcount <= 415 - in.hcount))
-            rgb_nxt = 12'hf_0_f;
-        else if ((in.hcount >= 110 && in.hcount < 200) && (in.vcount >= in.hcount + 185) && (in.vcount <= in.hcount + 195))
-            rgb_nxt = 12'hf_0_f;
-        // koniec litery K
+    rgb_nxt = in.rgb;
 
-        // Litera M (pierwsza)
-        else if ((in.hcount >= 220 && in.hcount < 230 && in.vcount >= 200 && in.vcount < 400) ||
-                 (in.hcount >= 310 && in.hcount < 320 && in.vcount >= 200 && in.vcount < 400) ||
-                 (in.hcount >= 230 && in.hcount < 270 && in.vcount + 260 >= 2 * in.hcount && in.vcount + 250 <= 2 * in.hcount) ||
-                 (in.hcount >= 270 && in.hcount < 310 && in.vcount + 2 * in.hcount >= 820 && in.vcount + 2 * in.hcount <= 830))
+    if (in.vblnk || in.hblnk) begin
+        rgb_nxt = 12'h0_0_0;
+    end else begin
+        if (in.vcount == 0) begin
+            rgb_nxt = 12'hf_f_0;
+        end else if (in.vcount == VER_PIXELS - 1) begin
+            rgb_nxt = 12'hf_0_0;
+        end else if (in.hcount == 0) begin
+            rgb_nxt = 12'h0_f_0;
+        end else if (in.hcount == HOR_PIXELS - 1) begin
+            rgb_nxt = 12'h0_0_f;
+        end else if ((in.hcount >= 100) && (in.hcount < 110) &&
+                     (in.vcount >= 200) && (in.vcount < 400)) begin
             rgb_nxt = 12'hf_0_f;
-
-        // Litera M (druga)
-        else if ((in.hcount >= 370 && in.hcount < 380 && in.vcount >= 200 && in.vcount < 400) ||
-                 (in.hcount >= 460 && in.hcount < 470 && in.vcount >= 200 && in.vcount < 400) ||
-                 (in.hcount >= 380 && in.hcount < 420 && in.vcount + 560 >= 2 * in.hcount && in.vcount + 550 <= 2 * in.hcount) ||
-                 (in.hcount >= 420 && in.hcount < 460 && in.vcount + 2 * in.hcount >= 1120 && in.vcount + 2 * in.hcount <= 1130))
+        end else if ((in.hcount >= 110) && (in.hcount < 200) &&
+                     (in.vcount >= 405 - in.hcount) &&
+                     (in.vcount <= 415 - in.hcount)) begin
             rgb_nxt = 12'hf_0_f;
-
-        // Litera M (trzecia)
-        else if ((in.hcount >= 490 && in.hcount < 500 && in.vcount >= 200 && in.vcount < 400) ||
-                 (in.hcount >= 580 && in.hcount < 590 && in.vcount >= 200 && in.vcount < 400) ||
-                 (in.hcount >= 500 && in.hcount < 540 && in.vcount + 800 >= 2 * in.hcount && in.vcount + 790 <= 2 * in.hcount) ||
-                 (in.hcount >= 540 && in.hcount < 580 && in.vcount + 2 * in.hcount >= 1360 && in.vcount + 2 * in.hcount <= 1370))
+        end else if ((in.hcount >= 110) && (in.hcount < 200) &&
+                     (in.vcount >= in.hcount + 185) &&
+                     (in.vcount <= in.hcount + 195)) begin
             rgb_nxt = 12'hf_0_f;
-            
-        else                                    // The rest of active display pixels:
-            rgb_nxt = 12'h8_8_8;                // - fill with gray.
+        end else if ((in.hcount >= 220) && (in.hcount < 230) &&
+                     (in.vcount >= 200) && (in.vcount < 400)) begin
+            rgb_nxt = 12'hf_0_f;
+        end else if ((in.hcount >= 310) && (in.hcount < 320) &&
+                     (in.vcount >= 200) && (in.vcount < 400)) begin
+            rgb_nxt = 12'hf_0_f;
+        end else if ((in.hcount >= 230) && (in.hcount < 270) &&
+                     (in.vcount + 260 >= 2 * in.hcount) &&
+                     (in.vcount + 250 <= 2 * in.hcount)) begin
+            rgb_nxt = 12'hf_0_f;
+        end else if ((in.hcount >= 270) && (in.hcount < 310) &&
+                     (in.vcount + 2 * in.hcount >= 820) &&
+                     (in.vcount + 2 * in.hcount <= 830)) begin
+            rgb_nxt = 12'hf_0_f;
+        end else if ((in.hcount >= 370) && (in.hcount < 380) &&
+                     (in.vcount >= 200) && (in.vcount < 400)) begin
+            rgb_nxt = 12'hf_0_f;
+        end else if ((in.hcount >= 460) && (in.hcount < 470) &&
+                     (in.vcount >= 200) && (in.vcount < 400)) begin
+            rgb_nxt = 12'hf_0_f;
+        end else if ((in.hcount >= 380) && (in.hcount < 420) &&
+                     (in.vcount + 560 >= 2 * in.hcount) &&
+                     (in.vcount + 550 <= 2 * in.hcount)) begin
+            rgb_nxt = 12'hf_0_f;
+        end else if ((in.hcount >= 420) && (in.hcount < 460) &&
+                     (in.vcount + 2 * in.hcount >= 1120) &&
+                     (in.vcount + 2 * in.hcount <= 1130)) begin
+            rgb_nxt = 12'hf_0_f;
+        end else if ((in.hcount >= 490) && (in.hcount < 500) &&
+                     (in.vcount >= 200) && (in.vcount < 400)) begin
+            rgb_nxt = 12'hf_0_f;
+        end else if ((in.hcount >= 580) && (in.hcount < 590) &&
+                     (in.vcount >= 200) && (in.vcount < 400)) begin
+            rgb_nxt = 12'hf_0_f;
+        end else if ((in.hcount >= 500) && (in.hcount < 540) &&
+                     (in.vcount + 800 >= 2 * in.hcount) &&
+                     (in.vcount + 790 <= 2 * in.hcount)) begin
+            rgb_nxt = 12'hf_0_f;
+        end else if ((in.hcount >= 540) && (in.hcount < 580) &&
+                     (in.vcount + 2 * in.hcount >= 1360) &&
+                     (in.vcount + 2 * in.hcount <= 1370)) begin
+            rgb_nxt = 12'hf_0_f;
+        end
     end
 end
 

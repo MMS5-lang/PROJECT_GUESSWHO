@@ -211,7 +211,7 @@ begin
 
    -- if cursor display is enabled, then, according to pixel
    -- value, set the output color channels.
-   rgb : process(enable_mouse_display, mousepixel)
+   rgb : process(enable_mouse_display, mousepixel, blank, rgb_in)
    begin
          -- if in visible screen
          -- (if used, add blank to the sensitivity list)

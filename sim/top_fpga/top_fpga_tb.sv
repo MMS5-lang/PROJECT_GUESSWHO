@@ -39,6 +39,7 @@ module top_fpga_tb;
      */
 
     logic clk, rst_n;
+    tri1 ps2_clk, ps2_data;
     wire pclk;
     wire vs, hs;
     wire [3:0] r, g, b;
@@ -55,12 +56,14 @@ module top_fpga_tb;
 
 
     /**
-     * Submodules instances
+     * Submodule instances
      */
 
     top_vga_basys3 dut (
         .clk(clk),
         .btnC(!rst_n),
+        .PS2Clk(ps2_clk),
+        .PS2Data(ps2_data),
         .Vsync(vs),
         .Hsync(hs),
         .vgaRed(r),
