@@ -163,13 +163,13 @@ module draw_rect #(
 
             if (rect_area) begin
                 if (top_edge) begin
-                    out.rgb <= 12'hF_F_0;
-                end else if (bottom_edge) begin
-                    out.rgb <= 12'hF_0_0;
-                end else if (left_edge) begin
                     out.rgb <= 12'h0_F_0;
-                end else if (right_edge) begin
+                end else if (bottom_edge) begin
+                    out.rgb <= 12'hF_F_0;
+                end else if (left_edge) begin
                     out.rgb <= 12'h0_0_F;
+                end else if (right_edge) begin
+                    out.rgb <= 12'hF_0_0;
                 end else begin
                     out.rgb <= rgb_pixel;
                 end
