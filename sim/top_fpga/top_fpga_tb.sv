@@ -10,14 +10,6 @@
  *
  * Description:
  * Testbench for top_fpga.
- * Thanks to the tiff_writer module, an expected image
- * produced by the project is exported to a tif file.
- * Since the vs signal is connected to the go input of
- * the tiff_writer, the first (top-left) pixel of the tif
- * will not correspond to the vga project (0,0) pixel.
- * The active image (not blanked space) in the tif file
- * will be shifted down by the number of lines equal to
- * the difference between VER_SYNC_START and VER_TOTAL_TIME.
  */
 
 module top_fpga_tb;
@@ -26,50 +18,50 @@ module top_fpga_tb;
     timeprecision 1ps;
 
     /**
-     *  Local parameters
+     * Local parameters
      */
-
     localparam CLK_PERIOD = 10;     // 100 MHz
     localparam RST_START_TIME = 1000;
     localparam RST_ACTIVE_TIME = 2000;
 
-
     /**
      * Local variables and signals
      */
-
-    logic clk, rst_n;
-    tri1 ps2_clk, ps2_data;
-    wire pclk;
-    wire vs, hs;
-    wire [3:0] r, g, b;
-
+    logic clk;
+    logic rst_n;
+    tri1  PS2Clk;
+    tri1  PS2Data;
+    wire  pclk;
+    wire  vs;
+    wire  hs;
+    wire [3:0] r;
+    wire [3:0] g;
+    wire [3:0] b;
 
     /**
      * Clock generation
      */
-
     initial begin
         clk = 1'b0;
-        forever #(CLK_PERIOD/2) clk = ~clk;
+        forever #(CLK_PERIOD/2) begin
+            clk = ~clk;
+        end
     end
-
 
     /**
      * Submodule instances
      */
-
     top_vga_basys3 dut (
-        .clk(clk),
-        .btnC(!rst_n),
-        .PS2Clk(ps2_clk),
-        .PS2Data(ps2_data),
-        .Vsync(vs),
-        .Hsync(hs),
-        .vgaRed(r),
-        .vgaGreen(g),
-        .vgaBlue(b),
-        .JA1(pclk)
+        .clk      (clk),
+        .btnC     (!rst_n),
+        .PS2Clk   (PS2Clk),
+        .PS2Data  (PS2Data),
+        .Vsync    (vs),
+        .Hsync    (hs),
+        .vgaRed   (r),
+        .vgaGreen (g),
+        .vgaBlue  (b),
+        .JA1      (pclk)
     );
 
     tiff_writer #(
@@ -78,31 +70,36 @@ module top_fpga_tb;
         .FILE_DIR("../../results")
     ) u_tiff_writer (
         .clk(pclk),
-        .r({r,r}), // fabricate an 8-bit value
-        .g({g,g}), // fabricate an 8-bit value
-        .b({b,b}), // fabricate an 8-bit value
+        .r({r,r}),
+        .g({g,g}),
+        .b({b,b}),
         .go(vs)
     );
-
 
     /**
      * Main test
      */
-
     initial begin
         rst_n = 1'b1;
-        #(RST_START_TIME) rst_n = 1'b0;
-        #(RST_ACTIVE_TIME) rst_n = 1'b1;
+        #(RST_START_TIME) begin
+            rst_n = 1'b0;
+        end
+        #(RST_ACTIVE_TIME) begin
+            rst_n = 1'b1;
+        end
 
         $display("If simulation ends before the testbench");
         $display("completes, use the menu option to run all.");
         $display("Prepare to wait a long time...");
 
         wait (vs == 1'b0);
-        @(negedge vs) $display("Info: negedge VS at %t",$time);
-        @(negedge vs) $display("Info: negedge VS at %t",$time);
+        @(negedge vs) begin
+            $display("Info: negedge VS at %t", $time);
+        end
+        @(negedge vs) begin
+            $display("Info: negedge VS at %t", $time);
+        end
 
-        // End the simulation.
         $display("Simulation is over, check the waveforms.");
         $finish;
     end

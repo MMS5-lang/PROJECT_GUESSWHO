@@ -23,7 +23,6 @@ module draw_mouse (
      * Local variables and signals
      */
     logic        blank;
-    logic        mouse_enable_unused;
     logic [11:0] mouse_rgb;
     logic [10:0] vcount_dly;
     logic        vsync_dly;
@@ -48,7 +47,7 @@ module draw_mouse (
         .vcount                   (in.vcount),
         .blank                    (blank),
         .rgb_in                   (in.rgb),
-        .enable_mouse_display_out (mouse_enable_unused),
+        .enable_mouse_display_out (),
         .rgb_out                  (mouse_rgb)
     );
 

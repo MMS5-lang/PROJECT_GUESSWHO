@@ -13,33 +13,34 @@
  * red, green and blue color values (4-bit each)
  */
 
- module image_rom (
-    input  logic clk ,
-    input  logic [11:0] address,  // address = {addry[5:0], addrx[5:0]}
-    output logic [11:0] rgb
-);
+module image_rom (
+        input  logic clk ,
+        input  logic [11:0] address,  // address = {addry[5:0], addrx[5:0]}
+        output logic [11:0] rgb
+    );
 
 
-/**
- * Local variables and signals
- */
+    /**
+     * Local variables and signals
+     */
 
-reg [11:0] rom [0:4095];
-
-
-/**
- * Memory initialization from a file
- */
-
-/* Relative path from the simulation or synthesis working directory */
-initial $readmemh("../../rtl/rect/image_rom.data", rom);
+    logic [11:0] rom [0:4095];
 
 
-/**
- * Internal logic
- */
+    /**
+     * Memory initialization from a file
+     */
 
-always_ff @(posedge clk)
-    rgb <= rom[address];
+    /* Relative path from the simulation or synthesis working directory */
+    initial $readmemh("../../rtl/rect/image_rom.data", rom);
+
+
+    /**
+     * Internal logic
+     */
+
+    always_ff @(posedge clk) begin
+        rgb <= rom[address];
+    end
 
 endmodule
