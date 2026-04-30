@@ -18,28 +18,26 @@ module draw_rect_ctl_tb;
     logic [11:0] xpos;
     logic [11:0] ypos;
 
-    initial begin : clk_gen
+    initial begin
         clk = 1'b0;
-        forever #(CLK_PERIOD/2) begin
+        forever #(CLK_PERIOD / 2) begin
             clk = ~clk;
         end
     end
 
-    initial begin : rst_gen
+    initial begin
         rst_n = 1'b1;
-        #30 begin
-            rst_n = 1'b0;
-        end
-        #60 begin
-            rst_n = 1'b1;
-        end
+        #30;
+        rst_n = 1'b0;
+        #60;
+        rst_n = 1'b1;
     end
 
     draw_rect_ctl #(
-        .TICK_DIV (TICK_DIV),
-        .GRAVITY  (24),
-        .STOP_SPEED (12)
-    ) u_draw_rect_ctl (
+        .TICK_DIV   (TICK_DIV),
+        .GRAVITY    (24'sd24),
+        .STOP_SPEED (24'sd12)
+    ) dut (
         .clk,
         .rst_n,
         .mouse_left,

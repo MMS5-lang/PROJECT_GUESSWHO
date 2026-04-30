@@ -54,7 +54,7 @@ module draw_mouse (
     /**
      * Sequential logic
      */
-    always_ff @(posedge clk or negedge rst_n) begin : mouse_ff_blk
+    always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             vcount_dly <= '0;
             vsync_dly  <= '0;

@@ -8,7 +8,7 @@
  * Testbench for vga_timing module.
  */
 
- module vga_timing_tb;
+module vga_timing_tb;
     timeunit 1ns;
     timeprecision 1ps;
     import vga_pkg::*;
@@ -17,9 +17,9 @@
     /* -----------------------------------------------------------------------------
      * Local parameters
      * -------------------------------------------------------------------------- */
-    localparam CLK_PERIOD = 25; // 40 MHz clock
-    localparam RST_START_TIME = 1.25*CLK_PERIOD;
-    localparam RST_ACTIVE_TIME = 2.00*CLK_PERIOD;
+    localparam int CLK_PERIOD = 25; // 40 MHz clock
+    localparam real RST_START_TIME = 1.25 * CLK_PERIOD;
+    localparam real RST_ACTIVE_TIME = 2.00 * CLK_PERIOD;
     
     /* -----------------------------------------------------------------------------
      * Local variables and signals
@@ -27,21 +27,29 @@
     logic clk;
     logic rst_n;
     
-    logic [10:0] vcount, hcount;
-    logic vsync, hsync, vblnk, hblnk;
+    logic [10:0] vcount;
+    logic [10:0] hcount;
+    logic        vsync;
+    logic        hsync;
+    logic        vblnk;
+    logic        hblnk;
     
     /* -----------------------------------------------------------------------------
      * Clock and reset generation
      * -------------------------------------------------------------------------- */
     initial begin
         clk = 1'b0;
-        forever #(CLK_PERIOD/2) clk = ~clk;
+        forever #(CLK_PERIOD / 2) begin
+            clk = ~clk;
+        end
     end
     
     initial begin
         rst_n = 1'b1;
-        #(RST_START_TIME) rst_n = 1'b0;
-        #(RST_ACTIVE_TIME) rst_n = 1'b1;
+        #(RST_START_TIME);
+        rst_n = 1'b0;
+        #(RST_ACTIVE_TIME);
+        rst_n = 1'b1;
     end
     
     /* -----------------------------------------------------------------------------

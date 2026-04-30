@@ -37,7 +37,7 @@ module tiff_writer #(
     logic [15:0] ydim = YDIM;
 
     integer file_ptr;
-    integer file_open;
+    integer file_open = 0;
     integer frame_number = 0;
 
     logic go_delayed = 0;
@@ -382,9 +382,11 @@ module tiff_writer #(
      * Internal logic
      */
 
-    always @(go) go_delayed = #1 go;
+    always @(go) begin
+        go_delayed = #1 go;
+    end
 
-    always_ff @(negedge clk) begin
+    always @(negedge clk) begin
         if (file_open == 1) begin
             write_byte(r); // eight bits per sample
             write_byte(g); // eight bits per sample
@@ -396,9 +398,14 @@ module tiff_writer #(
         open_file(frame_number);
         write_header(xdim, ydim);
         $display("Info: tiff_writer started frame %d",frame_number);
-        @(posedge go) close_file;
-        $display("Info: tiff writer finished frame %d",frame_number);
-        frame_number = frame_number + 1;
+    end
+
+    always @(posedge go) begin
+        if (file_open == 1) begin
+            close_file;
+            $display("Info: tiff writer finished frame %d",frame_number);
+            frame_number <= frame_number + 1;
+        end
     end
 
 endmodule

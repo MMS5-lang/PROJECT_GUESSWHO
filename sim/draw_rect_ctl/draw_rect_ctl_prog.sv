@@ -17,7 +17,7 @@ module draw_rect_ctl_prog #(
     timeunit 1ns;
     timeprecision 1ps;
 
-    initial begin : test_prog
+    initial begin
         mouse_left = 1'b0;
         mouse_xpos = 12'd100;
         mouse_ypos = 12'd50;
@@ -75,7 +75,11 @@ module draw_rect_ctl_prog #(
         end
 
         if ((xpos !== 12'd10) || (ypos !== 12'd20)) begin
-            $error("Rectangle should return to mouse position after release, got xpos=%0d ypos=%0d.", xpos, ypos);
+            $error(
+                "Rectangle should return to mouse position after release, got xpos=%0d ypos=%0d.",
+                xpos,
+                ypos
+            );
         end
 
         $display("draw_rect_ctl test finished.");

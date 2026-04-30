@@ -14,7 +14,7 @@
 
 module top_vga (
         input  logic clk,
-        input  logic clk_100MHz,
+        input  logic clk_100mhz,
         input  logic rst_n,
         inout  wire  ps2_clk,
         inout  wire  ps2_data,
@@ -68,7 +68,7 @@ module top_vga (
     assign if_tim.rgb = 12'h8_8_8;
     assign vs         = if_mouse.vsync;
     assign hs         = if_mouse.hsync;
-    assign {r,g,b}    = if_mouse.rgb;
+    assign {r, g, b}  = if_mouse.rgb;
 
     assign mouse_xpos_clip = (mouse_xpos > MOUSE_MAX_X) ? MOUSE_MAX_X : mouse_xpos;
     assign mouse_ypos_clip = (mouse_ypos > MOUSE_MAX_Y) ? MOUSE_MAX_Y : mouse_ypos;
@@ -76,7 +76,7 @@ module top_vga (
     /**
      * Sequential logic
      */
-    always_ff @(posedge clk or negedge rst_n) begin : mouse_sync_ff_blk
+    always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             mouse_xpos_sync1 <= '0;
             mouse_ypos_sync1 <= '0;
@@ -109,7 +109,7 @@ module top_vga (
     );
 
     MouseCtl u_mouse_ctl (
-        .clk       (clk_100MHz),
+        .clk       (clk_100mhz),
         .rst       (!rst_n),
         .xpos      (mouse_xpos_raw),
         .ypos      (mouse_ypos_raw),
@@ -135,7 +135,6 @@ module top_vga (
     );
 
     draw_rect_ctl #(
-        .RECT_WIDTH  (RECT_WIDTH),
         .RECT_HEIGHT (RECT_HEIGHT)
     ) u_draw_rect_ctl (
         .clk,

@@ -28,16 +28,20 @@ module vga_timing (
      * Local variables and signals
      */
 
-    logic [10:0] vcount_nxt, hcount_nxt;
-    logic vsync_nxt, vblnk_nxt, hsync_nxt, hblnk_nxt;
-    
+    logic [10:0] vcount_nxt;
+    logic [10:0] hcount_nxt;
+    logic        vsync_nxt;
+    logic        vblnk_nxt;
+    logic        hsync_nxt;
+    logic        hblnk_nxt;
+
     /**
      * Sequential logic
      */
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            vcount <= 'b0;
-            hcount <= 'b0;
+            vcount <= '0;
+            hcount <= '0;
             vsync  <= '0;
             vblnk  <= '0;
             hsync  <= '0;
@@ -65,10 +69,10 @@ module vga_timing (
             if (vcount == VER_TOTAL_TIME - 1) begin
                 vcount_nxt = '0;
             end else begin
-                vcount_nxt = vcount + 1;
+                vcount_nxt = vcount + 11'd1;
             end
         end else begin
-            hcount_nxt = hcount + 1;
+            hcount_nxt = hcount + 11'd1;
         end
 
         hblnk_nxt = (hcount_nxt >= HOR_BLANK_START);

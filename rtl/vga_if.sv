@@ -8,10 +8,22 @@ interface vga_if;
     logic [11:0] rgb;
 
     modport in (
-        input vcount, vsync, vblnk, hcount, hsync, hblnk, rgb
+        input vcount,
+        input vsync,
+        input vblnk,
+        input hcount,
+        input hsync,
+        input hblnk,
+        input rgb
     );
 
     modport out (
-        output vcount, vsync, vblnk, hcount, hsync, hblnk, rgb
+        output vcount,
+        output vsync,
+        output vblnk,
+        output hcount,
+        output hsync,
+        output hblnk,
+        output rgb
     );
 endinterface

@@ -7,13 +7,11 @@
  */
 
 module draw_rect_ctl #(
-        parameter int SCREEN_WIDTH = 800,
         parameter int SCREEN_HEIGHT = 600,
-        parameter int RECT_WIDTH = 48,
         parameter int RECT_HEIGHT = 64,
         parameter int TICK_DIV = 666666,
-        parameter int GRAVITY = 87,
-        parameter int STOP_SPEED = 16
+        parameter logic signed [23:0] GRAVITY = 24'sd87,
+        parameter logic signed [23:0] STOP_SPEED = 24'sd16
     )(
         input  logic        clk,
         input  logic        rst_n,
@@ -29,10 +27,10 @@ module draw_rect_ctl #(
 
     localparam int FRAC_BITS = 4;
     localparam logic [11:0] Y_MAX = SCREEN_HEIGHT - RECT_HEIGHT;
-    localparam logic signed [23:0] Y_MAX_FP = (SCREEN_HEIGHT - RECT_HEIGHT) * (1 << FRAC_BITS);
+    localparam logic signed [23:0] Y_MAX_FP = $signed({8'd0, Y_MAX, 4'd0});
     localparam logic signed [23:0] GRAVITY_FP = GRAVITY;
     localparam logic signed [23:0] STOP_SPEED_FP = STOP_SPEED;
-    localparam logic signed [23:0] IMPACT_STOP_SPEED_FP = (GRAVITY_FP * 8) + STOP_SPEED_FP;
+    localparam logic signed [23:0] IMPACT_STOP_SPEED_FP = (GRAVITY_FP * 24'sd8) + STOP_SPEED_FP;
 
     logic [31:0] tick_ctr;
     logic [31:0] tick_ctr_nxt;
@@ -53,8 +51,9 @@ module draw_rect_ctl #(
     logic signed [23:0] y_speed_nxt;
     logic signed [23:0] y_pos_tmp;
     logic signed [23:0] y_speed_tmp;
+    logic signed [23:0] y_speed_bounce;
 
-    always_comb begin : rect_ctl_comb_blk
+    always_comb begin
         tick = 1'b0;
         tick_ctr_nxt = tick_ctr + 32'd1;
         if (tick_ctr >= TICK_DIV - 1) begin
@@ -71,29 +70,33 @@ module draw_rect_ctl #(
         y_speed_nxt = y_speed;
         y_pos_tmp = y_pos_fp;
         y_speed_tmp = y_speed;
+        y_speed_bounce = '0;
         y_start = mouse_ypos;
 
         if (falling) begin
             if (tick) begin
                 y_pos_tmp = y_pos_fp + y_speed;
                 y_speed_tmp = y_speed + GRAVITY_FP;
-
-                if (y_pos_tmp >= Y_MAX_FP) begin
-                    y_pos_tmp = Y_MAX_FP;
-                    if (y_speed_tmp < IMPACT_STOP_SPEED_FP) begin
-                        y_speed_tmp = '0;
-                        falling_nxt = 1'b0;
-                    end else begin
-                        y_speed_tmp = -((y_speed_tmp * 3) >>> 2);
-                    end
-                end else if (y_pos_tmp < 0) begin
-                    y_pos_tmp = '0;
-                    y_speed_tmp = '0;
-                end
-
                 y_pos_fp_nxt = y_pos_tmp;
                 y_speed_nxt = y_speed_tmp;
                 ypos_nxt = y_pos_tmp[FRAC_BITS +: 12];
+
+                if (y_pos_tmp >= Y_MAX_FP) begin
+                    y_pos_fp_nxt = Y_MAX_FP;
+                    ypos_nxt = Y_MAX;
+                    if (y_speed_tmp < IMPACT_STOP_SPEED_FP) begin
+                        y_speed_nxt = '0;
+                        falling_nxt = 1'b0;
+                    end else begin
+                        // Bounce: keep about 75% of the speed and change direction.
+                        y_speed_bounce = y_speed_tmp - (y_speed_tmp >>> 2);
+                        y_speed_nxt = -y_speed_bounce;
+                    end
+                end else if (y_pos_tmp < 24'sd0) begin
+                    y_pos_fp_nxt = '0;
+                    y_speed_nxt = '0;
+                    ypos_nxt = '0;
+                end
             end
         end else if (mouse_left_rise) begin
             falling_nxt = 1'b1;
@@ -112,10 +115,10 @@ module draw_rect_ctl #(
         end
     end
 
-    always_ff @(posedge clk or negedge rst_n) begin : rect_ctl_ff_blk
+    always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             tick_ctr <= '0;
-            falling <= '0;
+            falling <= 1'b0;
             mouse_left_dly <= '0;
             xpos <= '0;
             ypos <= '0;

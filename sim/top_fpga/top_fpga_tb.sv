@@ -20,9 +20,9 @@ module top_fpga_tb;
     /**
      * Local parameters
      */
-    localparam CLK_PERIOD = 10;     // 100 MHz
-    localparam RST_START_TIME = 1000;
-    localparam RST_ACTIVE_TIME = 2000;
+    localparam int CLK_PERIOD = 10;     // 100 MHz
+    localparam int RST_START_TIME = 1000;
+    localparam int RST_ACTIVE_TIME = 2000;
 
     /**
      * Local variables and signals
@@ -43,7 +43,7 @@ module top_fpga_tb;
      */
     initial begin
         clk = 1'b0;
-        forever #(CLK_PERIOD/2) begin
+        forever #(CLK_PERIOD / 2) begin
             clk = ~clk;
         end
     end
@@ -81,16 +81,15 @@ module top_fpga_tb;
      */
     initial begin
         rst_n = 1'b1;
-        #(RST_START_TIME) begin
-            rst_n = 1'b0;
-        end
-        #(RST_ACTIVE_TIME) begin
-            rst_n = 1'b1;
-        end
+        #(RST_START_TIME);
+        rst_n = 1'b0;
+        #(RST_ACTIVE_TIME);
+        rst_n = 1'b1;
 
         $display("If simulation ends before the testbench");
         $display("completes, use the menu option to run all.");
         $display("Prepare to wait a long time...");
+        $display("Initial HS state: %b", hs);
 
         wait (vs == 1'b0);
         @(negedge vs) begin
