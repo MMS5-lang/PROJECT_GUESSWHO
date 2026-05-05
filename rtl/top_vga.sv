@@ -57,10 +57,18 @@ module top_vga (
     logic [11:0] rect_pixel_addr;
     logic [11:0] rect_rgb_pixel;
 
+    logic [7:0] char_xy;
+    logic [3:0] char_line;
+    logic [6:0] char_code;
+    logic [10:0] font_addr;
+    logic [7:0] char_pixels;
+
     vga_if if_tim ();
     vga_if if_bg ();
     vga_if if_rect ();
     vga_if if_mouse ();
+    vga_if if_char();
+
 
     /**
      * Signal assignments
@@ -72,6 +80,8 @@ module top_vga (
 
     assign mouse_xpos_clip = (mouse_xpos > MOUSE_MAX_X) ? MOUSE_MAX_X : mouse_xpos;
     assign mouse_ypos_clip = (mouse_ypos > MOUSE_MAX_Y) ? MOUSE_MAX_Y : mouse_ypos;
+
+    assign font_addr = {char_code, char_line};
 
     /**
      * Sequential logic
@@ -134,6 +144,32 @@ module top_vga (
         .out (if_bg.out)
     );
 
+    char_rom #(
+        .TEXT("Bardzo ciekawe cwiczenie :)")
+    ) u_char_rom (
+        .clk(clk),
+        .char_xy(char_xy),
+        .char_code(char_code)
+    );
+    font_rom u_font_rom (
+        .clk(clk),
+        .addr(font_addr),
+        .char_line_pixels(char_pixels)
+    );
+
+    draw_rect_char #(
+        .XPOS(100), 
+        .YPOS(50)   
+    ) u_draw_rect_char (
+        .clk(clk),
+        .rst_n(rst_n),
+        .char_line_pixels(char_pixels),
+        .char_xy(char_xy),
+        .char_line(char_line),
+        .in(if_bg.in),
+        .out(if_char.out)
+    );
+
     draw_rect_ctl #(
         .RECT_HEIGHT (RECT_HEIGHT)
     ) u_draw_rect_ctl (
@@ -156,7 +192,7 @@ module top_vga (
         .ypos       (rect_ypos),
         .rgb_pixel  (rect_rgb_pixel),
         .pixel_addr (rect_pixel_addr),
-        .in         (if_bg.in),
+        .in         (if_char.in),
         .out        (if_rect.out)
     );
 

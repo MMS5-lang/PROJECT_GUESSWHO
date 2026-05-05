@@ -8,6 +8,10 @@
 sv work ../../rtl/vga_pkg.sv
 sv work ../../rtl/vga_if.sv
 sv work ../../rtl/vga_timing.sv
+sv work ../../rtl/delay.sv
+sv work ../../rtl/font_rom.sv
+sv work ../../rtl/char_rom.sv
+sv work ../../rtl/draw_rect_char.sv
 sv work ../../rtl/draw_bg.sv
 sv work ../../rtl/image_rom.sv
 sv work ../../rtl/draw_rect_ctl.sv
