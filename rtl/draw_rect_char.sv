@@ -81,9 +81,9 @@ module draw_rect_char #(
             out.rgb = 12'h0_0_0;
         end else if (in_rect_dly) begin
             if (pixel_on)
-                out.rgb = 12'hF_F_F; // Biały kolor czcionki
+                out.rgb = 12'hF_F_F; // kolor czcionki
             else
-                out.rgb = 12'h1_1_3; 
+                out.rgb = 12'h9_6_E; // kolor tla
         end else begin
             out.rgb = rgb_dly;
         end
