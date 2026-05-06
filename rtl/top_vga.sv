@@ -33,8 +33,17 @@ module top_vga (
      */
     localparam int RECT_WIDTH     = 48;
     localparam int RECT_HEIGHT    = 64;
+    localparam int TEXT_XPOS      = 100;
+    localparam int TEXT_YPOS      = 50;
     localparam logic [11:0] MOUSE_MAX_X = 12'd799;
     localparam logic [11:0] MOUSE_MAX_Y = 12'd599;
+    localparam string TEXT = {
+        "UEC2 LAB5 - TRYB TEKSTOWY       ",
+        "PROSTOKAT 32 x 8 ZNAKOW         ",
+        "ROM ZNAKOW + ROM CZCIONKI       ",
+        "LOGO AGH I MYSZ BEZ ZMIAN       ",
+        "KONIEC TEKSTU - DZIALA :)       "
+    };
 
     /**
      * Local variables and signals
@@ -67,7 +76,7 @@ module top_vga (
     vga_if if_bg ();
     vga_if if_rect ();
     vga_if if_mouse ();
-    vga_if if_char();
+    vga_if if_char ();
 
 
     /**
@@ -145,29 +154,30 @@ module top_vga (
     );
 
     char_rom #(
-        .TEXT("Bardzo ciekawe cwiczenie :)")
+        .TEXT (TEXT)
     ) u_char_rom (
-        .clk(clk),
-        .char_xy(char_xy),
-        .char_code(char_code)
+        .clk       (clk),
+        .char_xy   (char_xy),
+        .char_code (char_code)
     );
+
     font_rom u_font_rom (
-        .clk(clk),
-        .addr(font_addr),
-        .char_line_pixels(char_pixels)
+        .clk              (clk),
+        .addr             (font_addr),
+        .char_line_pixels (char_pixels)
     );
 
     draw_rect_char #(
-        .XPOS(100), 
-        .YPOS(50)   
+        .XPOS (TEXT_XPOS),
+        .YPOS (TEXT_YPOS)
     ) u_draw_rect_char (
-        .clk(clk),
-        .rst_n(rst_n),
-        .char_line_pixels(char_pixels),
-        .char_xy(char_xy),
-        .char_line(char_line),
-        .in(if_bg.in),
-        .out(if_char.out)
+        .clk              (clk),
+        .rst_n            (rst_n),
+        .char_line_pixels (char_pixels),
+        .char_xy          (char_xy),
+        .char_line        (char_line),
+        .in               (if_bg.in),
+        .out              (if_char.out)
     );
 
     draw_rect_ctl #(
