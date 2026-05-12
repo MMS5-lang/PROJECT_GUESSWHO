@@ -5,6 +5,6 @@
 # Description:
 # List of files defining the modules used during the test.
 
-sv work ../../rtl/vga_pkg.sv
-sv work ../../rtl/vga_timing.sv
+sv work ../../rtl/vga/vga_pkg.sv
+sv work ../../rtl/vga/vga_timing.sv
 sv work vga_timing_tb.sv

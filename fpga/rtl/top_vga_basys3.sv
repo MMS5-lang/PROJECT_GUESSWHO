@@ -32,7 +32,7 @@ module top_vga_basys3 (
      * Local variables and signals
      */
     logic clk_100mhz;
-    logic clk_40mhz;
+    logic clk_65mhz;
     logic pclk_mirror;
     logic rst_n;
 
@@ -47,15 +47,15 @@ module top_vga_basys3 (
      */
     clk_wiz_0 u_clk_wiz (
         .clk        (clk),
-        .clk_100MHz (clk_100mhz),
-        .clk_40MHz  (clk_40mhz),
+        .clk100MHz  (clk_100mhz),
+        .clk65MHz   (clk_65mhz),
         .locked     ()
     );
 
     // Mirror pclk on a pin for use by the testbench.
     ODDR pclk_oddr (
         .Q  (pclk_mirror),
-        .C  (clk_40mhz),
+        .C  (clk_65mhz),
         .CE (1'b1),
         .D1 (1'b1),
         .D2 (1'b0),
@@ -67,7 +67,7 @@ module top_vga_basys3 (
      * Project functional top module
      */
     top_vga u_top_vga (
-        .clk        (clk_40mhz),
+        .clk        (clk_65mhz),
         .clk_100mhz (clk_100mhz),
         .rst_n      (rst_n),
         .ps2_clk    (PS2Clk),

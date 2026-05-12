@@ -5,26 +5,19 @@
 # Description:
 # List of files defining the modules used during the test.
 
-sv work ../../rtl/vga_pkg.sv
-sv work ../../rtl/vga_if.sv
-sv work ../../rtl/vga_timing.sv
-sv work ../../rtl/delay.sv
-sv work ../../rtl/font_rom.sv
-sv work ../../rtl/char_rom.sv
-sv work ../../rtl/draw_rect_char.sv
-sv work ../../rtl/draw_bg.sv
-sv work ../../rtl/image_rom.sv
-sv work ../../rtl/draw_rect_ctl.sv
-sv work ../../rtl/draw_rect.sv
-sv work ../../rtl/draw_mouse.sv
-sv work ../../rtl/top_vga.sv
-sv work ../../rtl/clk_wiz_0_clk_wiz.v
-sv work ../../rtl/clk_wiz_0.v
+sv work ../../rtl/vga/vga_pkg.sv
+sv work ../../rtl/vga/vga_if.sv
+sv work ../../rtl/vga/vga_timing.sv
+sv work ../../rtl/render/draw_bg.sv
+sv work ../../rtl/mouse/draw_mouse.sv
+sv work ../../rtl/top/top_vga.sv
+verilog work ../../fpga/rtl/clk_wiz_0_clk_wiz.v
+verilog work ../../fpga/rtl/clk_wiz_0.v
 sv work ../../fpga/rtl/top_vga_basys3.sv
 sv work ../common/tiff_writer.sv
-vhdl work ../../rtl/Ps2Interface.vhd
-vhdl work ../../rtl/MouseCtl.vhd
-vhdl work ../../rtl/MouseDisplay.vhd
+vhdl work ../../rtl/mouse/Ps2Interface.vhd
+vhdl work ../../rtl/mouse/MouseCtl.vhd
+vhdl work ../../rtl/mouse/MouseDisplay.vhd
 sv work top_fpga_tb.sv
 
 # compile glbl module - required for IP simulation

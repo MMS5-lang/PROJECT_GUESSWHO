@@ -17,9 +17,10 @@ module vga_timing_tb;
     /* -----------------------------------------------------------------------------
      * Local parameters
      * -------------------------------------------------------------------------- */
-    localparam int CLK_PERIOD = 25; // 40 MHz clock
+    localparam real CLK_PERIOD = 15.384615; // 65 MHz clock
     localparam real RST_START_TIME = 1.25 * CLK_PERIOD;
     localparam real RST_ACTIVE_TIME = 2.00 * CLK_PERIOD;
+    localparam real RST_SETTLE_TIME = RST_START_TIME + RST_ACTIVE_TIME + CLK_PERIOD;
     
     /* -----------------------------------------------------------------------------
      * Local variables and signals
@@ -51,7 +52,7 @@ module vga_timing_tb;
         #(RST_ACTIVE_TIME);
         rst_n = 1'b1;
     end
-    
+
     /* -----------------------------------------------------------------------------
      * Dut placement
      * -------------------------------------------------------------------------- */
@@ -160,7 +161,9 @@ module vga_timing_tb;
     /* hsync : set */
     assert property (
         @(posedge clk)
-        hcount >= HOR_SYNC_START && hcount < HOR_SYNC_START + HOR_SYNC_TIME - 1 |-> hsync
+        disable iff (!rst_n || $realtime < RST_SETTLE_TIME)
+        hcount >= HOR_SYNC_START && hcount < HOR_SYNC_START + HOR_SYNC_TIME - 1 |->
+        hsync == HOR_SYNC_POLARITY
     ) else begin
         $error("hsync: set failed");
     end
@@ -168,7 +171,9 @@ module vga_timing_tb;
     /* hsync : clear */
     assert property (
         @(posedge clk)
-        (hcount < HOR_SYNC_START) || (hcount > (HOR_SYNC_START + HOR_SYNC_TIME - 1)) |-> !hsync
+        disable iff (!rst_n || $realtime < RST_SETTLE_TIME)
+        (hcount < HOR_SYNC_START) || (hcount > (HOR_SYNC_START + HOR_SYNC_TIME - 1)) |->
+        hsync == !HOR_SYNC_POLARITY
     ) else begin
         $error("hsync: clear failed");
     end
@@ -176,7 +181,9 @@ module vga_timing_tb;
     /* vsync : set */
     assert property (
         @(posedge clk)
-        vcount >= VER_SYNC_START && vcount < VER_SYNC_START + VER_SYNC_TIME - 1 |-> vsync
+        disable iff (!rst_n || $realtime < RST_SETTLE_TIME)
+        vcount >= VER_SYNC_START && vcount < VER_SYNC_START + VER_SYNC_TIME - 1 |->
+        vsync == VER_SYNC_POLARITY
     ) else begin
         $error("vsync: set failed");
     end
@@ -184,7 +191,9 @@ module vga_timing_tb;
     /* vsync : clear */
     assert property (
         @(posedge clk)
-        vcount < VER_SYNC_START || vcount > VER_SYNC_START + VER_SYNC_TIME - 1 |-> !vsync
+        disable iff (!rst_n || $realtime < RST_SETTLE_TIME)
+        vcount < VER_SYNC_START || vcount > VER_SYNC_START + VER_SYNC_TIME - 1 |->
+        vsync == !VER_SYNC_POLARITY
     ) else begin
         $error("vsync: clear failed");
     end

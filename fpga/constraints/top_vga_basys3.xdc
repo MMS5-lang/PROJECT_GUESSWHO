@@ -6,7 +6,11 @@
 ## Clock signal
 set_property PACKAGE_PIN W5 [get_ports clk]
 	set_property IOSTANDARD LVCMOS33 [get_ports clk]
+# Clock period is defined in clk_wiz_0.xdc generated for the clocking IP.
 #	create_clock -add -name sys_clk_pin -period 10.00 -waveform {0 5} [get_ports clk]
+
+## Clock domain crossings
+set_false_path -to [get_pins -of_objects [get_cells -hierarchical -regexp {.*mouse_(xpos|ypos)_sync1_reg\[[0-9]+\]}] -filter {REF_PIN_NAME == D}]
 
 ## Switches
 #set_property PACKAGE_PIN V17 [get_ports {sw[0]}]

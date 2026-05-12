@@ -1,9 +1,0 @@
-# Copyright (C) 2025  AGH University of Science and Technology
-# MTM UEC2
-#
-# Description:
-# List of files defining the modules used during the test.
-
-sv work ../../rtl/draw_rect_ctl.sv
-sv work draw_rect_ctl_prog.sv
-sv work draw_rect_ctl_tb.sv

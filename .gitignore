@@ -32,6 +32,8 @@ xsim*
 
 dvt_build.log
 .dvt/
+dfx_runtime.txt
+**/dfx_runtime.txt
 
 xcelium.d
 xrun.log
