@@ -49,6 +49,8 @@ module top_vga (
 
     vga_if if_tim ();
     vga_if if_bg ();
+    vga_if if_ui ();
+    vga_if if_face ();
     vga_if if_mouse ();
 
 
@@ -119,13 +121,27 @@ module top_vga (
         .in  (if_tim.in),
         .out (if_bg.out)
     );
+    
+    ui_renderer u_ui_renderer (
+        .clk,
+        .rst_n,
+        .in  (if_bg.in),
+        .out (if_ui.out)
+    );
+
+    face_renderer u_face_renderer (
+        .clk,
+        .rst_n,
+        .in  (if_ui.in),    
+        .out (if_face.out)  
+    );    
 
     draw_mouse u_draw_mouse (
         .clk   (clk),
         .rst_n (rst_n),
         .xpos  (mouse_xpos_clip),
         .ypos  (mouse_ypos_clip),
-        .in    (if_bg.in),
+        .in    (if_face.in),
         .out   (if_mouse.out)
     );
 
