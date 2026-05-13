@@ -1,10 +1,6 @@
 /**
- * Copyright (C) 2025  AGH University of Science and Technology
- * MTM UEC2
- * Author: Piotr Kaczmarczyk
- *
  * Description:
- * Draw background, blanking area and active-area border using VGA interface.
+ * Rysowanie tła i planszy 6x3 dla gry Guess Who
  */
 
  module draw_bg (
@@ -20,6 +16,13 @@ timeprecision 1ps;
 import vga_pkg::*;
 
 logic [11:0] rgb_nxt;
+
+logic in_board;
+logic is_board_frame;
+logic is_cell_frame;
+logic [10:0] relative_x;
+logic [10:0] relative_y;
+
 
 always_ff @(posedge clk or negedge rst_n) begin : bg_ff_blk
     if (!rst_n) begin
@@ -41,21 +44,43 @@ always_ff @(posedge clk or negedge rst_n) begin : bg_ff_blk
     end
 end
 
+
+
 always_comb begin : bg_comb_blk
-    if (in.vblnk || in.hblnk) begin             // Blanking region:
-        rgb_nxt = 12'h0_0_0;                    // - make it black.
-    end else begin                              // Active region:
-        if (in.vcount == 0)                     // - top edge:
-            rgb_nxt = 12'hf_f_0;                // - - make a yellow line.
-        else if (in.vcount == VER_PIXELS - 1)   // - bottom edge:
-            rgb_nxt = 12'hf_0_0;                // - - make a red line.
-        else if (in.hcount == 0)                // - left edge:
-            rgb_nxt = 12'h0_f_0;                // - - make a green line.
-        else if (in.hcount == HOR_PIXELS - 1)   // - right edge:
-            rgb_nxt = 12'h0_0_f;                // - - make a blue line.
-        else                                    // The rest of active display pixels:
-            rgb_nxt = in.rgb;                   // - pass input colour.
+    relative_x = in.hcount - BOARD_X;
+    relative_y = in.vcount - BOARD_Y;
+
+    in_board = (in.hcount >= BOARD_X) && (in.hcount <= BOARD_X + BOARD_W) &&
+               (in.vcount >= BOARD_Y) && (in.vcount <= BOARD_Y + BOARD_H);
+
+    is_board_frame = in_board && (
+        (in.hcount < BOARD_X + 3) || 
+        (in.hcount > BOARD_X + BOARD_W - 3) ||
+        (in.vcount < BOARD_Y + 3) || 
+        (in.vcount > BOARD_Y + BOARD_H - 3)
+    );
+
+
+    is_cell_frame = in_board && (!is_board_frame) && (
+        (relative_x % CELL_W < 2) || 
+        (relative_y % CELL_H < 2)
+    );
+
+    if (in.vblnk || in.hblnk) begin             
+        rgb_nxt = 12'h0_0_0;               
+        
+    end else if (is_board_frame) begin     
+        rgb_nxt = 12'h0_0_0;               
+
+    end else if (is_cell_frame) begin
+        rgb_nxt = 12'h5_5_5;               
+
+    end else if (in_board) begin
+        rgb_nxt = 12'hf_f_f;              
+
+    end else begin
+        rgb_nxt = 12'h9_a_b;               
     end
 end
 
-endmodule
+ endmodule

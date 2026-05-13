@@ -28,4 +28,14 @@ package vga_pkg;
     localparam bit VER_SYNC_POLARITY = 1'b0;
     // Add VGA timing parameters here and refer to them in other modules.
 
+    localparam int BOARD_COLS = 6;
+    localparam int BOARD_ROWS = 3;
+    localparam int CELL_W = 140;
+    localparam int CELL_H = 220;
+    localparam int BOARD_X = 32; 
+    localparam int BOARD_Y = 32;
+    localparam int BOARD_W = BOARD_COLS * CELL_W;
+    localparam int BOARD_H = BOARD_ROWS * CELL_H;
+
+
 endpackage
