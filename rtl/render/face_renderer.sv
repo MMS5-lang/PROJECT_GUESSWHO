@@ -17,6 +17,16 @@ import vga_pkg::*;
 
 logic [11:0] rgb_nxt;
 
+localparam int HEAD_W = 105;   // Szerokość Twojego rysunku
+localparam int HEAD_H = 120;  // Wysokość Twojego rysunku
+localparam int HEAD_X_OFF = 10; // Pozycja X wewnątrz karty (140x200)
+localparam int HEAD_Y_OFF = 60; // Pozycja Y wewnątrz karty
+
+logic [11:0] head_rom [0:HEAD_W*HEAD_H-1];
+
+initial begin
+    $readmemh("../../head_shape.dat", head_rom);
+end
 
 // Format 4-bitowy: [3] Kolor skóry, [2] Okulary, [1] Czapka, [0] Broda
 localparam logic [3:0] CHAR_TRAITS [0:17] = '{
@@ -33,8 +43,12 @@ logic [3:0] col;
 logic [4:0] char_idx;
 logic [3:0] my_traits;
 
+logic [10:0] head_lx, head_ly;
+logic [11:0] head_pixel;
+logic in_head_area;
 
-logic is_head, is_hat, is_glasses, is_beard;
+
+logic is_hat, is_glasses, is_beard;
 
 always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -73,7 +87,17 @@ always_comb begin
     if (char_idx > 17) char_idx = 17; 
     my_traits = CHAR_TRAITS[char_idx];
 
-    is_head    = (cell_x >= 30 && cell_x < 110) && (cell_y >= 60 && cell_y < 160);
+    head_lx = cell_x - HEAD_X_OFF;
+    head_ly = cell_y - HEAD_Y_OFF;
+    
+    in_head_area = (cell_x >= HEAD_X_OFF && cell_x < HEAD_X_OFF + HEAD_W) &&
+                   (cell_y >= HEAD_Y_OFF && cell_y < HEAD_Y_OFF + HEAD_H);
+
+    if (in_head_area)
+        head_pixel = head_rom[head_ly * HEAD_W + head_lx];
+    else
+        head_pixel = 12'hf_0_f; 
+
     is_hat     = my_traits[1] && (cell_x >= 20 && cell_x < 120) && (cell_y >= 30 && cell_y < 60);
     is_glasses = my_traits[2] && (cell_x >= 35 && cell_x < 105) && (cell_y >= 80 && cell_y < 100);
     is_beard   = my_traits[0] && (cell_x >= 40 && cell_x < 100) && (cell_y >= 130 && cell_y < 160);
@@ -86,12 +110,20 @@ always_comb begin
         if (is_hat)          rgb_nxt = 12'h2_2_d;
         else if (is_glasses) rgb_nxt = 12'h0_0_0; 
         else if (is_beard)   rgb_nxt = 12'h5_2_0; 
-        else if (is_head)    rgb_nxt = my_traits[3] ? 12'h8_5_2 : 12'hf_d_a; 
-        else                 rgb_nxt = in.rgb;    
-        
+
+    else if (in_head_area && head_pixel != 12'hf_0_f) begin
+        if (head_pixel == 12'hf_f_f) 
+            rgb_nxt = my_traits[3] ? 12'h8_5_2 : 12'hf_d_b; 
+        else
+            rgb_nxt = head_pixel;    // reszta tak samo, mozna zmienic kolor oczu jest 12'h9_5_3
+            
     end else begin
         rgb_nxt = in.rgb; 
     end
+    
+end else begin
+    rgb_nxt = in.rgb; 
+end
 end
 
 endmodule
