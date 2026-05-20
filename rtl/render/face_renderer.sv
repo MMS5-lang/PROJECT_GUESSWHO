@@ -17,49 +17,52 @@ import vga_pkg::*;
 
 logic [11:0] rgb_nxt;
 
-localparam int HEAD_W = 132;   
-localparam int HEAD_H = 132;  
-localparam int HEAD_X_OFF = 4; 
-localparam int HEAD_Y_OFF = 55; 
+localparam int HEAD_W = 140;   
+localparam int HEAD_H = 130;  
+localparam int HEAD_X_OFF = 0; 
+localparam int HEAD_Y_OFF = 70 ; 
 
-localparam int GLASSES_W = 112;   
-localparam int GLASSES_H = 24;  
-localparam int GLASSES_X_OFF = 13; 
-localparam int GLASSES_Y_OFF = 92;
+localparam int GLASSES_W = 82;   
+localparam int GLASSES_H = 21;  
+localparam int GLASSES_X_OFF = 30; 
+localparam int GLASSES_Y_OFF = 115;
 
-localparam int HAIR_1_W = 132;   
-localparam int HAIR_1_H = 64;  
-localparam int HAIR_1_X_OFF = 4; 
-localparam int HAIR_1_Y_OFF = 27;
+localparam int HAIR_1_W = 80;   
+localparam int HAIR_1_H = 34;  
+localparam int HAIR_1_X_OFF = 28; 
+localparam int HAIR_1_Y_OFF = 70;
 
-localparam int HAIR_LONG_W = 130;   
-localparam int HAIR_LONG_H = 140;  
-localparam int HAIR_LONG_X_OFF = 4; 
-localparam int HAIR_LONG_Y_OFF = 35;
+localparam int HAIR_LONG_W = 85;   
+localparam int HAIR_LONG_H = 55;  
+localparam int HAIR_LONG_X_OFF = 28; 
+localparam int HAIR_LONG_Y_OFF = 64;
 
-localparam int PAYOT_W = 8;   
-localparam int PAYOT_Y_START = HAIR_1_Y_OFF + HAIR_1_H; 
-localparam int PAYOT_Y_END = PAYOT_Y_START + 80;        
-localparam int PAYOT_L_X = HEAD_X_OFF + 12 ;                  
-localparam int PAYOT_R_X = HEAD_X_OFF + HEAD_W - PAYOT_W - 12; 
+
+localparam int PAYOT_W = 72;
+localparam int PAYOT_H = 66;
+localparam int PAYOT_X_OFF = 32;
+localparam int PAYOT_Y_OFF = 120;
+
 
 logic [11:0] head_rom [0:HEAD_W*HEAD_H-1];
 logic [11:0] glasses_rom [0:GLASSES_W*GLASSES_H-1];
 logic [11:0] hair_1_rom [0:HAIR_1_W*HAIR_1_H-1];
 logic [11:0] hair_long_rom [0:HAIR_LONG_W*HAIR_LONG_H-1];
+logic [11:0] payot_rom [0:PAYOT_W*PAYOT_H-1]; 
 
 initial begin
     $readmemh("../../head_shape.dat", head_rom);
-    $readmemh("../../glasses.dat", glasses_rom);
-    $readmemh("../../hair_1.dat", hair_1_rom);
-    $readmemh("../../hair_long.dat", hair_long_rom);
+    $readmemh("../../glasses_2.dat", glasses_rom);
+    $readmemh("../../hair_1_1.dat", hair_1_rom);
+    $readmemh("../../hair_long_1.dat", hair_long_rom);
+    $readmemh("../../payot.dat", payot_rom);
 end
 
 // Format 4-bitowy: [7] wlosy dlugie (2) , [6] wlosy krotkie(1), [5] kolor wlosow (blond brunet) [4] kolor oczu (niebieskie, zielone), [3] Kolor skóry (bialy, czarny), [2] Okulary (tak, nie), [1] Czapka(tak, nie), [0] pejsy (tak, nie)
 localparam logic [7:0] CHAR_TRAITS [0:17] = '{
-    8'b11000001, 8'b11100001, 8'b01000101, 8'b00100111, 8'b10110100, 8'b10000101,
-    8'b00100110, 8'b11001110, 8'b10001000, 8'b10111001, 8'b11110101, 8'b11001011, 
-    8'b01001100, 8'b01111001, 8'b10101110, 8'b01011111, 8'b00101001, 8'b10110001  
+    8'b10000001, 8'b01100001, 8'b00000101, 8'b00100111, 8'b10110100, 8'b10000101,
+    8'b00100110, 8'b10001110, 8'b10001000, 8'b10111001, 8'b01110101, 8'b10001011, 
+    8'b01001100, 8'b01111001, 8'b10101110, 8'b01011111, 8'b01101001, 8'b10010000  
 };
 
 logic in_board;
@@ -86,7 +89,10 @@ logic [10:0] hair_long_lx, hair_long_ly;
 logic [11:0] hair_long_pixel;
 logic in_hair_long_area;
 
-logic is_payot;
+logic [10:0] payot_lx, payot_ly;
+logic [11:0] payot_pixel;
+logic in_payot_area; 
+
 
 always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -174,10 +180,20 @@ always_comb begin
     
 
     // PEJSY
-    is_payot = my_traits[0] && 
-               (cell_y >= PAYOT_Y_START && cell_y < PAYOT_Y_END) &&
-               ((cell_x >= PAYOT_L_X && cell_x < PAYOT_L_X + PAYOT_W) || 
-                (cell_x >= PAYOT_R_X && cell_x < PAYOT_R_X + PAYOT_W));
+
+    payot_lx = cell_x - PAYOT_X_OFF;
+    payot_ly = cell_y - PAYOT_Y_OFF;
+  
+    in_payot_area = my_traits[0] &&
+        
+        (cell_x >= PAYOT_X_OFF && cell_x < PAYOT_X_OFF + PAYOT_W) &&
+        (cell_y >= PAYOT_Y_OFF && cell_y < PAYOT_Y_OFF + PAYOT_H); 
+        
+    if (in_payot_area)
+        payot_pixel = payot_rom[payot_ly * PAYOT_W + payot_lx];
+    else
+        payot_pixel = 12'hf_0_f; 
+
 
     if (in.vblnk || in.hblnk) begin
         rgb_nxt = 12'h0_0_0;
@@ -190,8 +206,8 @@ always_comb begin
         end else if (in_hair_1_area && hair_1_pixel != 12'hf_0_f) begin   
             if (hair_1_pixel == 12'h3_2_2)
                 rgb_nxt = my_traits[5] ? 12'hd_b_7 : 12'h2_1_0; 
-            else if (hair__pixel == 12'h0_0_0)
-                rgb_nxt = my_traits[5] ? 12'hd_b_7 : 12'h2_1_0;
+            else if (hair_1_pixel == 12'h0_0_0)
+                rgb_nxt = my_traits[5] ? 12'hc_9_7 : 12'h0_0_0;
             else
                 rgb_nxt = hair_1_pixel;
 
@@ -199,13 +215,14 @@ always_comb begin
             if (hair_long_pixel == 12'h3_2_2)
                 rgb_nxt = my_traits[5] ? 12'hd_b_7 : 12'h2_1_0;
             else if (hair_long_pixel == 12'h0_0_0)
-                rgb_nxt = my_traits[5] ? 12'hd_b_7 : 12'h2_1_0;
+                rgb_nxt = my_traits[5] ? 12'hc_9_7 : 12'h2_1_0;
             else
                 rgb_nxt = hair_long_pixel;            
-                
-        end else if (is_payot) begin   
-            rgb_nxt = my_traits[5] ? 12'hd_b_7 : 12'h2_1_0; 
-
+        end else if (in_payot_area && payot_pixel != 12'hf_0_f) begin
+            if (payot_pixel == 12'h3_2_2)
+                rgb_nxt = my_traits[5] ? 12'hd_b_7 : 12'h3_2_2;
+            else
+                rgb_nxt = payot_pixel;         
         end else if (in_head_area && head_pixel != 12'hf_0_f) begin
             if (head_pixel == 12'hf_f_f) 
                 rgb_nxt = my_traits[3] ? 12'h8_5_2 : 12'hf_d_b; 
