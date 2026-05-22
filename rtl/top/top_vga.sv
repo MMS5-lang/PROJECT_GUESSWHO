@@ -57,7 +57,7 @@ module top_vga (
     /**
      * Signal assignments
      */
-    assign if_tim.rgb = 12'h8_8_8;
+    assign if_tim.rgb = 12'h9_a_b;
     assign vs         = if_mouse.vsync;
     assign hs         = if_mouse.hsync;
     assign {r, g, b}  = if_mouse.rgb;
@@ -121,7 +121,7 @@ module top_vga (
         .in  (if_tim.in),
         .out (if_bg.out)
     );
-    
+
     ui_renderer u_ui_renderer (
         .clk,
         .rst_n,
@@ -132,9 +132,9 @@ module top_vga (
     face_renderer u_face_renderer (
         .clk,
         .rst_n,
-        .in  (if_ui.in),    
-        .out (if_face.out)  
-    );    
+        .in  (if_ui.in),
+        .out (if_face.out)
+    );
 
     draw_mouse u_draw_mouse (
         .clk   (clk),

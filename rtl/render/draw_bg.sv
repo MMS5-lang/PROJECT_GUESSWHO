@@ -1,9 +1,13 @@
 /**
+ * Copyright (C) 2025  AGH University of Science and Technology
+ * MTM UEC2
+ * Author: Guess Who project team
+ *
  * Description:
- * Rysowanie tła i planszy 6x3 dla gry Guess Who
+ * Rysowanie tla i planszy 6x3 dla gry Guess Who.
  */
 
- module draw_bg (
+module draw_bg (
     input  logic clk,
     input  logic rst_n,
     vga_if.in    in,
@@ -20,9 +24,8 @@ logic [11:0] rgb_nxt;
 logic in_board;
 logic is_board_frame;
 logic is_cell_frame;
-logic [10:0] relative_x;
-logic [10:0] relative_y;
-
+logic is_grid_col;
+logic is_grid_row;
 
 always_ff @(posedge clk or negedge rst_n) begin : bg_ff_blk
     if (!rst_n) begin
@@ -44,43 +47,44 @@ always_ff @(posedge clk or negedge rst_n) begin : bg_ff_blk
     end
 end
 
-
-
 always_comb begin : bg_comb_blk
-    relative_x = in.hcount - BOARD_X;
-    relative_y = in.vcount - BOARD_Y;
-
     in_board = (in.hcount >= BOARD_X) && (in.hcount <= BOARD_X + BOARD_W) &&
                (in.vcount >= BOARD_Y) && (in.vcount <= BOARD_Y + BOARD_H);
 
     is_board_frame = in_board && (
-        (in.hcount < BOARD_X + 3) || 
+        (in.hcount < BOARD_X + 3) ||
         (in.hcount > BOARD_X + BOARD_W - 3) ||
-        (in.vcount < BOARD_Y + 3) || 
+        (in.vcount < BOARD_Y + 3) ||
         (in.vcount > BOARD_Y + BOARD_H - 3)
     );
 
+    is_grid_col =
+        ((in.hcount >= BOARD_X + CELL_W)     && (in.hcount < BOARD_X + CELL_W + 2)) ||
+        ((in.hcount >= BOARD_X + 2 * CELL_W) && (in.hcount < BOARD_X + 2 * CELL_W + 2)) ||
+        ((in.hcount >= BOARD_X + 3 * CELL_W) && (in.hcount < BOARD_X + 3 * CELL_W + 2)) ||
+        ((in.hcount >= BOARD_X + 4 * CELL_W) && (in.hcount < BOARD_X + 4 * CELL_W + 2)) ||
+        ((in.hcount >= BOARD_X + 5 * CELL_W) && (in.hcount < BOARD_X + 5 * CELL_W + 2));
+
+    is_grid_row =
+        ((in.vcount >= BOARD_Y + CELL_H)     && (in.vcount < BOARD_Y + CELL_H + 2)) ||
+        ((in.vcount >= BOARD_Y + 2 * CELL_H) && (in.vcount < BOARD_Y + 2 * CELL_H + 2));
 
     is_cell_frame = in_board && (!is_board_frame) && (
-        (relative_x % CELL_W < 2) || 
-        (relative_y % CELL_H < 2)
+        is_grid_col ||
+        is_grid_row
     );
 
-    if (in.vblnk || in.hblnk) begin             
-        rgb_nxt = 12'h0_0_0;               
-        
-    end else if (is_board_frame) begin     
-        rgb_nxt = 12'h0_0_0;               
-
+    if (in.vblnk || in.hblnk) begin
+        rgb_nxt = 12'h0_0_0;
+    end else if (is_board_frame) begin
+        rgb_nxt = 12'h0_0_0;
     end else if (is_cell_frame) begin
-        rgb_nxt = 12'h5_5_5;               
-
+        rgb_nxt = 12'h5_5_5;
     end else if (in_board) begin
-        rgb_nxt = 12'hf_f_f;              
-
+        rgb_nxt = 12'hf_f_f;
     end else begin
-        rgb_nxt = 12'h9_a_b;               
+        rgb_nxt = in.rgb;
     end
 end
 
- endmodule
+endmodule

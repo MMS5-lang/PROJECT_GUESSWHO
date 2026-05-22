@@ -32,7 +32,7 @@ package vga_pkg;
     localparam int BOARD_ROWS = 3;
     localparam int CELL_W = 140;
     localparam int CELL_H = 200;
-    localparam int BOARD_X = 15; 
+    localparam int BOARD_X = 15;
     localparam int BOARD_Y = 15;
     localparam int BOARD_W = BOARD_COLS * CELL_W;
     localparam int BOARD_H = BOARD_ROWS * CELL_H;
@@ -40,7 +40,7 @@ package vga_pkg;
     localparam int PANEL_X = 865;
     localparam int PANEL_Y = 100;
 
-    localparam int BUTTON_Y = 640;  
+    localparam int BUTTON_Y = 640;
     localparam int BUTTON_W = 100;
     localparam int BUTTON_H = 50;
     localparam int START_X = 175;

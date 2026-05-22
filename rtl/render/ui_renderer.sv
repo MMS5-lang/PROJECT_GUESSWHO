@@ -1,9 +1,13 @@
 /**
+ * Copyright (C) 2025  AGH University of Science and Technology
+ * MTM UEC2
+ * Author: Guess Who project team
+ *
  * Description:
  * Warstwa UI: przyciski START, RESET oraz panel wybranej postaci.
  */
 
- module ui_renderer (
+module ui_renderer (
     input  logic clk,
     input  logic rst_n,
     vga_if.in    in,
@@ -16,7 +20,9 @@ timeprecision 1ps;
 import vga_pkg::*;
 
 logic [11:0] rgb_nxt;
-logic is_start_btn, is_reset_btn, is_panel;
+logic is_start_btn;
+logic is_reset_btn;
+logic is_panel;
 
 always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -39,24 +45,32 @@ always_ff @(posedge clk or negedge rst_n) begin
 end
 
 always_comb begin
-    is_start_btn = (in.hcount >= START_X) && (in.hcount < START_X + BUTTON_W) && (in.vcount >= BUTTON_Y)   && (in.vcount < BUTTON_Y + BUTTON_H);
-                   
-    is_reset_btn = (in.hcount >= RESET_X) && (in.hcount < RESET_X + BUTTON_W) && (in.vcount >= BUTTON_Y)   && (in.vcount < BUTTON_Y + BUTTON_H);
-                   
-    is_panel = (in.hcount >= PANEL_X) && (in.hcount < PANEL_X + CELL_W) && (in.vcount >= PANEL_Y) && (in.vcount < PANEL_Y + CELL_H);
+    is_start_btn = (in.hcount >= START_X) &&
+                   (in.hcount < START_X + BUTTON_W) &&
+                   (in.vcount >= BUTTON_Y) &&
+                   (in.vcount < BUTTON_Y + BUTTON_H);
+
+    is_reset_btn = (in.hcount >= RESET_X) &&
+                   (in.hcount < RESET_X + BUTTON_W) &&
+                   (in.vcount >= BUTTON_Y) &&
+                   (in.vcount < BUTTON_Y + BUTTON_H);
+
+    is_panel = (in.hcount >= PANEL_X) &&
+               (in.hcount < PANEL_X + CELL_W) &&
+               (in.vcount >= PANEL_Y) &&
+               (in.vcount < PANEL_Y + CELL_H);
 
     if (in.vblnk || in.hblnk) begin
         rgb_nxt = 12'h0_0_0;
     end else if (is_start_btn) begin
-        rgb_nxt = 12'h0_b_0; 
+        rgb_nxt = 12'h0_b_0;
     end else if (is_reset_btn) begin
-        rgb_nxt = 12'hd_0_0; 
+        rgb_nxt = 12'hd_0_0;
     end else if (is_panel) begin
-        rgb_nxt = 12'hf_f_f; 
+        rgb_nxt = 12'hf_f_f;
     end else begin
-        rgb_nxt = in.rgb;    
+        rgb_nxt = in.rgb;
     end
 end
 
 endmodule
-

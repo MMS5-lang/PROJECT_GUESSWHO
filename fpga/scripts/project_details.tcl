@@ -25,9 +25,19 @@ set sv_files {
     ../rtl/vga/vga_if.sv
     ../rtl/vga/vga_timing.sv
     ../rtl/render/draw_bg.sv
+    ../rtl/render/ui_renderer.sv
+    ../rtl/render/face_renderer.sv
     ../rtl/mouse/draw_mouse.sv
     ../rtl/top/top_vga.sv
     rtl/top_vga_basys3.sv
+}
+
+set mem_files {
+    ../rtl/assets/faces/head_shape.dat
+    ../rtl/assets/faces/glasses_2.dat
+    ../rtl/assets/faces/hair_1_1.dat
+    ../rtl/assets/faces/hair_long_1.dat
+    ../rtl/assets/faces/payot.dat
 }
 
 set verilog_files {
