@@ -26,26 +26,34 @@ localparam logic [11:0] COLOR_WHITE = 12'hf_f_f;
 localparam logic [11:0] COLOR_GREEN = 12'h0_b_0;
 localparam logic [11:0] COLOR_RED   = 12'hf_0_0;
 
-localparam int FONT_W = 5;
+function automatic logic [10:0] pos11(input int value);
+begin
+    pos11 = value[10:0];
+end
+endfunction
+
 localparam int FONT_H = 7;
 localparam int TEXT_SCALE = 2;
 localparam int TEXT_PITCH = 12;
 localparam int TEXT_H = FONT_H * TEXT_SCALE;
 
-localparam int START_TEXT_X = START_X + 30;
-localparam int START_TEXT_Y = BUTTON_Y + 18;
-localparam int END_TEXT_X = START_X + 24;
-localparam int END_TEXT_Y1 = BUTTON_Y + 8;
-localparam int END_TEXT_Y2 = BUTTON_Y + 28;
-localparam int RESET_TEXT_X = RESET_X + 30;
-localparam int RESET_TEXT_Y1 = BUTTON_Y + 8;
-localparam int RESET_TEXT_Y2 = BUTTON_Y + 28;
-localparam int PANEL_TEXT_X = PANEL_X + 26;
-localparam int PANEL_TEXT_Y1 = PANEL_Y - 42;
-localparam int PANEL_TEXT_Y2 = PANEL_Y - 22;
-localparam int MSG_TEXT_X = PANEL_X + 18;
-localparam int MSG_LOSE_X = MSG_TEXT_X - 12;
-localparam int MSG_TEXT_Y = PANEL_Y + CELL_H + 40;
+localparam logic [10:0] START_TEXT_X = pos11(START_X + 30);
+localparam logic [10:0] START_TEXT_Y = pos11(BUTTON_Y + 18);
+localparam logic [10:0] END_TEXT_X = pos11(START_X + 24);
+localparam logic [10:0] END_TURY_TEXT_X = END_TEXT_X + 11'd12;
+localparam logic [10:0] END_TEXT_Y1 = pos11(BUTTON_Y + 8);
+localparam logic [10:0] END_TEXT_Y2 = pos11(BUTTON_Y + 28);
+localparam logic [10:0] RESET_TEXT_X = pos11(RESET_X + 30);
+localparam logic [10:0] RESET_GRY_TEXT_X = RESET_TEXT_X + 11'd12;
+localparam logic [10:0] RESET_TEXT_Y1 = pos11(BUTTON_Y + 8);
+localparam logic [10:0] RESET_TEXT_Y2 = pos11(BUTTON_Y + 28);
+localparam logic [10:0] PANEL_TEXT_X = pos11(PANEL_X + 26);
+localparam logic [10:0] PANEL_POSTAC_TEXT_X = PANEL_TEXT_X - 11'd6;
+localparam logic [10:0] PANEL_TEXT_Y1 = pos11(PANEL_Y - 42);
+localparam logic [10:0] PANEL_TEXT_Y2 = pos11(PANEL_Y - 22);
+localparam logic [10:0] MSG_TEXT_X = pos11(PANEL_X + 18);
+localparam logic [10:0] MSG_LOSE_X = MSG_TEXT_X - 11'd12;
+localparam logic [10:0] MSG_TEXT_Y = pos11(PANEL_Y + CELL_H + 40);
 
 typedef enum logic [3:0] {
     TEXT_NONE,
@@ -81,8 +89,8 @@ text_id_t text_id;
 function automatic logic inside_text(
     input logic [10:0] h,
     input logic [10:0] v,
-    input int x0,
-    input int y0,
+    input logic [10:0] x0,
+    input logic [10:0] y0,
     input int len
 );
 begin
@@ -248,10 +256,10 @@ always_comb begin
         text_x = END_TEXT_X;
         text_y = END_TEXT_Y1;
         text_len = 4'd6;
-    end else if (show_end_turn && inside_text(in.hcount, in.vcount, END_TEXT_X + 12, END_TEXT_Y2, 4)) begin
+    end else if (show_end_turn && inside_text(in.hcount, in.vcount, END_TURY_TEXT_X, END_TEXT_Y2, 4)) begin
         text_active = 1'b1;
         text_id = TEXT_TURY;
-        text_x = END_TEXT_X + 12;
+        text_x = END_TURY_TEXT_X;
         text_y = END_TEXT_Y2;
         text_len = 4'd4;
     end else if (inside_text(in.hcount, in.vcount, RESET_TEXT_X, RESET_TEXT_Y1, 5)) begin
@@ -260,10 +268,10 @@ always_comb begin
         text_x = RESET_TEXT_X;
         text_y = RESET_TEXT_Y1;
         text_len = 4'd5;
-    end else if (inside_text(in.hcount, in.vcount, RESET_TEXT_X + 12, RESET_TEXT_Y2, 3)) begin
+    end else if (inside_text(in.hcount, in.vcount, RESET_GRY_TEXT_X, RESET_TEXT_Y2, 3)) begin
         text_active = 1'b1;
         text_id = TEXT_GRY;
-        text_x = RESET_TEXT_X + 12;
+        text_x = RESET_GRY_TEXT_X;
         text_y = RESET_TEXT_Y2;
         text_len = 4'd3;
     end else if (inside_text(in.hcount, in.vcount, PANEL_TEXT_X, PANEL_TEXT_Y1, 5)) begin
@@ -273,10 +281,10 @@ always_comb begin
         text_y = PANEL_TEXT_Y1;
         text_len = 4'd5;
         text_color = COLOR_BLACK;
-    end else if (inside_text(in.hcount, in.vcount, PANEL_TEXT_X - 6, PANEL_TEXT_Y2, 6)) begin
+    end else if (inside_text(in.hcount, in.vcount, PANEL_POSTAC_TEXT_X, PANEL_TEXT_Y2, 6)) begin
         text_active = 1'b1;
         text_id = TEXT_POSTAC;
-        text_x = PANEL_TEXT_X - 6;
+        text_x = PANEL_POSTAC_TEXT_X;
         text_y = PANEL_TEXT_Y2;
         text_len = 4'd6;
         text_color = COLOR_BLACK;
