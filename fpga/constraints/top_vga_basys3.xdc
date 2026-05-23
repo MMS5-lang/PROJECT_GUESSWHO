@@ -1,4 +1,6 @@
 ## This file is a general .xdc for the Basys3 rev B board
+## Author: Miłosz M. Karolina M.
+## Based on Basys3 rev B board constraints.
 ## To use it in a project:
 ## - uncomment the lines corresponding to used pins
 ## - rename the used ports (in each line, after get_ports) according to the top level signal names in the project
@@ -10,11 +12,17 @@ set_property PACKAGE_PIN W5 [get_ports clk]
 #	create_clock -add -name sys_clk_pin -period 10.00 -waveform {0 5} [get_ports clk]
 
 ## Clock domain crossings
-set_false_path -to [get_pins -of_objects [get_cells -hierarchical -regexp {.*mouse_(xpos|ypos)_sync1_reg\[[0-9]+\]}] -filter {REF_PIN_NAME == D}]
+set mouse_pos_sync_cells [get_cells -hierarchical -regexp {.*mouse_(xpos|ypos)_sync1_reg\[[0-9]+\]}]
+set mouse_pos_sync_pins [get_pins -of_objects $mouse_pos_sync_cells -filter {REF_PIN_NAME == D}]
+set_false_path -to $mouse_pos_sync_pins
+
+set mouse_btn_sync_cells [get_cells -hierarchical -regexp {.*mouse_(left|right)_sync1_reg}]
+set mouse_btn_sync_pins [get_pins -of_objects $mouse_btn_sync_cells -filter {REF_PIN_NAME == D}]
+set_false_path -to $mouse_btn_sync_pins
 
 ## Switches
-#set_property PACKAGE_PIN V17 [get_ports {sw[0]}]
-	#set_property IOSTANDARD LVCMOS33 [get_ports {sw[0]}]
+set_property PACKAGE_PIN V17 [get_ports {sw[0]}]
+	set_property IOSTANDARD LVCMOS33 [get_ports {sw[0]}]
 #set_property PACKAGE_PIN V16 [get_ports {sw[1]}]
 	#set_property IOSTANDARD LVCMOS33 [get_ports {sw[1]}]
 #set_property PACKAGE_PIN W16 [get_ports {sw[2]}]

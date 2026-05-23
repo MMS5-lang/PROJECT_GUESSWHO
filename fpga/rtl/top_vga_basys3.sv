@@ -1,12 +1,12 @@
 /**
  * San Jose State University
  * EE178 Lab #4
- * Author: prof. Eric Crabilla
+ * Author: Miłosz M. Karolina M.
  *
- * Modified by:
+ * Based on work by prof. Eric Crabilla.
+ *
  * 2025  AGH University of Science and Technology
  * MTM UEC2
- * Piotr Kaczmarczyk
  *
  * Description:
  * Top level synthesizable module including the project top and all the FPGA-referred modules.
@@ -15,6 +15,7 @@
 module top_vga_basys3 (
         input  wire clk,
         input  wire btnC,
+        input  wire [0:0] sw,
         inout  wire PS2Clk,
         inout  wire PS2Data,
         output wire Vsync,
@@ -70,6 +71,7 @@ module top_vga_basys3 (
         .clk        (clk_65mhz),
         .clk_100mhz (clk_100mhz),
         .rst_n      (rst_n),
+        .player_id  (sw[0]),
         .ps2_clk    (PS2Clk),
         .ps2_data   (PS2Data),
         .r          (vgaRed),

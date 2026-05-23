@@ -1,12 +1,12 @@
 /**
  * San Jose State University
  * EE178 Lab #4
- * Author: prof. Eric Crabilla
+ * Author: Miłosz M. Karolina M.
  *
- * Modified by:
+ * Based on work by prof. Eric Crabilla.
+ *
  * 2025  AGH University of Science and Technology
  * MTM UEC2
- * Piotr Kaczmarczyk
  *
  * Description:
  * Testbench for top_vga.
@@ -63,6 +63,7 @@ module top_vga_tb;
         .clk        (clk),
         .clk_100mhz (clk_100mhz),
         .rst_n      (rst_n),
+        .player_id  (1'b0),
         .ps2_clk    (ps2_clk),
         .ps2_data   (ps2_data),
         .vs         (vs),

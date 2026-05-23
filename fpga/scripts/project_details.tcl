@@ -1,6 +1,6 @@
 # Copyright (C) 2025  AGH University of Science and Technology
 # MTM UEC2
-# Author: Piotr Kaczmarczyk
+# Author: Miłosz M. Karolina M.
 #
 # Description:
 # Project details required for generate_bitstream.tcl.
@@ -22,11 +22,20 @@ set xdc_files {
 
 set sv_files {
     ../rtl/vga/vga_pkg.sv
+    ../rtl/game/guess_who_pkg.sv
     ../rtl/vga/vga_if.sv
     ../rtl/vga/vga_timing.sv
+    ../rtl/ui/hitbox_decoder.sv
+    ../rtl/game/game_core.sv
+    ../rtl/comm/pmod_comm_controller.sv
     ../rtl/render/draw_bg.sv
     ../rtl/render/ui_renderer.sv
+    ../rtl/render/face_traits_rom.sv
     ../rtl/render/face_renderer.sv
+    ../rtl/render/board_renderer.sv
+    ../rtl/text/font_rom.sv
+    ../rtl/text/text_renderer.sv
+    ../rtl/mouse/mouse_adapter.sv
     ../rtl/mouse/draw_mouse.sv
     ../rtl/top/top_vga.sv
     rtl/top_vga_basys3.sv

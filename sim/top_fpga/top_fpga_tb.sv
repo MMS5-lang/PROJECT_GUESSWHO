@@ -1,12 +1,12 @@
 /**
  * San Jose State University
  * EE178 Lab #4
- * Author: prof. Eric Crabilla
+ * Author: Miłosz M. Karolina M.
  *
- * Modified by:
+ * Based on work by prof. Eric Crabilla.
+ *
  * 2025  AGH University of Science and Technology
  * MTM UEC2
- * Piotr Kaczmarczyk
  *
  * Description:
  * Testbench for top_fpga.
@@ -54,6 +54,7 @@ module top_fpga_tb;
     top_vga_basys3 dut (
         .clk      (clk),
         .btnC     (!rst_n),
+        .sw       (1'b0),
         .PS2Clk   (PS2Clk),
         .PS2Data  (PS2Data),
         .Vsync    (vs),

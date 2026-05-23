@@ -1,7 +1,7 @@
 /**
  * Copyright (C) 2025  AGH University of Science and Technology
  * MTM UEC2
- * Author: Guess Who project team
+ * Author: Miłosz M. Karolina M.
  *
  * Description:
  * Pipelined renderer for the procedural Guess Who face layer.
@@ -10,6 +10,8 @@
 module face_renderer (
     input  logic clk,
     input  logic rst_n,
+    input  logic [guess_who_pkg::CHAR_ID_W-1:0] selected_id,
+    input  logic has_secret,
     vga_if.in    in,
     vga_if.out   out
 );
@@ -18,6 +20,7 @@ timeunit 1ns;
 timeprecision 1ps;
 
 import vga_pkg::*;
+import guess_who_pkg::*;
 
 localparam logic [11:0] COLOR_BLACK       = 12'h0_0_0;
 localparam logic [11:0] COLOR_WHITE       = 12'hf_f_f;
@@ -77,15 +80,10 @@ initial begin
     $readmemh("../../rtl/assets/faces/payot.dat", payot_rom);
 end
 
-localparam logic [7:0] CHAR_TRAITS [0:17] = '{
-    8'b10000001, 8'b01100001, 8'b00000101, 8'b00100111, 8'b10110100, 8'b10000101,
-    8'b00100110, 8'b10001110, 8'b10001000, 8'b10111001, 8'b01110101, 8'b10001011,
-    8'b01001100, 8'b01111001, 8'b10101110, 8'b01011111, 8'b01101001, 8'b10010000
-};
-
 logic [11:0] rgb_nxt;
 
 logic in_board_nxt;
+logic in_panel_nxt;
 logic draw_face_nxt;
 logic [10:0] cell_x_nxt;
 logic [10:0] cell_y_nxt;
@@ -164,9 +162,16 @@ logic [11:0] hair_1_pixel;
 logic [11:0] hair_long_pixel;
 logic [11:0] payot_pixel;
 
+face_traits_rom u_face_traits_rom (
+    .char_id (char_idx_nxt),
+    .traits  (traits_nxt)
+);
+
 always_comb begin
     in_board_nxt = (in.hcount >= BOARD_X) && (in.hcount < BOARD_X + BOARD_W) &&
                    (in.vcount >= BOARD_Y) && (in.vcount < BOARD_Y + BOARD_H);
+    in_panel_nxt = (in.hcount >= PANEL_X) && (in.hcount < PANEL_X + CELL_W) &&
+                   (in.vcount >= PANEL_Y) && (in.vcount < PANEL_Y + CELL_H);
 
     cell_x_nxt = 11'h0;
     cell_y_nxt = 11'h0;
@@ -218,8 +223,14 @@ always_comb begin
         end
     endcase
 
-    traits_nxt = CHAR_TRAITS[char_idx_nxt];
-    draw_face_nxt = in_board_nxt && (in.rgb == COLOR_WHITE);
+    if (in_panel_nxt && has_secret && (selected_id < CHAR_COUNT)) begin
+        cell_x_nxt = in.hcount - PANEL_X;
+        cell_y_nxt = in.vcount - PANEL_Y;
+        char_idx_nxt = selected_id;
+    end
+
+    draw_face_nxt = (in_board_nxt && (in.rgb == COLOR_WHITE)) ||
+                    (in_panel_nxt && has_secret);
 
     in_head_area_nxt = draw_face_nxt &&
         (cell_x_nxt >= HEAD_X_OFF) && (cell_x_nxt < HEAD_X_OFF + HEAD_W) &&

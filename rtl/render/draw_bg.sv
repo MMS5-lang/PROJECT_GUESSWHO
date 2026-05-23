@@ -1,7 +1,7 @@
 /**
  * Copyright (C) 2025  AGH University of Science and Technology
  * MTM UEC2
- * Author: Guess Who project team
+ * Author: Miłosz M. Karolina M.
  *
  * Description:
  * Rysowanie tla i planszy 6x3 dla gry Guess Who.
