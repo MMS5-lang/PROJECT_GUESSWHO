@@ -32,6 +32,7 @@ module top_fpga_tb;
     tri1  PS2Clk;
     tri1  PS2Data;
     wire  pclk;
+    wire  pmod_uart_tx;
     wire  vs;
     wire  hs;
     wire [3:0] r;
@@ -51,7 +52,9 @@ module top_fpga_tb;
     /**
      * Submodule instances
      */
-    top_vga_basys3 dut (
+    top_vga_basys3 #(
+        .RESET_DEBOUNCE_COUNTER_BITS (4)
+    ) dut (
         .clk      (clk),
         .btnC     (!rst_n),
         .sw       (1'b0),
@@ -62,7 +65,9 @@ module top_fpga_tb;
         .vgaRed   (r),
         .vgaGreen (g),
         .vgaBlue  (b),
-        .JA1      (pclk)
+        .JA1      (pclk),
+        .JA2      (pmod_uart_tx),
+        .JA3      (1'b1)
     );
 
     tiff_writer #(

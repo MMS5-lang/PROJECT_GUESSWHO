@@ -9,7 +9,10 @@
 
 package guess_who_pkg;
 
-localparam int CHAR_COUNT = 18;
+localparam int BOARD_COLS = 6;
+localparam int BOARD_ROWS = 3;
+localparam int N_CHARACTERS = BOARD_COLS * BOARD_ROWS;
+localparam int CHAR_COUNT = N_CHARACTERS;
 localparam int CHAR_ID_W = 5;
 
 typedef enum logic [3:0] {
@@ -30,13 +33,17 @@ typedef enum logic [3:0] {
 } game_state_t;
 
 typedef enum logic [3:0] {
-    PKT_READY          = 4'd0,
-    PKT_TURN_END       = 4'd1,
-    PKT_GUESS          = 4'd2,
-    PKT_FINAL_CHECK    = 4'd3,
-    PKT_RESULT_CORRECT = 4'd4,
-    PKT_RESULT_WRONG   = 4'd5,
-    PKT_RESET_GAME     = 4'd6
+    PKT_HELLO          = 4'd0,
+    PKT_STATUS         = 4'd1,
+    PKT_READY          = 4'd2,
+    PKT_TURN_END       = 4'd3,
+    PKT_GUESS          = 4'd4,
+    PKT_FINAL_CHECK    = 4'd5,
+    PKT_RESULT_CORRECT = 4'd6,
+    PKT_RESULT_WRONG   = 4'd7,
+    PKT_RESET_GAME     = 4'd8,
+    PKT_ACK            = 4'd9,
+    PKT_ERROR          = 4'd10
 } packet_type_t;
 
 endpackage

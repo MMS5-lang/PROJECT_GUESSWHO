@@ -1,0 +1,11 @@
+# Copyright (C) 2025  AGH University of Science and Technology
+# MTM UEC2
+# Author: Milosz M. Karolina M.
+#
+# Description:
+# List of files defining the modules used by the hitbox decoder test.
+
+sv work ../../rtl/vga/vga_pkg.sv
+sv work ../../rtl/game/guess_who_pkg.sv
+sv work ../../rtl/ui/hitbox_decoder.sv
+sv work hitbox_decoder_tb.sv

@@ -1,0 +1,10 @@
+# Copyright (C) 2025  AGH University of Science and Technology
+# MTM UEC2
+# Author: Milosz M. Karolina M.
+#
+# Description:
+# List of files defining the modules used by the mouse adapter test.
+
+sv work ../../rtl/vga/vga_pkg.sv
+sv work ../../rtl/mouse/mouse_adapter.sv
+sv work mouse_adapter_tb.sv

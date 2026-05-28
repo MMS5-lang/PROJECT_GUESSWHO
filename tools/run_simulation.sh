@@ -12,6 +12,11 @@
 # To work properly, a git repository in the project directory is required.
 # Run from the project root directory.
 
+if [[ -z "${ROOT_DIR:-}" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+    export ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
+fi
+
 # ------------------------------------------------------------------------------
 # Functions
 # ------------------------------------------------------------------------------
@@ -26,58 +31,72 @@ function usage {
     exit 1
 }
 
+function print_available_tests {
+    find . -mindepth 1 -maxdepth 1 -type d ! -name 'build' ! -name 'common' \
+        -printf '%f\n' | sort
+}
+
 function list_available_tests {
-    ls -1 --ignore 'build' --ignore 'common' --ignore '*.*' .
+    print_available_tests
     exit 0
 }
 
 function execute_test {
-    # Remove untracked files
-    git clean -fXd .
+    local test_name=$1
+    local prj_file="${ROOT_DIR}/sim/${test_name}/${test_name}.prj"
+    local compile_glbl=()
+    local xelab_opts=()
+
+    # Remove ignored generated products, but keep untracked source/test files.
+    git clean -fdX .
 
     mkdir -p build
-    cd build
+    cd build || exit 1
 
-    test_name=$1
-
-    # Elaboration and simulation options
-    if [[ $(grep 'glbl.v' -oc  ${ROOT_DIR}/sim/${test_name}/${test_name}.prj) -gt 0 ]]; then
-        COMPILE_GLBL='work.glbl'
-    else
-        COMPILE_GLBL=''
+    if [[ ! -f "${prj_file}" ]]; then
+        echo "ERROR: Project file not found: ${prj_file}" >&2
+        cd .. || exit 1
+        return 1
     fi
 
-    XELAB_OPTS="work.${test_name}_tb
-                ${COMPILE_GLBL}
-                -snapshot ${test_name}_tb
-                -prj ${ROOT_DIR}/sim/${test_name}/${test_name}.prj
-                -timescale 1ns/1ps
-                -L unisims_ver"
+    if grep -q 'glbl.v' "${prj_file}"; then
+        compile_glbl=(work.glbl)
+    fi
 
-    # Run simulation
+    xelab_opts=(
+        "work.${test_name}_tb"
+        "${compile_glbl[@]}"
+        -snapshot "${test_name}_tb"
+        -prj "${prj_file}"
+        -timescale 1ns/1ps
+        -L unisims_ver
+    )
+
     if [[ ${show_gui} ]]; then
-        xelab ${XELAB_OPTS} -debug typical
-        xsim ${test_name}_tb -gui -t ${ROOT_DIR}/tools/sim_cmd.tcl
+        xelab "${xelab_opts[@]}" -debug typical
+        xsim "${test_name}_tb" -gui -t "${ROOT_DIR}/tools/sim_cmd.tcl"
     else
-        xelab ${XELAB_OPTS} -standalone -runall \
+        xelab "${xelab_opts[@]}" -standalone -runall \
         | grep -ie '^\|fatal:\|error:\|critical\|warning:' --color=always
     fi
 
-    cd ..
+    cd .. || exit 1
 }
 
-# Run all available simulations
 function run_all {
-    for test in $(list_available_tests); do
+    local test
+    local err_ctr
+
+    while IFS= read -r test; do
         err_ctr=0
         echo -en "${test}:\t"
-        err_ctr=$(execute_test ${test} | grep -oic 'error')
-        if [ $err_ctr == 0 ]; then
+        err_ctr=$(execute_test "${test}" | grep -oic 'error')
+        if [[ ${err_ctr} -eq 0 ]]; then
             echo -e "\033[1;32m PASSED\033[0;39m"
         else
             echo -e "\033[1;31m FAILED\033[0;39m"
         fi
-    done
+    done < <(print_available_tests)
     exit 0
 }
 
@@ -89,7 +108,7 @@ if [[ $# -eq 0 ]]; then
     usage
 fi
 
-cd sim
+cd "${ROOT_DIR}/sim" || exit 1
 
 while getopts aglrs:t: option; do
     case ${option} in
@@ -102,5 +121,5 @@ while getopts aglrs:t: option; do
 done
 
 if [[ ${test_name} ]]; then
-    execute_test ${test_name}
+    execute_test "${test_name}"
 fi

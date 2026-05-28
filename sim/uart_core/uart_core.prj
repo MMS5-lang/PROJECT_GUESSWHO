@@ -1,0 +1,13 @@
+# Copyright (C) 2025  AGH University of Science and Technology
+# MTM UEC2
+# Author: Milosz M. Karolina M.
+#
+# Description:
+# List of files defining the modules used by the UART core tests.
+
+verilog work ../../rtl/comm/uart/mod_m_counter.v
+verilog work ../../rtl/comm/uart/fifo.v
+verilog work ../../rtl/comm/uart/uart_rx.v
+verilog work ../../rtl/comm/uart/uart_tx.v
+verilog work ../../rtl/comm/uart/uart.v
+sv work uart_core_tb.sv

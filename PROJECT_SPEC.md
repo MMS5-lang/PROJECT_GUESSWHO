@@ -90,6 +90,22 @@ Minimal packet types:
 - `PKT_ACK`
 - `PKT_ERROR`
 
+Current PMOD UART implementation:
+
+- `JA2` is UART TX.
+- `JA3` is UART RX with pull-up.
+- Connect the boards crosswise: board A `JA2` to board B `JA3`, board B `JA2` to board A `JA3`,
+  and connect a common GND between PMOD headers.
+- Packet format is six bytes:
+  - start byte `8'hA5`
+  - packet type
+  - player ID
+  - payload, for example character ID
+  - sequence number
+  - XOR checksum over the previous five bytes
+- The controller sends periodic `PKT_HELLO` packets and asserts `link_ready` after receiving a valid packet
+  from the opposite player ID.
+
 Recommended packet fields:
 
 - start byte, e.g. `8'hA5`

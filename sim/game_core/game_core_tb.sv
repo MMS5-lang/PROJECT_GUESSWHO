@@ -55,6 +55,7 @@ logic send_final_check;
 logic [CHAR_ID_W-1:0] send_final_check_id;
 logic send_result;
 logic send_result_correct;
+logic [CHAR_ID_W-1:0] send_result_id;
 logic send_reset_game;
 
 game_core dut (
@@ -97,6 +98,7 @@ game_core dut (
     .send_final_check_id     (send_final_check_id),
     .send_result             (send_result),
     .send_result_correct     (send_result_correct),
+    .send_result_id          (send_result_id),
     .send_reset_game         (send_reset_game)
 );
 
@@ -209,6 +211,7 @@ begin
     #1;
     assert (send_result && (send_result_correct == (id == local_secret_id)))
         else $error("Opponent guess result pulse is wrong");
+    assert (send_result_id == id) else $error("Opponent guess result id is wrong");
     wait_clk;
     opponent_guess = 1'b0;
     wait_clk;
@@ -222,6 +225,7 @@ begin
     #1;
     assert (send_result && (send_result_correct == (id == local_secret_id)))
         else $error("Opponent final-check result pulse is wrong");
+    assert (send_result_id == id) else $error("Opponent final-check result id is wrong");
     wait_clk;
     opponent_final_check = 1'b0;
     wait_clk;

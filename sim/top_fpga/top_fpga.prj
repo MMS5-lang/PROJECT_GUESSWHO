@@ -11,6 +11,12 @@ sv work ../../rtl/vga/vga_if.sv
 sv work ../../rtl/vga/vga_timing.sv
 sv work ../../rtl/ui/hitbox_decoder.sv
 sv work ../../rtl/game/game_core.sv
+verilog work ../../rtl/comm/uart/mod_m_counter.v
+verilog work ../../rtl/comm/uart/fifo.v
+verilog work ../../rtl/comm/uart/uart_rx.v
+verilog work ../../rtl/comm/uart/uart_tx.v
+verilog work ../../rtl/comm/uart/uart.v
+sv work ../../rtl/comm/uart_byte_link.sv
 sv work ../../rtl/comm/pmod_comm_controller.sv
 sv work ../../rtl/render/draw_bg.sv
 sv work ../../rtl/render/ui_renderer.sv
@@ -24,6 +30,7 @@ sv work ../../rtl/mouse/draw_mouse.sv
 sv work ../../rtl/top/top_vga.sv
 verilog work ../../fpga/rtl/clk_wiz_0_clk_wiz.v
 verilog work ../../fpga/rtl/clk_wiz_0.v
+verilog work ../../rtl/common/debounce.v
 sv work ../../fpga/rtl/top_vga_basys3.sv
 sv work ../common/tiff_writer.sv
 vhdl work ../../rtl/mouse/Ps2Interface.vhd

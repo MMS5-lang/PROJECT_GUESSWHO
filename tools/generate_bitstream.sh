@@ -12,23 +12,27 @@
 # To work properly, a git repository in the project directory is required.
 # Run from the project root directory.
 
+if [[ -z "${ROOT_DIR:-}" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+    export ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
+fi
+
+mkdir -p "${ROOT_DIR}/results"
+
 # Remove ignored Vivado build products without deleting untracked source files.
 # On Windows this can fail when Vivado, VS Code, or DVT keeps fpga/build open.
 # Continue anyway and let Vivado recreate the project with -force below.
-git clean -fdX fpga || echo "WARNING: Could not fully clean fpga/build; continuing."
+git clean -fdX "${ROOT_DIR}/fpga" || echo "WARNING: Could not fully clean fpga/build; continuing."
 
-# Run Vivado and generate bitstream
-cd fpga
+cd "${ROOT_DIR}/fpga" || exit 1
 vivado -mode tcl -source scripts/generate_bitstream.tcl
 vivado_status=$?
-cd ${ROOT_DIR}
+cd "${ROOT_DIR}" || exit 1
 
-# Copy bitstream to results
-if [ ${vivado_status} -eq 0 ]; then
-    find fpga/build -name "*.bit" -exec cp {} results/ \;
+if [[ ${vivado_status} -eq 0 ]]; then
+    find "${ROOT_DIR}/fpga/build" -name "*.bit" -exec cp {} "${ROOT_DIR}/results/" \;
 fi
 
-# Copy warnings and errors to a single log file in results
-./tools/warning_summary.sh
+"${ROOT_DIR}/tools/warning_summary.sh"
 
-exit ${vivado_status}
+exit "${vivado_status}"

@@ -38,6 +38,7 @@ module top_vga_tb;
     wire [3:0] r;
     wire [3:0] g;
     wire [3:0] b;
+    wire pmod_uart_tx;
 
     /**
      * Clock generation
@@ -63,9 +64,12 @@ module top_vga_tb;
         .clk        (clk),
         .clk_100mhz (clk_100mhz),
         .rst_n      (rst_n),
+        .rst_100mhz_n (rst_n),
         .player_id  (1'b0),
+        .pmod_uart_rx (1'b1),
         .ps2_clk    (ps2_clk),
         .ps2_data   (ps2_data),
+        .pmod_uart_tx (pmod_uart_tx),
         .vs         (vs),
         .hs         (hs),
         .r          (r),

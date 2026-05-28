@@ -20,6 +20,10 @@ set mouse_btn_sync_cells [get_cells -hierarchical -regexp {.*mouse_(left|right)_
 set mouse_btn_sync_pins [get_pins -of_objects $mouse_btn_sync_cells -filter {REF_PIN_NAME == D}]
 set_false_path -to $mouse_btn_sync_pins
 
+set reset_sync_cells [get_cells -hierarchical -regexp {.*rst_(65mhz|100mhz)_sync_reg\[[0-9]+\]}]
+set reset_sync_clr_pins [get_pins -of_objects $reset_sync_cells -filter {REF_PIN_NAME == CLR}]
+set_false_path -to $reset_sync_clr_pins
+
 ## Switches
 set_property PACKAGE_PIN V17 [get_ports {sw[0]}]
 	set_property IOSTANDARD LVCMOS33 [get_ports {sw[0]}]
@@ -138,11 +142,12 @@ set_property PACKAGE_PIN U18 [get_ports btnC]
 set_property PACKAGE_PIN J1 [get_ports {JA1}]
 	set_property IOSTANDARD LVCMOS33 [get_ports {JA1}]
 ##Sch name = JA2
-#set_property PACKAGE_PIN L2 [get_ports {JA[1]}]
-	#set_property IOSTANDARD LVCMOS33 [get_ports {JA[1]}]
+set_property PACKAGE_PIN L2 [get_ports {JA2}]
+	set_property IOSTANDARD LVCMOS33 [get_ports {JA2}]
 ##Sch name = JA3
-#set_property PACKAGE_PIN J2 [get_ports {JA[2]}]
-	#set_property IOSTANDARD LVCMOS33 [get_ports {JA[2]}]
+set_property PACKAGE_PIN J2 [get_ports {JA3}]
+	set_property IOSTANDARD LVCMOS33 [get_ports {JA3}]
+	set_property PULLUP true [get_ports {JA3}]
 ##Sch name = JA4
 #set_property PACKAGE_PIN G2 [get_ports {JA[3]}]
 	#set_property IOSTANDARD LVCMOS33 [get_ports {JA[3]}]

@@ -47,6 +47,7 @@ module game_core (
     output logic [guess_who_pkg::CHAR_ID_W-1:0] send_final_check_id,
     output logic       send_result,
     output logic       send_result_correct,
+    output logic [guess_who_pkg::CHAR_ID_W-1:0] send_result_id,
     output logic       send_reset_game
 );
 
@@ -148,6 +149,7 @@ always_comb begin
     send_final_check_id = last_guess_id;
     send_result = 1'b0;
     send_result_correct = 1'b0;
+    send_result_id = '0;
     send_reset_game = 1'b0;
 
     if (reset_click || opponent_reset_game) begin
@@ -270,6 +272,7 @@ always_comb begin
                 if (opponent_guess && valid_opponent_char) begin
                     send_result = 1'b1;
                     send_result_correct = (opponent_guess_id == local_secret_id);
+                    send_result_id = opponent_guess_id;
 
                     if (opponent_guess_id == local_secret_id) begin
                         state_nxt = S_LOSE;
@@ -277,6 +280,7 @@ always_comb begin
                 end else if (opponent_final_check && valid_opponent_final_char) begin
                     send_result = 1'b1;
                     send_result_correct = (opponent_final_check_id == local_secret_id);
+                    send_result_id = opponent_final_check_id;
 
                     if (opponent_final_check_id == local_secret_id) begin
                         state_nxt = S_LOSE;

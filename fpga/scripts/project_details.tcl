@@ -27,6 +27,7 @@ set sv_files {
     ../rtl/vga/vga_timing.sv
     ../rtl/ui/hitbox_decoder.sv
     ../rtl/game/game_core.sv
+    ../rtl/comm/uart_byte_link.sv
     ../rtl/comm/pmod_comm_controller.sv
     ../rtl/render/draw_bg.sv
     ../rtl/render/ui_renderer.sv
@@ -50,6 +51,12 @@ set mem_files {
 }
 
 set verilog_files {
+    ../rtl/common/debounce.v
+    ../rtl/comm/uart/mod_m_counter.v
+    ../rtl/comm/uart/fifo.v
+    ../rtl/comm/uart/uart_rx.v
+    ../rtl/comm/uart/uart_tx.v
+    ../rtl/comm/uart/uart.v
     rtl/clk_wiz_0_clk_wiz.v
     rtl/clk_wiz_0.v
 }

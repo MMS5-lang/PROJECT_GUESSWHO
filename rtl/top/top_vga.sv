@@ -11,9 +11,12 @@ module top_vga (
     input  logic clk,
     input  logic clk_100mhz,
     input  logic rst_n,
+    input  logic rst_100mhz_n,
     input  logic player_id,
+    input  logic pmod_uart_rx,
     inout  wire  ps2_clk,
     inout  wire  ps2_data,
+    output logic pmod_uart_tx,
     output logic vs,
     output logic hs,
     output logic [3:0] r,
@@ -67,6 +70,7 @@ logic send_final_check;
 logic [CHAR_ID_W-1:0] send_final_check_id;
 logic send_result;
 logic send_result_correct;
+logic [CHAR_ID_W-1:0] send_result_id;
 logic send_reset_game;
 logic guess_result_valid;
 logic guess_result_correct;
@@ -100,7 +104,7 @@ vga_timing u_vga_timing (
 
 MouseCtl u_mouse_ctl (
     .clk       (clk_100mhz),
-    .rst       (!rst_n),
+    .rst       (!rst_100mhz_n),
     .xpos      (mouse_xpos_raw),
     .ypos      (mouse_ypos_raw),
     .zpos      (),
@@ -152,7 +156,8 @@ hitbox_decoder u_hitbox_decoder (
 pmod_comm_controller u_pmod_comm_controller (
     .clk                     (clk),
     .rst_n                   (rst_n),
-    .local_secret_id         (local_secret_id),
+    .player_id               (player_id),
+    .uart_rx                 (pmod_uart_rx),
     .send_ready              (send_ready),
     .send_turn_end           (send_turn_end),
     .send_guess              (send_guess),
@@ -161,7 +166,9 @@ pmod_comm_controller u_pmod_comm_controller (
     .send_final_check_id     (send_final_check_id),
     .send_result             (send_result),
     .send_result_correct     (send_result_correct),
+    .send_result_id          (send_result_id),
     .send_reset_game         (send_reset_game),
+    .uart_tx                 (pmod_uart_tx),
     .link_ready              (link_ready),
     .opponent_ready          (opponent_ready),
     .opponent_turn_end       (opponent_turn_end),
@@ -216,6 +223,7 @@ game_core u_game_core (
     .send_final_check_id (send_final_check_id),
     .send_result         (send_result),
     .send_result_correct (send_result_correct),
+    .send_result_id      (send_result_id),
     .send_reset_game     (send_reset_game)
 );
 

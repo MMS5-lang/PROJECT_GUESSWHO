@@ -86,6 +86,33 @@ logic [4:0] font_pixels;
 logic font_bit;
 text_id_t text_id;
 
+function automatic logic select_font_bit(input logic [4:0] pixels, input logic [2:0] col);
+begin
+    case (col)
+        3'd0: begin
+            select_font_bit = pixels[4];
+        end
+        3'd1: begin
+            select_font_bit = pixels[3];
+        end
+        3'd2: begin
+            select_font_bit = pixels[2];
+        end
+        3'd3: begin
+            select_font_bit = pixels[1];
+        end
+        3'd4: begin
+            select_font_bit = pixels[0];
+        end
+        default: begin
+            select_font_bit = 1'b0;
+        end
+    endcase
+end
+endfunction
+
+assign font_bit = select_font_bit(font_pixels, font_col);
+
 function automatic logic inside_text(
     input logic [10:0] h,
     input logic [10:0] v,
@@ -299,7 +326,6 @@ always_comb begin
     font_col = 3'd0;
     font_row = 3'd0;
     char_code = " ";
-    font_bit = 1'b0;
 
     if (text_active) begin
         local_x = in.hcount[7:0] - text_x[7:0];
@@ -343,15 +369,6 @@ always_comb begin
         char_cell_x = local_x - char_start;
         font_col = char_cell_x >> 1;
         char_code = get_char(text_id, char_index);
-
-        case (font_col)
-            3'd0: font_bit = font_pixels[4];
-            3'd1: font_bit = font_pixels[3];
-            3'd2: font_bit = font_pixels[2];
-            3'd3: font_bit = font_pixels[1];
-            3'd4: font_bit = font_pixels[0];
-            default: font_bit = 1'b0;
-        endcase
     end
 end
 
@@ -360,7 +377,10 @@ always_comb begin
 
     if (in.vblnk || in.hblnk) begin
         rgb_nxt = COLOR_BLACK;
-    end else if (text_active && (char_index < text_len) && (font_row < FONT_H) && font_bit) begin
+    end else if (text_active &&
+                 (char_index < text_len) &&
+                 (font_row < FONT_H) &&
+                 select_font_bit(font_pixels, font_col)) begin
         rgb_nxt = text_color;
     end
 end
