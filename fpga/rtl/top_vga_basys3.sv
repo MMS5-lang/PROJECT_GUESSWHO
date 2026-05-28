@@ -44,16 +44,12 @@ module top_vga_basys3 #(
     logic rst_65mhz_n;
     logic rst_100mhz_n;
     logic reset_released_db;
-    (* ASYNC_REG = "TRUE" *) logic [1:0] rst_65mhz_sync;
-    (* ASYNC_REG = "TRUE" *) logic [1:0] rst_100mhz_sync;
 
     /**
      * Signal assignments
      */
     assign JA1   = pclk_mirror;
     assign raw_rst_n = clk_locked && !btnC && reset_released_db;
-    assign rst_65mhz_n = rst_65mhz_sync[1];
-    assign rst_100mhz_n = rst_100mhz_sync[1];
 
     /**
      * FPGA submodule placement
@@ -75,21 +71,17 @@ module top_vga_basys3 #(
         .db_tick  ()
     );
 
-    always_ff @(posedge clk_65mhz or negedge raw_rst_n) begin
-        if (!raw_rst_n) begin
-            rst_65mhz_sync <= 2'b00;
-        end else begin
-            rst_65mhz_sync <= {rst_65mhz_sync[0], 1'b1};
-        end
-    end
+    reset_sync u_rst_65mhz_sync (
+        .clk    (clk_65mhz),
+        .arst_n (raw_rst_n),
+        .rst_n  (rst_65mhz_n)
+    );
 
-    always_ff @(posedge clk_100mhz or negedge raw_rst_n) begin
-        if (!raw_rst_n) begin
-            rst_100mhz_sync <= 2'b00;
-        end else begin
-            rst_100mhz_sync <= {rst_100mhz_sync[0], 1'b1};
-        end
-    end
+    reset_sync u_rst_100mhz_sync (
+        .clk    (clk_100mhz),
+        .arst_n (raw_rst_n),
+        .rst_n  (rst_100mhz_n)
+    );
 
     // Mirror pclk on a pin for use by the testbench.
     ODDR pclk_oddr (

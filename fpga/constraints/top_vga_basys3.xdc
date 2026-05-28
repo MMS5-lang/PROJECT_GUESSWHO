@@ -20,9 +20,13 @@ set mouse_btn_sync_cells [get_cells -hierarchical -regexp {.*mouse_(left|right)_
 set mouse_btn_sync_pins [get_pins -of_objects $mouse_btn_sync_cells -filter {REF_PIN_NAME == D}]
 set_false_path -to $mouse_btn_sync_pins
 
-set reset_sync_cells [get_cells -hierarchical -regexp {.*rst_(65mhz|100mhz)_sync_reg\[[0-9]+\]}]
+set reset_sync_cells [get_cells -hierarchical -regexp {.*u_rst_(65mhz|100mhz)_sync/.*rst_pipe_reg\[[0-9]+\]}]
 set reset_sync_clr_pins [get_pins -of_objects $reset_sync_cells -filter {REF_PIN_NAME == CLR}]
-set_false_path -to $reset_sync_clr_pins
+set_false_path -quiet -to $reset_sync_clr_pins
+
+set async_reset_pins [get_pins -hierarchical -filter {REF_PIN_NAME == CLR || REF_PIN_NAME == R}]
+set async_reset_nets [get_nets -quiet -of_objects $async_reset_pins]
+set_switching_activity -quiet -static_probability 0.0 -toggle_rate 0.0 $async_reset_nets
 
 ## Switches
 set_property PACKAGE_PIN V17 [get_ports {sw[0]}]

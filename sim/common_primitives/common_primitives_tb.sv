@@ -17,6 +17,8 @@ localparam int CLK_PERIOD = 10;
 logic clk;
 logic rst_n;
 logic reset;
+logic async_rst_n;
+logic sync_rst_n;
 
 logic [7:0] delay_din;
 logic [7:0] delay_dout;
@@ -46,6 +48,14 @@ delay #(
     .rst_n,
     .din  (delay_din),
     .dout (delay_dout)
+);
+
+reset_sync #(
+    .STAGES (2)
+) dut_reset_sync (
+    .clk,
+    .arst_n (async_rst_n),
+    .rst_n  (sync_rst_n)
 );
 
 debounce #(
@@ -110,6 +120,7 @@ begin
     fifo_rd = 1'b0;
     fifo_wr = 1'b0;
     fifo_w_data = '0;
+    async_rst_n = 1'b1;
     deb_tick_count = 0;
 
     repeat (3) begin
@@ -146,7 +157,35 @@ begin
 end
 endtask
 
+task automatic test_reset_sync;
+begin
+    async_rst_n = 1'b0;
+    #1;
+    assert (!sync_rst_n) else $error("reset_sync should assert reset asynchronously");
+    wait_clk;
+    assert (!sync_rst_n) else $error("reset_sync should stay low while async reset is active");
+
+    async_rst_n = 1'b1;
+    #1;
+    assert (!sync_rst_n) else $error("reset_sync released too early after async reset deassertion");
+    wait_clk;
+    assert (!sync_rst_n) else $error("reset_sync should keep reset low for first release stage");
+    wait_clk;
+    assert (sync_rst_n) else $error("reset_sync did not release after two clock edges");
+
+    async_rst_n = 1'b0;
+    #1;
+    assert (!sync_rst_n) else $error("reset_sync did not reassert asynchronously");
+    async_rst_n = 1'b1;
+    repeat (2) begin
+        wait_clk;
+    end
+end
+endtask
+
 initial begin
+    reset_dut();
+    test_reset_sync();
     reset_dut();
 
     delay_din = 8'h11;

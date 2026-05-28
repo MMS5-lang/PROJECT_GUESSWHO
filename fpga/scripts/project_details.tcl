@@ -25,6 +25,7 @@ set sv_files {
     ../rtl/game/guess_who_pkg.sv
     ../rtl/vga/vga_if.sv
     ../rtl/vga/vga_timing.sv
+    ../rtl/common/reset_sync.sv
     ../rtl/ui/hitbox_decoder.sv
     ../rtl/game/game_core.sv
     ../rtl/comm/uart_byte_link.sv

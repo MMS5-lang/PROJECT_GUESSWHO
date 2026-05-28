@@ -47,7 +47,6 @@ logic [CHAR_ID_W-1:0] clicked_char_id;
 game_state_t game_state;
 logic [CHAR_COUNT-1:0] eliminated_mask;
 logic [CHAR_ID_W-1:0] selected_id;
-logic [CHAR_ID_W-1:0] local_secret_id;
 logic [CHAR_ID_W-1:0] last_guess_id;
 logic has_secret;
 logic local_ready;
@@ -208,7 +207,7 @@ game_core u_game_core (
     .game_state          (game_state),
     .eliminated_mask     (eliminated_mask),
     .selected_id         (selected_id),
-    .local_secret_id     (local_secret_id),
+    .local_secret_id     (),
     .last_guess_id       (last_guess_id),
     .has_secret          (has_secret),
     .local_ready         (local_ready),

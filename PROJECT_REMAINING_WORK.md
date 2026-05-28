@@ -48,8 +48,8 @@ submission/demo of the Basys 3 Guess Who project.
   documentation there.
 - Document copied UART/debounce source attribution in the report, including that
   the project uses an adapted UART example wrapped by `uart_byte_link.sv`.
-- Explain the remaining Vivado power warning `Power 33-332` in the report if it
-  still appears in `results/warning_summary.log`.
+- Keep `results/warning_summary.log` clean after future RTL changes. The current
+  build is expected to report `CLEAR :)` for synthesis and implementation.
 - Run a clean-clone verification in a fresh directory: simulations, bitstream,
   and final file layout.
 

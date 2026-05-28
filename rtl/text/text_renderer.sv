@@ -83,7 +83,6 @@ logic [4:0] char_cell_x;
 logic [2:0] font_col;
 logic [2:0] font_row;
 logic [4:0] font_pixels;
-logic font_bit;
 text_id_t text_id;
 
 function automatic logic select_font_bit(input logic [4:0] pixels, input logic [2:0] col);
@@ -110,8 +109,6 @@ begin
     endcase
 end
 endfunction
-
-assign font_bit = select_font_bit(font_pixels, font_col);
 
 function automatic logic inside_text(
     input logic [10:0] h,
