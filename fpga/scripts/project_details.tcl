@@ -45,9 +45,13 @@ set sv_files {
 
 set mem_files {
     ../rtl/assets/faces/head_shape.dat
-    ../rtl/assets/faces/glasses_2.dat
-    ../rtl/assets/faces/hair_1_1.dat
-    ../rtl/assets/faces/hair_long_1.dat
+     ../rtl/assets/faces/sunglasses.dat
+    ../rtl/assets/faces/glasses.dat
+    ../rtl/assets/faces/hair1.dat
+    ../rtl/assets/faces/hair2.dat
+    ../rtl/assets/faces/beard.dat
+    ../rtl/assets/faces/hat.dat
+    ../rtl/assets/faces/cap.dat
     ../rtl/assets/faces/payot.dat
 }
 

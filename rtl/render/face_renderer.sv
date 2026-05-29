@@ -124,8 +124,7 @@ logic [10:0] cell_y_nxt;
 logic [2:0] col_nxt;
 logic [1:0] row_nxt;
 logic [4:0] char_idx_nxt;
-logic [11:0] traits_nxt; // Now 12-bits
-
+logic [11:0] traits_nxt; 
 logic in_head_area_nxt;
 logic in_sunglasses_area_nxt;
 logic in_glasses_area_nxt;
@@ -166,7 +165,7 @@ logic [15:0] hat_addr_full;
 logic [15:0] cap_addr_full;
 logic [15:0] payot_addr_full;
 
-// Pipelining registers - Stage 0
+
 logic [10:0] s0_vcount;
 logic        s0_vsync;
 logic        s0_vblnk;
@@ -197,7 +196,6 @@ logic [HAT_ADDR_W-1:0]        s0_hat_addr;
 logic [CAP_ADDR_W-1:0]        s0_cap_addr;
 logic [PAYOT_ADDR_W-1:0]      s0_payot_addr;
 
-// Pipelining registers - Stage 1
 logic [10:0] s1_vcount;
 logic        s1_vsync;
 logic        s1_vblnk;
@@ -368,7 +366,6 @@ always_comb begin
     payot_ly = cell_y_nxt - PAYOT_Y_OFF;
 
 
-    /* ROM images are stored row by row, so address = y * width + x. */
     head_addr_full       = head_ly * HEAD_W + head_lx;
     sunglasses_addr_full = sunglasses_ly * SUNGLASSES_W + sunglasses_lx;
     glasses_addr_full    = glasses_ly * GLASSES_W + glasses_lx;
@@ -397,8 +394,6 @@ always_comb begin
         rgb_nxt = COLOR_BLACK;
     end else if (s1_draw_face) begin
         
-        // Z-Order: Warstwy sprawdzane od wierzchu do spodu
-
         // 1. Kapelusz i Czapka
         if (s1_in_hat_area && hat_pixel != COLOR_TRANSPARENT) begin
             rgb_nxt = hat_pixel;
