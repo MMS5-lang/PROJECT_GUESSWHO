@@ -52,7 +52,7 @@ module top_fpga_tb;
     /**
      * Submodule instances
      */
-    top_vga_basys3 #(
+    top_basys3 #(
         .RESET_DEBOUNCE_COUNTER_BITS (4)
     ) dut (
         .clk      (clk),

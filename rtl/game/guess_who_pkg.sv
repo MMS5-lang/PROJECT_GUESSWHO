@@ -46,4 +46,10 @@ typedef enum logic [3:0] {
     PKT_ERROR          = 4'd10
 } packet_type_t;
 
+typedef enum logic [1:0] {
+    CURSOR_POINTER       = 2'd0,
+    CURSOR_POINTER_HOVER = 2'd1,
+    CURSOR_BUSY          = 2'd2
+} cursor_mode_t;
+
 endpackage

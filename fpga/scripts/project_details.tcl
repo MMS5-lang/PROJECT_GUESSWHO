@@ -8,15 +8,15 @@
 #-----------------------------------------------------#
 #                   Project details                   #
 #-----------------------------------------------------#
-set project_name vga_project
-set top_module top_vga_basys3
+set project_name guess_who_project
+set top_module top_basys3
 set target xc7a35tcpg236-1
 
 #-----------------------------------------------------#
 #                    Design sources                   #
 #-----------------------------------------------------#
 set xdc_files {
-    constraints/top_vga_basys3.xdc
+    constraints/top_basys3.xdc
     constraints/clk_wiz_0.xdc
 }
 
@@ -38,14 +38,15 @@ set sv_files {
     ../rtl/text/font_rom.sv
     ../rtl/text/text_renderer.sv
     ../rtl/mouse/mouse_adapter.sv
+    ../rtl/mouse/cursor_mode_controller.sv
     ../rtl/mouse/draw_mouse.sv
     ../rtl/top/top_vga.sv
-    rtl/top_vga_basys3.sv
+    rtl/top_basys3.sv
 }
 
 set mem_files {
     ../rtl/assets/faces/head_shape.dat
-     ../rtl/assets/faces/sunglasses.dat
+    ../rtl/assets/faces/sunglasses.dat
     ../rtl/assets/faces/glasses.dat
     ../rtl/assets/faces/hair1.dat
     ../rtl/assets/faces/hair2.dat
@@ -53,6 +54,9 @@ set mem_files {
     ../rtl/assets/faces/hat.dat
     ../rtl/assets/faces/cap.dat
     ../rtl/assets/faces/payot.dat
+    ../rtl/assets/cursors/pointer_b.dat
+    ../rtl/assets/cursors/pointer_toon_b.dat
+    ../rtl/assets/cursors/busy_hourglass_outline_detail.dat
 }
 
 set verilog_files {
@@ -69,5 +73,4 @@ set verilog_files {
 set vhdl_files {
    ../rtl/mouse/Ps2Interface.vhd
    ../rtl/mouse/MouseCtl.vhd
-   ../rtl/mouse/MouseDisplay.vhd
 }

@@ -21,6 +21,36 @@ submission/demo of the Basys 3 Guess Who project.
 - UART source files copied from the example project are grouped under
   `rtl/comm/uart`, the project UART wrapper is in `rtl/comm`, and debounce is in
   `rtl/common`.
+- Cursor assets are generated under `rtl/assets/cursors`: `pointer_b` for normal
+  movement, `pointer_toon_b` over hitboxes, and
+  `busy_hourglass_outline_detail` while waiting in `S_OPPONENT_TURN`.
+
+## Hardware reminders
+
+- Use the same bitstream on both Basys 3 boards.
+- Set `SW[0] = 0` on one board and `SW[0] = 1` on the other board before both
+  players press `START`.
+- `BTNC` is the physical reset button. Project RTL uses active-low asynchronous
+  reset internally as `rst_n`; the button release is debounced and synchronized.
+- Current UART link uses PMOD header JA, not JB.
+- `JA2` is UART TX. Connect it to the other board's `JA3`.
+- `JA3` is UART RX. Connect it to the other board's `JA2`.
+- Connect PMOD ground between boards. Without common GND the UART link may look
+  random even if TX/RX are crossed correctly.
+- `JA1` mirrors the pixel clock for observation/test use. It is not required for
+  gameplay communication.
+- Header JB is currently unused. If the link is moved to JB, update
+  `fpga/constraints/top_basys3.xdc`, the report, this file and the hardware
+  test notes together.
+- Connect each board to its own VGA display or to one display at a time during
+  bring-up. The expected video mode is 1024 x 768.
+- Connect a PS/2 mouse through the Basys 3 USB HID/PS2 connector on each board.
+- Program both boards, wait for VGA output, check `SW[0]`, then press `BTNC` if
+  one board appears to be stuck in an old state.
+- Cursor ROMs use RGB444 `000` as transparency. If a future cursor needs visible
+  black pixels, change the transparency key or regenerate assets with a different
+  transparent color.
+
 
 ## Added simulation coverage
 

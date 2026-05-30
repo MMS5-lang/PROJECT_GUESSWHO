@@ -30,6 +30,7 @@ vivado_status=$?
 cd "${ROOT_DIR}" || exit 1
 
 if [[ ${vivado_status} -eq 0 ]]; then
+    find "${ROOT_DIR}/results" -maxdepth 1 -name "*.bit" -delete
     find "${ROOT_DIR}/fpga/build" -name "*.bit" -exec cp {} "${ROOT_DIR}/results/" \;
 fi
 

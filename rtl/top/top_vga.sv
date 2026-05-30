@@ -75,6 +75,7 @@ logic guess_result_valid;
 logic guess_result_correct;
 logic final_result_valid;
 logic final_result_correct;
+cursor_mode_t cursor_mode;
 
 vga_if if_tim ();
 vga_if if_bg ();
@@ -150,6 +151,14 @@ hitbox_decoder u_hitbox_decoder (
     .char_left_click  (char_left_click),
     .char_right_click (char_right_click),
     .char_id          (clicked_char_id)
+);
+
+cursor_mode_controller u_cursor_mode_controller (
+    .mouse_x           (mouse_xpos),
+    .mouse_y           (mouse_ypos),
+    .game_state        (game_state),
+    .cursor_mode       (cursor_mode),
+    .mouse_over_hitbox ()
 );
 
 pmod_comm_controller u_pmod_comm_controller (
@@ -267,12 +276,13 @@ text_renderer u_text_renderer (
 );
 
 draw_mouse u_draw_mouse (
-    .clk   (clk),
-    .rst_n (rst_n),
-    .xpos  (mouse_xpos),
-    .ypos  (mouse_ypos),
-    .in    (if_text.in),
-    .out   (if_mouse.out)
+    .clk         (clk),
+    .rst_n       (rst_n),
+    .xpos        (mouse_xpos),
+    .ypos        (mouse_ypos),
+    .cursor_mode (cursor_mode),
+    .in          (if_text.in),
+    .out         (if_mouse.out)
 );
 
 endmodule

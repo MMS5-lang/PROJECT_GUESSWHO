@@ -26,10 +26,10 @@ sv work ../../rtl/render/board_renderer.sv
 sv work ../../rtl/text/font_rom.sv
 sv work ../../rtl/text/text_renderer.sv
 sv work ../../rtl/mouse/mouse_adapter.sv
+sv work ../../rtl/mouse/cursor_mode_controller.sv
 sv work ../../rtl/mouse/draw_mouse.sv
 sv work ../../rtl/top/top_vga.sv
 sv work ../common/tiff_writer.sv
 vhdl work ../../rtl/mouse/Ps2Interface.vhd
 vhdl work ../../rtl/mouse/MouseCtl.vhd
-vhdl work ../../rtl/mouse/MouseDisplay.vhd
 sv work top_vga_tb.sv

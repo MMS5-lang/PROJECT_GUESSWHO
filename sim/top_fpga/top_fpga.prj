@@ -27,16 +27,16 @@ sv work ../../rtl/render/board_renderer.sv
 sv work ../../rtl/text/font_rom.sv
 sv work ../../rtl/text/text_renderer.sv
 sv work ../../rtl/mouse/mouse_adapter.sv
+sv work ../../rtl/mouse/cursor_mode_controller.sv
 sv work ../../rtl/mouse/draw_mouse.sv
 sv work ../../rtl/top/top_vga.sv
 verilog work ../../fpga/rtl/clk_wiz_0_clk_wiz.v
 verilog work ../../fpga/rtl/clk_wiz_0.v
 verilog work ../../rtl/common/debounce.v
-sv work ../../fpga/rtl/top_vga_basys3.sv
+sv work ../../fpga/rtl/top_basys3.sv
 sv work ../common/tiff_writer.sv
 vhdl work ../../rtl/mouse/Ps2Interface.vhd
 vhdl work ../../rtl/mouse/MouseCtl.vhd
-vhdl work ../../rtl/mouse/MouseDisplay.vhd
 sv work top_fpga_tb.sv
 
 # compile glbl module - required for IP simulation

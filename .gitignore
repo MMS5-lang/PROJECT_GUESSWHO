@@ -29,6 +29,9 @@ vivado*
 xvlog*
 xelab*
 xsim*
+.Xil/
+.nfs*
+**/.nfs*
 
 dvt_build.log
 .dvt/
@@ -37,5 +40,9 @@ dfx_runtime.txt
 
 xcelium.d
 xrun.log
+
+__pycache__/
+*.py[cod]
+rtl/assets/cursors/*_preview.png
 
 results/

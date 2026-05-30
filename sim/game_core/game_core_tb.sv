@@ -204,6 +204,46 @@ begin
 end
 endtask
 
+task automatic expect_local_actions_ignored_in_opponent_turn;
+    logic [CHAR_COUNT-1:0] mask_before;
+    logic [CHAR_ID_W-1:0] last_guess_before;
+begin
+    mask_before = eliminated_mask;
+    last_guess_before = last_guess_id;
+
+    char_id = 5'd6;
+    char_right_click = 1'b1;
+    #1;
+    assert (game_state == S_OPPONENT_TURN) else $error("Right click changed opponent-turn state");
+    assert (eliminated_mask == mask_before) else $error("Right click should not edit notes in opponent turn");
+    assert (!send_final_check) else $error("Right click should not send final check in opponent turn");
+    wait_clk;
+    char_right_click = 1'b0;
+    wait_clk;
+
+    char_id = 5'd6;
+    char_left_click = 1'b1;
+    #1;
+    assert (game_state == S_OPPONENT_TURN) else $error("Left click changed opponent-turn state");
+    assert (last_guess_id == last_guess_before) else $error("Left click should not update guess in opponent turn");
+    assert (!send_guess) else $error("Left click should not send guess in opponent turn");
+    wait_clk;
+    char_left_click = 1'b0;
+    wait_clk;
+
+    start_click = 1'b1;
+    #1;
+    assert (game_state == S_OPPONENT_TURN) else $error("START should not end opponent turn locally");
+    assert (!send_turn_end) else $error("START should not send TURN_END in opponent turn");
+    wait_clk;
+    start_click = 1'b0;
+    wait_clk;
+
+    assert (eliminated_mask == mask_before) else $error("Opponent-turn local actions changed notes");
+    assert (last_guess_id == last_guess_before) else $error("Opponent-turn local actions changed last guess");
+end
+endtask
+
 task automatic pulse_opponent_guess(input logic [CHAR_ID_W-1:0] id);
 begin
     opponent_guess_id = id;
@@ -311,6 +351,8 @@ initial begin
 
     pulse_frames(180);
     assert (game_state == S_OPPONENT_TURN) else $error("Wrong feedback should end in opponent turn");
+
+    expect_local_actions_ignored_in_opponent_turn;
 
     pulse_opponent_turn_end;
     assert (game_state == S_MY_TURN) else $error("TURN_END should return to own turn");

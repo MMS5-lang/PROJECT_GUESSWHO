@@ -15,6 +15,5 @@ sv work ../../rtl/render/ui_renderer.sv
 sv work ../../rtl/render/board_renderer.sv
 sv work ../../rtl/text/text_renderer.sv
 sv work ../../rtl/render/face_renderer.sv
-vhdl work ../../rtl/mouse/MouseDisplay.vhd
 sv work ../../rtl/mouse/draw_mouse.sv
 sv work render_modules_tb.sv

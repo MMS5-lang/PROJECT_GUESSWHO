@@ -24,7 +24,7 @@ localparam logic [11:0] COLOR_BLUE = 12'h1_4_f;
 localparam logic [11:0] COLOR_GREEN = 12'h0_b_0;
 localparam logic [11:0] COLOR_ORANGE = 12'hf_9_0;
 localparam logic [11:0] COLOR_RED = 12'hf_0_0;
-localparam logic [11:0] COLOR_SKIN = 12'hf_d_b;
+localparam logic [11:0] COLOR_DARK_SKIN = 12'h8_5_2;
 
 logic clk;
 logic rst_n;
@@ -33,7 +33,7 @@ logic [7:0] font_char_code;
 logic [2:0] font_row;
 logic [4:0] font_pixels;
 logic [CHAR_ID_W-1:0] traits_char_id;
-logic [7:0] traits;
+logic [11:0] traits;
 
 game_state_t ui_state;
 logic ui_has_secret;
@@ -53,6 +53,7 @@ logic face_has_secret;
 
 logic [11:0] mouse_xpos;
 logic [11:0] mouse_ypos;
+cursor_mode_t mouse_cursor_mode;
 
 vga_if bg_in ();
 vga_if bg_out ();
@@ -128,10 +129,11 @@ face_renderer dut_face_renderer (
 draw_mouse dut_draw_mouse (
     .clk,
     .rst_n,
-    .xpos (mouse_xpos),
-    .ypos (mouse_ypos),
-    .in   (mouse_in.in),
-    .out  (mouse_out.out)
+    .xpos        (mouse_xpos),
+    .ypos        (mouse_ypos),
+    .cursor_mode (mouse_cursor_mode),
+    .in          (mouse_in.in),
+    .out         (mouse_out.out)
 );
 
 initial begin
@@ -328,6 +330,7 @@ initial begin
     face_has_secret = 1'b0;
     mouse_xpos = 12'd10;
     mouse_ypos = 12'd10;
+    mouse_cursor_mode = CURSOR_POINTER;
     font_char_code = "A";
     font_row = 3'd0;
     traits_char_id = '0;
@@ -362,13 +365,13 @@ initial begin
 
     traits_char_id = 5'd0;
     #1;
-    assert (traits == 8'b10000001) else $error("face_traits_rom char 0 mismatch");
+    assert (traits == 12'b0000_0110_1000) else $error("face_traits_rom char 0 mismatch");
     traits_char_id = 5'd17;
     #1;
-    assert (traits == 8'b10010000) else $error("face_traits_rom char 17 mismatch");
+    assert (traits == 12'b1001_0001_0000) else $error("face_traits_rom char 17 mismatch");
     traits_char_id = 5'd31;
     #1;
-    assert (traits == 8'b00000000) else $error("face_traits_rom invalid id should be blank");
+    assert (traits == 12'b0000_0000_0000) else $error("face_traits_rom invalid id should be blank");
 
     drive_bg(11'd0, 11'd0, 12'h1_2_3, 1'b0, 1'b0);
     assert (bg_out.rgb == 12'h1_2_3) else $error("draw_bg should pass outside-board pixels");
@@ -426,16 +429,31 @@ initial begin
     face_selected_id = 5'd0;
     face_has_secret = 1'b1;
     drive_face(BOARD_X + 70, BOARD_Y + 100, COLOR_WHITE, 1'b0, 1'b0);
-    assert (face_out.rgb == COLOR_SKIN) else $error("face_renderer should color head skin pixels");
+    assert (face_out.rgb == COLOR_DARK_SKIN) else $error("face_renderer should color head skin pixels");
     drive_face(11'd0, 11'd0, 12'h1_2_3, 1'b0, 1'b0);
     assert (face_out.rgb == 12'h1_2_3) else $error("face_renderer should pass unrelated pixels");
 
     mouse_xpos = 12'd10;
     mouse_ypos = 12'd10;
+    mouse_cursor_mode = CURSOR_POINTER;
     drive_mouse(11'd100, 11'd100, 12'h1_2_3, 1'b0, 1'b0);
     assert (mouse_out.rgb == 12'h1_2_3) else $error("draw_mouse should pass pixels outside cursor");
+
+    drive_mouse(11'd47, 11'd42, 12'h7_7_7, 1'b0, 1'b0);
+    assert (mouse_out.rgb == COLOR_WHITE) else $error("draw_mouse normal cursor pixel mismatch");
+
+    mouse_cursor_mode = CURSOR_POINTER_HOVER;
+    drive_mouse(11'd41, 11'd41, 12'h7_7_7, 1'b0, 1'b0);
+    assert (mouse_out.rgb == COLOR_WHITE) else $error("draw_mouse hover cursor pixel mismatch");
+
+    mouse_cursor_mode = CURSOR_BUSY;
+    drive_mouse(11'd35, 11'd44, 12'h7_7_7, 1'b0, 1'b0);
+    assert (mouse_out.rgb == COLOR_WHITE) else $error("draw_mouse busy cursor pixel mismatch");
+
+    mouse_cursor_mode = CURSOR_POINTER;
     drive_mouse(11'd10, 11'd10, 12'h7_7_7, 1'b0, 1'b0);
-    assert (mouse_out.rgb == COLOR_BLACK) else $error("draw_mouse cursor origin should be black");
+    assert (mouse_out.rgb == 12'h7_7_7) else $error("draw_mouse transparent cursor pixel should pass input");
+
     drive_mouse(11'd100, 11'd100, 12'h7_7_7, 1'b1, 1'b0);
     assert (mouse_out.rgb == COLOR_BLACK) else $error("draw_mouse blanking should be black");
 

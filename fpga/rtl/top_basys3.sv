@@ -12,7 +12,7 @@
  * Top level synthesizable module including the project top and all the FPGA-referred modules.
  */
 
-module top_vga_basys3 #(
+module top_basys3 #(
         parameter int RESET_DEBOUNCE_COUNTER_BITS = 21
     ) (
         input  wire clk,

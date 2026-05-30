@@ -175,9 +175,9 @@ Poniżej przedstawiono hierarchię plików w projekcie. Aby wszystkie narzędzia
 ├── env.sh                         - konfiguracja środowiska
 ├── fpga                           - pliki związane z FPGA
 │   ├── constraints                - * pliki xdc
-│   │   └── top_vga_basys3.xdc
+│   │   └── top_basys3.xdc
 │   ├── rtl                        - * syntezowalne pliki związane z FPGA
-│   │   └── top_vga_basys3.sv      - * * moduł instancjonujący nadrzędny moduł projektu rtl/top* oraz bloki
+│   │   └── top_basys3.sv          - * * moduł instancjonujący nadrzędny moduł projektu rtl/top* oraz bloki
 │   │                                    specyficzne dla FPGA (np. bufory lub sentezator częstotliwości zegara)
 │   └── scripts                    - * skrypty tcl (uruchamiane odpowiednimi narzędziami z tools)
 │       ├── generate_bitstream.tcl
@@ -185,7 +185,7 @@ Poniżej przedstawiono hierarchię plików w projekcie. Aby wszystkie narzędzia
 │       └── project_details.tcl    - * * informacje o nazwie projektu, module top i plikach do syntezy
 ├── README.md                      - ten plik
 ├── results                        - pliki wynikowe generacji bitstreamu
-│   ├── top_vga_basys3.bit         - * bitstream
+│   ├── top_basys3.bit             - * bitstream
 │   └── warning_summary.log        - * podsumowanie ostrzeżeń i błędów
 ├── rtl                            - syntezowalne pliki projektu (niezależne od FPGA)
 │   ├── draw_bg.sv
