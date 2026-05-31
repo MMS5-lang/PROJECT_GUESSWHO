@@ -434,6 +434,8 @@ initial begin
                        PANEL_Y + CELL_H + 28, 8, COLOR_BLACK, "NA WYNIK");
     expect_text_pixels(S_WRONG_GUESS_FEEDBACK, PANEL_X + ((CELL_W - 11 * 12) / 2),
                        PANEL_Y + CELL_H + 8, 11, COLOR_RED, "NIEPOPRAWNA");
+    expect_text_pixels(S_COMM_ERROR, PANEL_X + ((CELL_W - 5 * 12) / 2),
+                       PANEL_Y + CELL_H + 8, 5, COLOR_RED, "ERROR");
     expect_text_pixels(S_WIN, PANEL_X + ((CELL_W - 8 * 12) / 2),
                        PANEL_Y + CELL_H + 28, 8, COLOR_GREEN, "WYGRALES");
     expect_text_pixels(S_LOSE, PANEL_X + ((CELL_W - 10 * 12) / 2),

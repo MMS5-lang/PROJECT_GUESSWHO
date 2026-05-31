@@ -81,7 +81,8 @@ typedef enum logic [4:0] {
     TEXT_NA_LINK,
     TEXT_NA_WYNIK,
     TEXT_OSTATNIA,
-    TEXT_NIEPOPRAWNA
+    TEXT_NIEPOPRAWNA,
+    TEXT_ERROR
 } text_id_t;
 
 logic [11:0] rgb_nxt;
@@ -355,6 +356,16 @@ begin
                 default: get_char = " ";
             endcase
         end
+        TEXT_ERROR: begin
+            case (idx)
+                4'd0: get_char = "E";
+                4'd1: get_char = "R";
+                4'd2: get_char = "R";
+                4'd3: get_char = "O";
+                4'd4: get_char = "R";
+                default: get_char = " ";
+            endcase
+        end
         default: begin
             get_char = " ";
         end
@@ -481,6 +492,22 @@ always_comb begin
         text_x = STATUS_LEN6_X;
         text_y = STATUS_TEXT_Y2;
         text_len = 4'd6;
+        text_color = COLOR_RED;
+    end else if ((game_state == S_COMM_ERROR) &&
+                 inside_text(in.hcount, in.vcount, STATUS_LEN5_X, STATUS_TEXT_Y1, 5)) begin
+        text_active = 1'b1;
+        text_id = TEXT_ERROR;
+        text_x = STATUS_LEN5_X;
+        text_y = STATUS_TEXT_Y1;
+        text_len = 4'd5;
+        text_color = COLOR_RED;
+    end else if ((game_state == S_COMM_ERROR) &&
+                 inside_text(in.hcount, in.vcount, STATUS_LEN7_X, STATUS_TEXT_Y2, 7)) begin
+        text_active = 1'b1;
+        text_id = TEXT_NA_LINK;
+        text_x = STATUS_LEN7_X;
+        text_y = STATUS_TEXT_Y2;
+        text_len = 4'd7;
         text_color = COLOR_RED;
     end else if ((game_state == S_WIN) &&
                  inside_text(in.hcount, in.vcount, STATUS_LEN8_X, STATUS_TEXT_Y2, 8)) begin

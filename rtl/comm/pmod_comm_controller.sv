@@ -13,7 +13,10 @@
 module pmod_comm_controller #(
     parameter int CLK_FREQ_HZ = 65_000_000,
     parameter int BAUD_RATE = 115_200,
-    parameter int HELLO_INTERVAL_CYCLES = 1_000_000
+    parameter int HELLO_INTERVAL_CYCLES = 1_000_000,
+    parameter int ACK_TIMEOUT_CYCLES = CLK_FREQ_HZ / 4,
+    parameter int MAX_RETRIES = 3,
+    parameter int COMM_TIMEOUT_CYCLES = CLK_FREQ_HZ * 5
 ) (
     input  logic clk,
     input  logic rst_n,
@@ -41,7 +44,8 @@ module pmod_comm_controller #(
     output logic guess_result_valid,
     output logic guess_result_correct,
     output logic final_result_valid,
-    output logic final_result_correct
+    output logic final_result_correct,
+    output logic comm_error
 );
 
 timeunit 1ns;
@@ -53,6 +57,9 @@ localparam logic [7:0] START_BYTE = 8'hA5;
 localparam int PACKET_BYTES = 6;
 localparam logic [2:0] PACKET_LAST_INDEX = PACKET_BYTES - 1;
 localparam int HELLO_COUNTER_W = (HELLO_INTERVAL_CYCLES <= 1) ? 1 : $clog2(HELLO_INTERVAL_CYCLES);
+localparam int ACK_COUNTER_W = (ACK_TIMEOUT_CYCLES <= 1) ? 1 : $clog2(ACK_TIMEOUT_CYCLES);
+localparam int COMM_COUNTER_W = (COMM_TIMEOUT_CYCLES <= 1) ? 1 : $clog2(COMM_TIMEOUT_CYCLES);
+localparam int RETRY_COUNTER_W = (MAX_RETRIES <= 1) ? 1 : $clog2(MAX_RETRIES + 1);
 
 typedef enum logic [2:0] {
     RX_WAIT_START,
@@ -81,9 +88,28 @@ packet_type_t tx_type;
 logic [CHAR_ID_W-1:0] tx_payload;
 logic [2:0] tx_byte_index;
 logic [7:0] tx_seq;
+logic [7:0] next_tx_seq;
+
+logic reliable_valid;
+logic reliable_sent;
+packet_type_t reliable_type;
+logic [CHAR_ID_W-1:0] reliable_payload;
+logic [7:0] reliable_seq;
+logic [ACK_COUNTER_W-1:0] ack_counter;
+logic [RETRY_COUNTER_W-1:0] retry_count;
+
+logic ack_pending;
+logic [CHAR_ID_W-1:0] ack_payload;
+logic [7:0] ack_seq;
+
+logic rx_reliable_seen;
+logic [7:0] last_rx_reliable_seq;
+
+logic [COMM_COUNTER_W-1:0] comm_timeout_counter;
 
 logic [HELLO_COUNTER_W-1:0] hello_counter;
 logic hello_due;
+logic ack_timeout;
 
 logic [7:0] rx_type_byte;
 logic [7:0] rx_player_byte;
@@ -99,6 +125,7 @@ packet_type_t request_type;
 logic [CHAR_ID_W-1:0] request_payload;
 
 assign hello_due = hello_counter == HELLO_INTERVAL_CYCLES - 1;
+assign ack_timeout = reliable_valid && reliable_sent && (ack_counter == '0);
 assign uart_tx_valid = tx_active && uart_tx_ready;
 assign uart_tx_data = packet_byte(tx_type, tx_payload, tx_seq, tx_byte_index);
 
@@ -188,6 +215,47 @@ begin
 end
 endfunction
 
+function automatic logic packet_payload_valid(
+    input packet_type_t packet_type,
+    input logic [CHAR_ID_W-1:0] packet_payload
+);
+begin
+    case (packet_type)
+        PKT_GUESS,
+        PKT_FINAL_CHECK,
+        PKT_RESULT_CORRECT,
+        PKT_RESULT_WRONG: begin
+            packet_payload_valid = packet_payload < CHAR_COUNT;
+        end
+        PKT_ACK: begin
+            packet_payload_valid = packet_type_supported(packet_payload[3:0]);
+        end
+        default: begin
+            packet_payload_valid = 1'b1;
+        end
+    endcase
+end
+endfunction
+
+function automatic logic packet_type_needs_ack(input packet_type_t packet_type);
+begin
+    case (packet_type)
+        PKT_READY,
+        PKT_TURN_END,
+        PKT_GUESS,
+        PKT_FINAL_CHECK,
+        PKT_RESULT_CORRECT,
+        PKT_RESULT_WRONG,
+        PKT_RESET_GAME: begin
+            packet_type_needs_ack = 1'b1;
+        end
+        default: begin
+            packet_type_needs_ack = 1'b0;
+        end
+    endcase
+end
+endfunction
+
 always_comb begin
     request_valid = 1'b0;
     request_type = PKT_READY;
@@ -245,6 +313,20 @@ always_ff @(posedge clk or negedge rst_n) begin
         tx_payload <= '0;
         tx_byte_index <= 3'd0;
         tx_seq <= 8'h00;
+        next_tx_seq <= 8'h00;
+        reliable_valid <= 1'b0;
+        reliable_sent <= 1'b0;
+        reliable_type <= PKT_HELLO;
+        reliable_payload <= '0;
+        reliable_seq <= 8'h00;
+        ack_counter <= '0;
+        retry_count <= '0;
+        ack_pending <= 1'b0;
+        ack_payload <= '0;
+        ack_seq <= 8'h00;
+        rx_reliable_seen <= 1'b0;
+        last_rx_reliable_seq <= 8'h00;
+        comm_timeout_counter <= '0;
         hello_counter <= '0;
         rx_state <= RX_WAIT_START;
         rx_type_byte <= 8'h00;
@@ -266,6 +348,7 @@ always_ff @(posedge clk or negedge rst_n) begin
         guess_result_correct <= 1'b0;
         final_result_valid <= 1'b0;
         final_result_correct <= 1'b0;
+        comm_error <= 1'b0;
     end else begin
         opponent_ready <= 1'b0;
         opponent_turn_end <= 1'b0;
@@ -278,6 +361,23 @@ always_ff @(posedge clk or negedge rst_n) begin
         guess_result_correct <= 1'b0;
         final_result_valid <= 1'b0;
         final_result_correct <= 1'b0;
+
+        if (link_ready && !comm_error) begin
+            if (comm_timeout_counter == COMM_TIMEOUT_CYCLES - 1) begin
+                comm_error <= 1'b1;
+                link_ready <= 1'b0;
+            end else begin
+                comm_timeout_counter <= comm_timeout_counter + 1'b1;
+            end
+        end
+
+        if (reliable_valid && reliable_sent && !comm_error) begin
+            if (ack_counter != '0) begin
+                ack_counter <= ack_counter - 1'b1;
+            end else if (retry_count >= MAX_RETRIES) begin
+                comm_error <= 1'b1;
+            end
+        end
 
         if (hello_due) begin
             hello_counter <= '0;
@@ -301,6 +401,10 @@ always_ff @(posedge clk or negedge rst_n) begin
             awaiting_guess_result <= 1'b0;
             awaiting_final_result <= 1'b0;
             awaiting_result_payload <= '0;
+            reliable_valid <= 1'b0;
+            reliable_sent <= 1'b0;
+            ack_counter <= '0;
+            retry_count <= '0;
             pending_valid <= 1'b1;
             pending_is_hello <= 1'b0;
             pending_type <= PKT_RESET_GAME;
@@ -317,19 +421,49 @@ always_ff @(posedge clk or negedge rst_n) begin
             pending_payload <= '0;
         end
 
-        if (!tx_active && pending_valid && uart_tx_ready &&
-            !send_reset_game && !(pending_is_hello && request_valid)) begin
+        if (!tx_active && uart_tx_ready && ack_pending && !send_reset_game) begin
+            tx_active <= 1'b1;
+            tx_type <= PKT_ACK;
+            tx_payload <= ack_payload;
+            tx_seq <= ack_seq;
+            tx_byte_index <= 3'd0;
+            ack_pending <= 1'b0;
+        end else if (!tx_active && uart_tx_ready && ack_timeout && !send_reset_game &&
+                     (retry_count < MAX_RETRIES)) begin
+            tx_active <= 1'b1;
+            tx_type <= reliable_type;
+            tx_payload <= reliable_payload;
+            tx_seq <= reliable_seq;
+            tx_byte_index <= 3'd0;
+            ack_counter <= ACK_TIMEOUT_CYCLES - 1;
+            retry_count <= retry_count + 1'b1;
+        end else if (!tx_active && uart_tx_ready && !reliable_valid &&
+                     pending_valid && !send_reset_game &&
+                     !(pending_is_hello && request_valid)) begin
             tx_active <= 1'b1;
             tx_type <= pending_type;
             tx_payload <= pending_payload;
             tx_byte_index <= 3'd0;
+
+            if (packet_type_needs_ack(pending_type)) begin
+                tx_seq <= next_tx_seq;
+                reliable_valid <= 1'b1;
+                reliable_sent <= 1'b1;
+                reliable_type <= pending_type;
+                reliable_payload <= pending_payload;
+                reliable_seq <= next_tx_seq;
+                ack_counter <= ACK_TIMEOUT_CYCLES - 1;
+                retry_count <= '0;
+            end else begin
+                tx_seq <= next_tx_seq;
+            end
+
             pending_valid <= 1'b0;
             pending_is_hello <= 1'b0;
         end else if (tx_active && uart_tx_ready) begin
             if (tx_byte_index == PACKET_LAST_INDEX) begin
                 tx_active <= 1'b0;
                 tx_byte_index <= 3'd0;
-                tx_seq <= tx_seq + 8'd1;
             end else begin
                 tx_byte_index <= tx_byte_index + 3'd1;
             end
@@ -375,55 +509,85 @@ always_ff @(posedge clk or negedge rst_n) begin
                         (rx_type_byte[7:4] == 4'h0) &&
                         (rx_player_byte[7:1] == 7'd0) &&
                         (rx_player_byte[0] != player_id) &&
-                        packet_type_supported(rx_type_byte[3:0])) begin
+                        packet_type_supported(rx_type_byte[3:0]) &&
+                        packet_payload_valid(packet_type_t'(rx_type_byte[3:0]),
+                                             rx_payload_byte[CHAR_ID_W-1:0])) begin
                         link_ready <= 1'b1;
+                        comm_timeout_counter <= '0;
 
-                        case (rx_type_byte[3:0])
-                            PKT_READY: begin
-                                opponent_ready <= 1'b1;
+                        if (rx_type_byte[3:0] == PKT_ACK) begin
+                            if (reliable_valid &&
+                                (rx_seq_byte == reliable_seq) &&
+                                (rx_payload_byte[3:0] == reliable_type)) begin
+                                reliable_valid <= 1'b0;
+                                reliable_sent <= 1'b0;
+                                ack_counter <= '0;
+                                retry_count <= '0;
+                                next_tx_seq <= next_tx_seq + 8'd1;
+                            end
+                        end else begin
+                            if (packet_type_needs_ack(packet_type_t'(rx_type_byte[3:0]))) begin
+                                ack_pending <= 1'b1;
+                                ack_payload <= {{(CHAR_ID_W - 4){1'b0}}, rx_type_byte[3:0]};
+                                ack_seq <= rx_seq_byte;
                             end
 
-                            PKT_TURN_END: begin
-                                opponent_turn_end <= 1'b1;
-                            end
-
-                            PKT_GUESS: begin
-                                opponent_guess <= 1'b1;
-                                opponent_guess_id <= rx_payload_byte[CHAR_ID_W-1:0];
-                            end
-
-                            PKT_FINAL_CHECK: begin
-                                opponent_final_check <= 1'b1;
-                                opponent_final_check_id <= rx_payload_byte[CHAR_ID_W-1:0];
-                            end
-
-                            PKT_RESULT_CORRECT,
-                            PKT_RESULT_WRONG: begin
-                                if ((rx_payload_byte[CHAR_ID_W-1:0] == awaiting_result_payload) &&
-                                    awaiting_final_result) begin
-                                    final_result_valid <= 1'b1;
-                                    final_result_correct <= rx_type_byte[3:0] == PKT_RESULT_CORRECT;
-                                    awaiting_final_result <= 1'b0;
-                                    awaiting_result_payload <= '0;
-                                end else if ((rx_payload_byte[CHAR_ID_W-1:0] == awaiting_result_payload) &&
-                                             awaiting_guess_result) begin
-                                    guess_result_valid <= 1'b1;
-                                    guess_result_correct <= rx_type_byte[3:0] == PKT_RESULT_CORRECT;
-                                    awaiting_guess_result <= 1'b0;
-                                    awaiting_result_payload <= '0;
+                            if (!packet_type_needs_ack(packet_type_t'(rx_type_byte[3:0])) ||
+                                !rx_reliable_seen ||
+                                (rx_seq_byte != last_rx_reliable_seq)) begin
+                                if (packet_type_needs_ack(packet_type_t'(rx_type_byte[3:0]))) begin
+                                    rx_reliable_seen <= 1'b1;
+                                    last_rx_reliable_seq <= rx_seq_byte;
                                 end
-                            end
 
-                            PKT_RESET_GAME: begin
-                                opponent_reset_game <= 1'b1;
-                                awaiting_guess_result <= 1'b0;
-                                awaiting_final_result <= 1'b0;
-                            end
+                                case (rx_type_byte[3:0])
+                                    PKT_READY: begin
+                                        opponent_ready <= 1'b1;
+                                    end
 
-                            default: begin
-                                link_ready <= 1'b1;
+                                    PKT_TURN_END: begin
+                                        opponent_turn_end <= 1'b1;
+                                    end
+
+                                    PKT_GUESS: begin
+                                        opponent_guess <= 1'b1;
+                                        opponent_guess_id <= rx_payload_byte[CHAR_ID_W-1:0];
+                                    end
+
+                                    PKT_FINAL_CHECK: begin
+                                        opponent_final_check <= 1'b1;
+                                        opponent_final_check_id <= rx_payload_byte[CHAR_ID_W-1:0];
+                                    end
+
+                                    PKT_RESULT_CORRECT,
+                                    PKT_RESULT_WRONG: begin
+                                        if ((rx_payload_byte[CHAR_ID_W-1:0] == awaiting_result_payload) &&
+                                            awaiting_final_result) begin
+                                            final_result_valid <= 1'b1;
+                                            final_result_correct <= rx_type_byte[3:0] == PKT_RESULT_CORRECT;
+                                            awaiting_final_result <= 1'b0;
+                                            awaiting_result_payload <= '0;
+                                        end else if ((rx_payload_byte[CHAR_ID_W-1:0] == awaiting_result_payload) &&
+                                                     awaiting_guess_result) begin
+                                            guess_result_valid <= 1'b1;
+                                            guess_result_correct <= rx_type_byte[3:0] == PKT_RESULT_CORRECT;
+                                            awaiting_guess_result <= 1'b0;
+                                            awaiting_result_payload <= '0;
+                                        end
+                                    end
+
+                                    PKT_RESET_GAME: begin
+                                        opponent_reset_game <= 1'b1;
+                                        awaiting_guess_result <= 1'b0;
+                                        awaiting_final_result <= 1'b0;
+                                    end
+
+                                    default: begin
+                                        link_ready <= 1'b1;
+                                    end
+                                endcase
                             end
-                        endcase
+                        end
                     end
                 end
 

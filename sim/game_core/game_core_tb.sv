@@ -37,6 +37,7 @@ logic guess_result_valid;
 logic guess_result_correct;
 logic final_result_valid;
 logic final_result_correct;
+logic comm_error = 1'b0;
 game_state_t game_state;
 logic [CHAR_COUNT-1:0] eliminated_mask;
 logic [CHAR_ID_W-1:0] selected_id;
@@ -80,6 +81,7 @@ game_core dut (
     .guess_result_correct    (guess_result_correct),
     .final_result_valid      (final_result_valid),
     .final_result_correct    (final_result_correct),
+    .comm_error              (comm_error),
     .game_state              (game_state),
     .eliminated_mask         (eliminated_mask),
     .selected_id             (selected_id),

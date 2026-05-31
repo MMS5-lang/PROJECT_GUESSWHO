@@ -64,6 +64,7 @@ logic guess_result_valid_a;
 logic guess_result_correct_a;
 logic final_result_valid_a;
 logic final_result_correct_a;
+logic comm_error_a;
 
 logic frame_tick_b;
 logic start_click_b;
@@ -101,6 +102,7 @@ logic guess_result_valid_b;
 logic guess_result_correct_b;
 logic final_result_valid_b;
 logic final_result_correct_b;
+logic comm_error_b;
 
 pmod_comm_controller #(
     .CLK_FREQ_HZ           (CLK_FREQ_HZ),
@@ -133,7 +135,8 @@ pmod_comm_controller #(
     .guess_result_valid      (guess_result_valid_a),
     .guess_result_correct    (guess_result_correct_a),
     .final_result_valid      (final_result_valid_a),
-    .final_result_correct    (final_result_correct_a)
+    .final_result_correct    (final_result_correct_a),
+    .comm_error              (comm_error_a)
 );
 
 pmod_comm_controller #(
@@ -167,7 +170,8 @@ pmod_comm_controller #(
     .guess_result_valid      (guess_result_valid_b),
     .guess_result_correct    (guess_result_correct_b),
     .final_result_valid      (final_result_valid_b),
-    .final_result_correct    (final_result_correct_b)
+    .final_result_correct    (final_result_correct_b),
+    .comm_error              (comm_error_b)
 );
 
 game_core game_a (
@@ -192,6 +196,7 @@ game_core game_a (
     .guess_result_correct    (guess_result_correct_a),
     .final_result_valid      (final_result_valid_a),
     .final_result_correct    (final_result_correct_a),
+    .comm_error              (comm_error_a),
     .game_state              (game_state_a),
     .eliminated_mask         (eliminated_mask_a),
     .selected_id             (selected_id_a),
@@ -236,6 +241,7 @@ game_core game_b (
     .guess_result_correct    (guess_result_correct_b),
     .final_result_valid      (final_result_valid_b),
     .final_result_correct    (final_result_correct_b),
+    .comm_error              (comm_error_b),
     .game_state              (game_state_b),
     .eliminated_mask         (eliminated_mask_b),
     .selected_id             (selected_id_b),

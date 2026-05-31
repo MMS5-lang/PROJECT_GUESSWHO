@@ -54,6 +54,7 @@ logic remote_ready;
 logic frame_tick;
 
 logic link_ready;
+logic comm_error;
 logic opponent_ready;
 logic opponent_turn_end;
 logic opponent_guess;
@@ -188,7 +189,8 @@ pmod_comm_controller u_pmod_comm_controller (
     .guess_result_valid      (guess_result_valid),
     .guess_result_correct    (guess_result_correct),
     .final_result_valid      (final_result_valid),
-    .final_result_correct    (final_result_correct)
+    .final_result_correct    (final_result_correct),
+    .comm_error              (comm_error)
 );
 
 game_core u_game_core (
@@ -213,6 +215,7 @@ game_core u_game_core (
     .guess_result_correct (guess_result_correct),
     .final_result_valid  (final_result_valid),
     .final_result_correct (final_result_correct),
+    .comm_error           (comm_error),
     .game_state          (game_state),
     .eliminated_mask     (eliminated_mask),
     .selected_id         (selected_id),

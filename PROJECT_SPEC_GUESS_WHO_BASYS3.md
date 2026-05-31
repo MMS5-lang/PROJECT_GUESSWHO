@@ -1,477 +1,637 @@
-# Specyfikacja projektu: FPGA „Zgadnij kto?” na Basys 3
+# Specyfikacja projektu Guess Who na Basys 3
 
-Ten plik jest roboczą specyfikacją projektu do trzymania w repozytorium. Ma być czytelny zarówno dla osoby piszącej kod, jak i dla asystenta typu Codex. Traktuj go jako źródło prawdy dla architektury, logiki gry, renderowania i komunikacji między dwiema płytkami.
+Ten dokument opisuje aktualny stan projektu Guess Who realizowanego na dwóch
+płytkach Digilent Basys 3. Opis jest przygotowany tak, aby można było pokazać go
+prowadzącemu zajęcia jako instrukcję działania projektu, opis architektury oraz
+uzasadnienie najważniejszych decyzji implementacyjnych.
+
+Dokument bazuje na obecnym kodzie RTL w repozytorium. W szczególności uwzględnia
+aktualną planszę 6 x 3, komunikację UART między płytkami, obecne stany maszyny
+gry, obsługę myszy PS/2, renderowanie VGA 1024 x 768 oraz aktualny sposób
+kodowania postaci.
 
 ## 1. Cel projektu
 
-Projekt jest sprzętową wersją gry „Zgadnij kto?” uruchamianą na **dwóch płytkach Digilent Basys 3** z układami Artix-7. Każdy gracz ma własną płytkę, własny ekran VGA i własną mysz PS/2. Gracze rozmawiają ze sobą normalnie głosowo, a FPGA obsługuje planszę, wybór tajnej postaci, eliminowanie postaci, tury, zgadywanie, komunikację między płytkami i wynik gry.
+Celem projektu jest wykonanie sprzętowej wersji gry Guess Who na dwóch płytkach
+Basys 3. Każdy gracz korzysta z osobnej płytki, osobnego monitora VGA oraz myszy
+PS/2. Płytki komunikują się ze sobą przez UART wyprowadzony na złącze PMOD.
 
-Najważniejsze założenie interfejsu: ekran zawiera **planszę 6 × 3 po lewej stronie**, czyli łącznie **18 postaci**, oraz **panel po prawej stronie pokazujący wybraną tajną twarz lokalnego gracza**.
+FPGA nie analizuje rozmowy między graczami. Gracze zadają pytania słownie, tak
+jak w klasycznej grze. Układ FPGA odpowiada za:
 
-## 2. Platforma i technologie
+- wyświetlenie planszy z postaciami,
+- wybór tajnej postaci lokalnego gracza,
+- prowadzenie tur,
+- lokalne eliminowanie postaci,
+- zgadywanie postaci przeciwnika,
+- sprawdzanie wyniku zgadywania,
+- komunikację między dwiema płytkami,
+- obsługę końca gry i resetu.
 
-| Obszar | Decyzja projektowa |
-|---|---|
-| Platforma | 2 × Digilent Basys 3 / Artix-7 |
-| Język RTL | SystemVerilog jako główny język projektu |
-| Dopuszczalne moduły pomocnicze | Istniejące moduły VHDL do PS/2, jeżeli są poprawnie opakowane/adaptowane |
-| Wyświetlanie | VGA, preferowane 1024 × 768 albo rozdzielczość bardzo zbliżona |
-| Sterowanie | Mysz PS/2 jako główny interfejs użytkownika |
-| Komunikacja | Prosty link cyfrowy między płytkami, np. PMOD albo UART-like |
-| Reset | Reset asynchroniczny dla logiki gry i rejestrów sterujących |
-| Styl projektu | `top` głównie strukturalny, logika podzielona na osobne moduły |
+Najważniejsza decyzja projektowa: sekret gracza pozostaje lokalny. Płytka nie
+wysyła drugiemu graczowi identyfikatora swojej tajnej postaci. Gdy przeciwnik
+zgaduje, druga płytka porównuje odebrane ID z własnym `local_secret_id` i odsyła
+tylko wynik: poprawny albo błędny.
 
-## 3. Najważniejsza zmiana względem pierwotnej specyfikacji
+## 2. Platforma sprzętowa i użyte technologie
 
-Pierwotna koncepcja zakładała planszę **5 × 4**. W tym projekcie używamy planszy:
+| Obszar | Aktualna decyzja w projekcie |
+| --- | --- |
+| Platforma | Dwie płytki Digilent Basys 3 z układem Artix-7 |
+| Język główny | SystemVerilog |
+| Moduły pomocnicze | VHDL dla myszy PS/2: `MouseCtl.vhd`, `Ps2Interface.vhd` |
+| Wyświetlanie | VGA 1024 x 768, zegar pikselowy 65 MHz |
+| Sterowanie | Mysz PS/2 |
+| Komunikacja | UART przez PMOD JA |
+| Reset | Wewnętrznie aktywny niskim stanem, asynchroniczna asercja i synchroniczne zwolnienie |
+| Identyfikator gracza | `SW[0]`, jedna płytka ma 0, druga 1 |
+| Top sprzętowy | `fpga/rtl/top_basys3.sv` |
+| Top funkcjonalny gry | `rtl/top/top_vga.sv` |
+
+Połączenie UART między płytkami:
+
+- `JA2` jednej płytki należy połączyć z `JA3` drugiej płytki,
+- `JA3` jednej płytki należy połączyć z `JA2` drugiej płytki,
+- obie płytki muszą mieć wspólną masę GND,
+- `JA1` jest używany jako wyjście pomocnicze z lustrem zegara pikselowego, a
+  nie jako linia komunikacji gry.
+
+## 3. Układ ekranu
+
+Projekt używa rozdzielczości 1024 x 768. Ekran jest podzielony na dwie główne
+części: planszę po lewej stronie oraz panel sterowania po prawej stronie.
+
+Aktualna geometria z `rtl/vga/vga_pkg.sv`:
+
+```systemverilog
+HOR_PIXELS = 1024;
+VER_PIXELS = 768;
+
+BOARD_COLS = 6;
+BOARD_ROWS = 3;
+CELL_W     = 140;
+CELL_H     = 200;
+BOARD_X    = 15;
+BOARD_Y    = 83;
+BOARD_W    = 840;
+BOARD_H    = 600;
+
+PANEL_X    = 869;
+PANEL_Y    = 170;
+
+BUTTON_W   = 100;
+BUTTON_H   = 50;
+START_X    = 887;
+START_Y    = 451;
+RESET_X    = 887;
+RESET_Y    = 524;
+```
+
+Plansza ma 6 kolumn i 3 wiersze, czyli łącznie 18 postaci. Po prawej stronie
+znajduje się panel `TWOJA POSTAC`, w którym po wyborze wyświetlana jest lokalna
+tajna postać gracza. Pod panelem znajdują się przyciski ekranowe:
+
+- `START`, który po rozpoczęciu gry zmienia znaczenie na `KONIEC TURY`,
+- `RESET GRY`, który działa z każdego stanu gry.
+
+## 4. Identyfikatory pól i postaci
+
+Każda postać ma identyfikator liczony wierszami od lewej do prawej:
 
 ```text
-BOARD_COLS    = 6
-BOARD_ROWS    = 3
-N_CHARACTERS  = 18
-```
-
-Identyfikator postaci jest liczony wierszami od lewej do prawej:
-
-```systemverilog
-character_id = row * BOARD_COLS + col;
-```
-
-Dla planszy 6 × 3 poprawne identyfikatory to `0..17`.
-
-## 4. Układ ekranu
-
-Ekran ma być podzielony na trzy główne części:
-
-1. **Plansza po lewej stronie**: siatka 6 kolumn × 3 wiersze. Każde pole zawiera jedną twarz/postać.
-2. **Panel wybranej postaci po prawej stronie**: miejsce na kopię lokalnej tajnej postaci gracza. Panel nie pokazuje sekretu przeciwnika.
-3. **Przyciski ekranowe w prawej kolumnie pod panelem postaci**: `START` / `KONIEC TURY` oraz `RESET GRY`.
-
-Przykładowy układ dla VGA 1024 × 768:
-
-```systemverilog
-localparam int SCREEN_W = 1024;
-localparam int SCREEN_H = 768;
-
-localparam int BOARD_X  = 15;
-localparam int BOARD_Y  = 83;
-localparam int CELL_W   = 140;
-localparam int CELL_H   = 200;
-localparam int BOARD_W  = 6 * CELL_W;    // 840
-localparam int BOARD_H  = 3 * CELL_H;    // 600
-
-localparam int SELECTED_FACE_PANEL_X = 869;
-localparam int SELECTED_FACE_PANEL_Y = 170;
-localparam int SELECTED_FACE_PANEL_W = 140;
-localparam int SELECTED_FACE_PANEL_H = 200;
-
-localparam int BUTTON_W = 100;
-localparam int BUTTON_H = 50;
-localparam int START_X  = 887;
-localparam int START_Y  = 451;
-localparam int RESET_X  = 887;
-localparam int RESET_Y  = 524;
-```
-
-Współrzędne można dostroić do finalnego renderera, ale **relacja układu ma pozostać taka sama**: duża plansza 6 × 3 po lewej, panel wybranej twarzy po prawej, przyciski pod panelem w prawej kolumnie.
-
-## 5. Kolory i znaczenie ramek
-
-| Element | Znaczenie |
-|---|---|
-| Czarna ramka zewnętrzna | Obramowanie całej planszy |
-| Szare ramki pól | Domyślny stan pól postaci |
-| Niebieska ramka | Postać wybrana przed kliknięciem `START`, jeszcze niezatwierdzona |
-| Zielona ramka | Poprawny strzał albo poprawna ostatnia pozostała postać |
-| Czerwona ramka | Błędny strzał albo błędna ostatnia pozostała postać |
-| Szare zakrycie pola | Postać lokalnie wyeliminowana przez gracza |
-
-Panel po prawej stronie pokazuje lokalnie wybraną tajną postać. Po kliknięciu `START` ta postać pozostaje widoczna w panelu, ale na głównej planszy ramka wraca do stanu normalnego.
-
-## 6. Sterowanie myszą
-
-### Przed startem gry
-
-| Akcja | Efekt |
-|---|---|
-| LPM na postaci | Wybór tymczasowej tajnej postaci, ustawienie `provisional_secret_id` |
-| LPM na innej postaci | Zmiana wyboru tymczasowego |
-| Kliknięcie `START` | Zatwierdzenie tajnej postaci, zapis do `local_secret_id`, wysłanie `READY` do drugiej płytki |
-| Kliknięcie `RESET GRY` | Reset lokalnej rozgrywki i wysłanie `RESET_GAME` |
-
-### Po starcie gry
-
-| Akcja | Warunek | Efekt |
-|---|---|---|
-| PPM na postaci | Tylko podczas własnej tury | Eliminacja lokalna postaci albo przełączenie eliminacji, zależnie od wariantu implementacji |
-| LPM na postaci | Tylko podczas własnej tury | Natychmiastowe zgadywanie postaci przeciwnika przez wysłanie `GUESS(character_id)` |
-| Kliknięcie `KONIEC TURY` | Tylko podczas własnej tury | Wysłanie `TURN_END` i oddanie tury przeciwnikowi |
-| Kliknięcie `RESET GRY` | W dowolnym stanie | Wysłanie `RESET_GAME` i powrót obu płytek do wyboru postaci |
-
-Rekomendacja: w wersji docelowej PPM może działać jako **toggle eliminacji**, czyli pierwsze kliknięcie eliminuje postać, a drugie ją przywraca. W wersji MVP można najpierw zrobić prostszy wariant: PPM tylko ustawia bit eliminacji.
-
-## 7. Przebieg gry
-
-### 7.1. Reset i wybór postaci
-
-Po resecie gra przechodzi do fazy wyboru tajnej postaci. Obie płytki pokazują planszę 6 × 3 oraz pusty panel wybranej postaci po prawej stronie. Gracz klika LPM na wybranej twarzy. Wybrane pole dostaje niebieską ramkę, a ta sama twarz pojawia się w panelu po prawej.
-
-Wybór można zmieniać dowolnie aż do kliknięcia `START`.
-
-### 7.2. Zatwierdzenie `START`
-
-Po kliknięciu `START`:
-
-1. `provisional_secret_id` zostaje zapisany jako `local_secret_id`.
-2. `local_ready` zostaje ustawione na `1`.
-3. Zmiana tajnej postaci zostaje zablokowana.
-4. Na głównej planszy niebieska ramka znika, a ramki wracają do koloru domyślnego.
-5. Wybrana twarz nadal jest widoczna w panelu po prawej.
-6. Płytka wysyła do drugiej płytki pakiet `READY`.
-7. Gra zaczyna się dopiero wtedy, gdy `local_ready == 1` oraz `remote_ready == 1`.
-
-Sekret gracza **nie powinien być wysyłany do drugiej płytki na początku gry**. Każda płytka zna tylko własną tajną postać. Gdy przeciwnik zgaduje, druga płytka sprawdza ID lokalnie i odsyła jedynie wynik: poprawny albo błędny.
-
-### 7.3. Tury
-
-Po starcie gry tylko gracz mający turę może eliminować i zgadywać postacie. Gracz bez tury nadal widzi planszę, ale kliknięcia eliminacji i zgadywania są ignorowane.
-
-Początkową turę można ustalić za pomocą `PLAYER_ID`, np. z przełącznika `SW[0]`:
-
-```text
-PLAYER_ID = 0 -> zaczyna gracz 0
-PLAYER_ID = 1 -> czeka na ruch gracza 0
-```
-
-W praktyce obie płytki powinny mieć różne wartości `PLAYER_ID`.
-
-### 7.4. Eliminacja postaci
-
-Eliminacje są lokalne. Nie synchronizujemy ich między płytkami, ponieważ każdy gracz prowadzi własną dedukcję na podstawie rozmowy.
-
-Dane eliminacji:
-
-```systemverilog
-logic [17:0] eliminated_mask; // 1 = postać lokalnie wyeliminowana
-```
-
-Po eliminacji renderer powinien zakryć środek pola szarym kolorem, ale nadal może zostawić widoczną ramkę pola.
-
-Po każdej eliminacji należy sprawdzić, czy została dokładnie jedna niewyeliminowana postać. Jeżeli tak, wykonywany jest automatyczny `FINAL_CHECK`.
-
-### 7.5. Zgadywanie LPM
-
-Podczas własnej tury LPM na postaci oznacza natychmiastowy strzał. Nie ma osobnego potwierdzenia.
-
-Przebieg:
-
-1. Aktywna płytka wysyła `GUESS(character_id)` do przeciwnika.
-2. Płytka przeciwnika porównuje `character_id` ze swoim `local_secret_id`.
-3. Jeżeli ID się zgadza, przeciwnik odsyła `RESULT_CORRECT(character_id)`.
-4. Jeżeli ID się nie zgadza, przeciwnik odsyła `RESULT_WRONG(character_id)`.
-
-Wynik poprawny:
-
-- gracz zgadujący widzi zieloną ramkę na trafionej postaci,
-- pojawia się komunikat `WYGRALES`,
-- gra przechodzi do stanu końcowego,
-- przeciwnik widzi komunikat `PRZEGRALES`.
-
-Wynik błędny:
-
-- gracz zgadujący widzi czerwoną ramkę na błędnej postaci przez około 3 sekundy,
-- po czasie feedbacku postać zostaje lokalnie wyeliminowana,
-- tura przechodzi do przeciwnika.
-
-### 7.6. Koniec gry przez pozostawienie jednej postaci
-
-Jeżeli po eliminacji została dokładnie jedna aktywna postać, gra traktuje ją jako finalny wybór gracza:
-
-1. Aktywna płytka znajduje `remaining_character_id`.
-2. Wysyła `FINAL_CHECK(remaining_character_id)`.
-3. Przeciwnik porównuje ID ze swoim `local_secret_id`.
-4. Wynik jest taki sam jak przy zwykłym zgadywaniu:
-   - poprawny wynik: aktywny gracz wygrywa,
-   - błędny wynik: aktywny gracz przegrywa.
-
-### 7.7. Reset gry
-
-`RESET GRY` działa w każdym stanie. Kliknięcie resetu:
-
-- wysyła `RESET_GAME` do drugiej płytki,
-- czyści gotowość graczy,
-- czyści sekrety i wybór tymczasowy,
-- czyści `eliminated_mask`,
-- czyści ostatni strzał,
-- resetuje tury,
-- usuwa komunikaty zwycięstwa/przegranej,
-- wraca do fazy wyboru postaci.
-
-Jest to reset logiki gry. Nie musi resetować całego FPGA ani modułów PLL/clock wizard.
-
-## 8. Dane przechowywane w `game_core`
-
-Przykładowy zestaw rejestrów:
-
-```systemverilog
-logic [4:0] provisional_secret_id;     // kliknięta postać przed START, 0..17
-logic       provisional_secret_valid;
-
-logic [4:0] local_secret_id;           // zatwierdzona własna tajna postać, 0..17
-logic       local_ready;
-logic       remote_ready;
-
-logic [17:0] eliminated_mask;           // 1 = postać lokalnie wyeliminowana
-
-logic [4:0] last_guess_id;
-logic [4:0] last_wrong_guess_id;
-logic [4:0] last_correct_guess_id;
-logic       last_guess_valid;
-
-logic       my_turn;
-logic       player_id;
-
-logic [8:0] feedback_timer_frames;      // np. ok. 3 sekundy przy zliczaniu frame_tick
-logic       win_flag;
-logic       lose_flag;
-```
-
-Mimo że jest tylko 18 postaci, ID może mieć 5 bitów, bo ułatwia to format pakietów i porównania. Wszędzie trzeba jednak sprawdzać, że ID jest mniejsze od `N_CHARACTERS`.
-
-## 9. Mapowanie kliknięć na pola
-
-`hitbox_decoder` powinien zamieniać współrzędne myszy na typ klikniętego elementu:
-
-- pole postaci `0..17`,
-- przycisk `START` / `KONIEC TURY`,
-- przycisk `RESET GRY`,
-- panel wybranej postaci albo tło, jeżeli kliknięcie nie ma znaczenia.
-
-Dla planszy:
-
-```text
-row = 0..2
-col = 0..5
 character_id = row * 6 + col
 ```
 
-W RTL najlepiej unikać dzielenia przez zmienne. Ponieważ pola mają stały rozmiar, `hitbox_decoder` może być napisany jako zestaw porównań zakresów, np. `mouse_x >= CELL0_X0 && mouse_x < CELL0_X1`.
+Dla planszy 6 x 3 poprawne identyfikatory to:
 
-## 10. Proponowana maszyna stanów gry
+| Wiersz | Kolumny | Zakres ID |
+| ---: | ---: | ---: |
+| 0 | 0..5 | 0..5 |
+| 1 | 0..5 | 6..11 |
+| 2 | 0..5 | 12..17 |
 
-| Stan | Znaczenie |
-|---|---|
-| `S_RESET` | Asynchroniczny reset rejestrów gry |
-| `S_WAIT_LINK` | Oczekiwanie na komunikację z drugą płytką |
-| `S_SELECT_SECRET` | Wybór własnej tajnej postaci LPM |
-| `S_LOCAL_READY` | `START` kliknięty lokalnie, czekamy na `READY` przeciwnika |
-| `S_GAME_START` | Obie płytki gotowe, ustalenie pierwszej tury |
-| `S_MY_TURN` | Lokalny gracz może eliminować, zgadywać albo zakończyć turę |
-| `S_OPPONENT_TURN` | Lokalny gracz czeka; kliknięcia planszy są ignorowane |
-| `S_WAIT_GUESS_RESULT` | Po wysłaniu `GUESS` albo `FINAL_CHECK` czekamy na wynik |
-| `S_WRONG_GUESS_FEEDBACK` | Czerwona ramka i `NIEPOPRAWNA POSTAC` przez ok. 3 sekundy |
-| `S_WIN` | Komunikat `WYGRALES`, zielona ramka, koniec gry |
-| `S_LOSE` | Komunikat `PRZEGRALES`, koniec gry |
-| `S_GAME_OVER` | Stan końcowy do kliknięcia `RESET GRY` |
-| `S_COMM_ERROR` | Błąd albo utrata komunikacji z drugą płytką |
+Identyfikator ma szerokość 5 bitów (`CHAR_ID_W = 5`), mimo że używane są tylko
+wartości 0..17. Pozostałe wartości 18..31 są traktowane jako niepoprawne i są
+odrzucane w logice gry albo w kontrolerze komunikacji.
 
-## 11. Komunikacja między płytkami
+## 5. Działanie gry krok po kroku
 
-Komunikacja jest potrzebna do synchronizacji gotowości, tur, zgadywania, wyników i resetu. Nie trzeba synchronizować `eliminated_mask`.
+Ta sekcja opisuje przebieg działania projektu w stylu instrukcji dla osoby
+sprawdzającej projekt na zajęciach.
 
-Minimalne typy pakietów:
+### 5.1. Reset i oczekiwanie na link
 
-| Pakiet | Payload | Znaczenie |
-|---|---:|---|
-| `HELLO` / `HEARTBEAT` | opcjonalnie `player_id` | Sprawdzenie, czy druga płytka jest podłączona |
-| `READY` | brak | Gracz zatwierdził swoją postać |
-| `TURN_END` | brak | Aktywny gracz kończy turę |
-| `GUESS` | `character_id`, 0..17 | Gracz zgaduje postać przeciwnika |
-| `FINAL_CHECK` | `character_id`, 0..17 | Sprawdzenie jedynej pozostałej postaci |
-| `RESULT_CORRECT` | `character_id`, 0..17 | Strzał/finalny wybór jest poprawny |
-| `RESULT_WRONG` | `character_id`, 0..17 | Strzał/finalny wybór jest błędny |
-| `RESET_GAME` | brak | Reset rozgrywki na obu płytkach |
-| `ACK` | numer sekwencji | Opcjonalne potwierdzenie odebrania ważnego pakietu |
+1. Po zaprogramowaniu obu płytek należy ustawić różne wartości `SW[0]`:
+   - gracz A: `SW[0] = 0`,
+   - gracz B: `SW[0] = 1`.
+2. Po resecie wewnętrzna maszyna gry startuje od `S_RESET`.
+3. Następnie gra przechodzi do `S_WAIT_LINK`, jeżeli link z drugą płytką nie
+   został jeszcze potwierdzony.
+4. Kontroler komunikacji cyklicznie wysyła pakiety `HELLO`.
+5. Gdy zostanie odebrany poprawny pakiet od drugiej płytki, ustawiane jest
+   `link_ready`.
+6. Po zestawieniu linku gra przechodzi do wyboru tajnej postaci.
 
-Przykładowy format pakietu:
+Jeżeli link zostanie utracony na dłużej albo pakiety wymagające potwierdzenia
+nie zostaną potwierdzone po retransmisjach, ustawiany jest `comm_error`, a gra
+przechodzi do stanu `S_COMM_ERROR`.
+
+### 5.2. Faza wyboru tajnej postaci
+
+1. Każda płytka pokazuje planszę 6 x 3 oraz pusty panel `TWOJA POSTAC`.
+2. Gracz klika lewym przyciskiem myszy na wybraną postać.
+3. Kliknięta postać zostaje zapamiętana jako `selected_id`.
+4. Flaga `has_secret` zostaje ustawiona.
+5. Wybrana postać pojawia się w panelu po prawej stronie.
+6. Podczas tej fazy gracz może zmieniać wybór dowolną liczbę razy, klikając inną
+   postać.
+7. W tej fazie wybrana postać na planszy jest wyróżniana niebieską ramką.
+
+W kodzie etap ten odpowiada stanowi `S_SELECT_SECRET`.
+
+### 5.3. Zatwierdzenie wyboru przyciskiem START
+
+1. Po wybraniu postaci gracz klika ekranowy przycisk `START`.
+2. `selected_id` zostaje zapisane jako `local_secret_id`.
+3. `local_ready` zostaje ustawione na 1.
+4. Płytka wysyła do przeciwnika pakiet `READY`.
+5. Gracz nie może już zmienić swojej tajnej postaci.
+6. Wybrana postać nadal pozostaje widoczna w panelu po prawej stronie.
+7. Gra czeka, aż druga płytka również wyśle `READY`.
+
+Po kliknięciu START lokalna płytka przechodzi do `S_LOCAL_READY`. Gra rozpoczyna
+się dopiero wtedy, gdy jednocześnie:
 
 ```text
-start_byte       = 8'hA5
-packet_type      = 4 bity
-player_id        = 1 bit
-payload          = 5 bitów, np. character_id 0..17
-sequence_number  = 2..4 bity
-checksum/parity  = opcjonalnie
+local_ready  == 1
+remote_ready == 1
 ```
 
-Dla MVP wystarczy prosty i łatwy do debugowania protokół. Szybkość transmisji nie jest krytyczna.
+### 5.4. Rozpoczęcie gry i ustalenie pierwszej tury
 
-## 12. Proponowana architektura modułów
+Po gotowości obu graczy maszyna przechodzi przez stan `S_GAME_START`.
 
-| Moduł | Rola |
-|---|---|
-| `top_guess_who.sv` | Główny moduł strukturalny. Łączy zegary, reset, VGA, mysz, grę, renderery i komunikację |
-| `guess_who_pkg.sv` | Stałe gry: 6 × 3, 18 postaci, enumy stanów, enumy pakietów, kolory |
-| `vga_pkg.sv` | Stałe timingów VGA |
-| `vga_timing.sv` | Generuje `hcount`, `vcount`, `hsync`, `vsync`, `blanking`, `frame_tick` |
-| `MouseCtl.vhd` / `Ps2Interface.vhd` | Obsługa myszy PS/2 |
-| `mouse_adapter.sv` | Synchronizacja sygnałów myszy, generowanie `left_click_pulse` i `right_click_pulse` |
-| `hitbox_decoder.sv` | Mapowanie pozycji myszy na pole postaci albo przycisk |
-| `game_core.sv` | Główna FSM gry: wybór, start, tury, eliminacje, zgadywanie, wynik |
-| `pmod_comm_controller.sv` | Komunikacja Basys-Basys, odbiór i nadawanie pakietów |
-| `board_renderer.sv` | Rysowanie planszy 6 × 3, ramek, eliminacji i feedbacku |
-| `face_traits_rom.sv` | Cechy 18 postaci |
-| `face_renderer.sv` | Proceduralne rysowanie twarzy na podstawie cech |
-| `ui_renderer.sv` | Panel wybranej postaci, przyciski, tło UI |
-| `text_renderer.sv` / `font_rom.sv` | Napisy ekranowe |
-| `draw_mouse.sv` | Kursor myszy jako ostatnia warstwa obrazu |
+Pierwsza tura zależy od `player_id`:
 
-Proponowany tor obrazu:
+| `player_id` | Zachowanie |
+| ---: | --- |
+| 0 | Lokalny gracz zaczyna i przechodzi do `S_MY_TURN` |
+| 1 | Lokalny gracz czeka i przechodzi do `S_OPPONENT_TURN` |
+
+Dlatego przed demonstracją należy ustawić różne wartości `SW[0]` na dwóch
+płytkach. Jeśli obie płytki mają ten sam `player_id`, logika tur nie będzie
+odpowiadała poprawnej grze dwuosobowej.
+
+### 5.5. Własna tura gracza
+
+Stan `S_MY_TURN` oznacza, że lokalny gracz może wykonywać akcje na planszy.
+
+Dostępne akcje:
+
+- prawy przycisk myszy na postaci: lokalna eliminacja albo cofnięcie eliminacji,
+- lewy przycisk myszy na postaci: zgadywanie tajnej postaci przeciwnika,
+- kliknięcie `KONIEC TURY`: oddanie tury przeciwnikowi,
+- kliknięcie `RESET GRY`: reset rozgrywki na obu płytkach.
+
+Przycisk START wizualnie pełni wtedy funkcję `KONIEC TURY`. Jest rysowany jako
+niebieski przycisk z białym napisem.
+
+### 5.6. Lokalna eliminacja postaci
+
+Podczas własnej tury gracz może kliknąć prawym przyciskiem myszy na dowolną
+postać. W obecnym kodzie eliminacja działa jako przełącznik:
+
+```systemverilog
+eliminated_mask_nxt = eliminated_mask ^ char_mask;
+```
+
+Oznacza to, że:
+
+- pierwsze kliknięcie PPM eliminuje postać,
+- drugie kliknięcie PPM na tej samej postaci cofa eliminację.
+
+Eliminacje są lokalne. Nie są wysyłane do drugiej płytki, ponieważ każdy gracz
+prowadzi własną dedukcję na podstawie rozmowy.
+
+Po każdej eliminacji logika sprawdza, ile postaci pozostało aktywnych. Jeżeli
+zostaje dokładnie jedna niewyeliminowana postać, projekt automatycznie wykonuje
+finalne sprawdzenie tej postaci przez pakiet `FINAL_CHECK`.
+
+### 5.7. Zgadywanie postaci przeciwnika
+
+Podczas własnej tury lewy przycisk myszy na postaci oznacza natychmiastowe
+zgadywanie. Nie ma dodatkowego potwierdzenia.
+
+Przebieg:
+
+1. Gracz klika LPM na postaci.
+2. Lokalna płytka zapisuje ID jako `last_guess_id`.
+3. Lokalna płytka wysyła `GUESS(character_id)` do drugiej płytki.
+4. Lokalna gra przechodzi do `S_WAIT_GUESS_RESULT`.
+5. Druga płytka porównuje odebrane ID ze swoim `local_secret_id`.
+6. Druga płytka odsyła `RESULT_CORRECT(character_id)` albo
+   `RESULT_WRONG(character_id)`.
+
+Jeśli wynik jest poprawny:
+
+- zgadujący gracz przechodzi do `S_WIN`,
+- przeciwnik przechodzi do `S_LOSE`,
+- na ekranie pojawia się komunikat `WYGRALES` albo `PRZEGRALES`.
+
+Jeśli wynik jest błędny:
+
+- zgadujący gracz przechodzi do `S_WRONG_GUESS_FEEDBACK`,
+- błędnie wskazana postać zostaje dopisana do lokalnej maski eliminacji,
+- błędnie wskazana postać jest oznaczona czerwoną ramką,
+- komunikat `NIEPOPRAWNA POSTAC` jest widoczny przez około 3 sekundy,
+- po czasie feedbacku tura przechodzi do przeciwnika.
+
+W kodzie czas komunikatu jest ustawiony jako:
+
+```systemverilog
+FEEDBACK_FRAMES = 180;
+```
+
+Przy 60 klatkach na sekundę odpowiada to około 3 sekundom.
+
+### 5.8. Finalne sprawdzenie ostatniej postaci
+
+Jeżeli po lokalnych eliminacjach zostaje dokładnie jedna aktywna postać,
+`game_core` traktuje ją jako ostateczny wybór gracza.
+
+Przebieg:
+
+1. Aktywny gracz eliminuje postacie PPM.
+2. Po eliminacji logika sprawdza liczbę niewyeliminowanych postaci.
+3. Jeżeli została jedna postać, zostaje wyznaczone `remaining_id`.
+4. Płytka wysyła `FINAL_CHECK(remaining_id)`.
+5. Przeciwnik porównuje `remaining_id` ze swoim `local_secret_id`.
+6. Poprawny wynik powoduje `S_WIN` u aktywnego gracza.
+7. Błędny wynik powoduje `S_LOSE` u aktywnego gracza.
+
+To zachowanie odpowiada sytuacji, w której gracz przez eliminacje doszedł do
+jednej możliwej odpowiedzi.
+
+### 5.9. Tura przeciwnika
+
+Stan `S_OPPONENT_TURN` oznacza, że lokalny gracz czeka na ruch drugiej płytki.
+
+W tym stanie:
+
+- kliknięcia eliminacji i zgadywania nie zmieniają lokalnej gry,
+- kursor zmienia się w klepsydrę,
+- lokalna płytka może odebrać `GUESS`, `FINAL_CHECK`, `TURN_END` albo
+  `RESET_GAME`.
+
+Jeżeli przeciwnik wyśle `GUESS` albo `FINAL_CHECK`, lokalna płytka porównuje ID
+z `local_secret_id` i odsyła odpowiedni wynik. Jeżeli przeciwnik wyśle
+`TURN_END`, lokalna płytka przechodzi do `S_MY_TURN`.
+
+### 5.10. Reset gry
+
+Przycisk `RESET GRY` działa z dowolnego stanu.
+
+Kliknięcie resetu:
+
+- wysyła `RESET_GAME` do drugiej płytki,
+- czyści `eliminated_mask`,
+- czyści `selected_id`,
+- czyści `local_secret_id`,
+- czyści `last_guess_id`,
+- zeruje `has_secret`,
+- zeruje `local_ready` i `remote_ready`,
+- usuwa komunikaty wygranej/przegranej,
+- wraca do oczekiwania na link i wyboru postaci.
+
+Odebrany pakiet `RESET_GAME` wykonuje analogiczny reset po stronie drugiej
+płytki. Jest to reset logiki gry, a nie pełny reset układu FPGA ani clock
+wizarda.
+
+### 5.11. Błąd komunikacji
+
+Projekt ma obsługę błędu komunikacji. `pmod_comm_controller` ustawia
+`comm_error`, gdy:
+
+- po zestawieniu linku przez długi czas nie ma poprawnych pakietów,
+- pakiet wymagający ACK nie zostanie potwierdzony mimo ponowień.
+
+Po takim błędzie `game_core` przechodzi do `S_COMM_ERROR`. Na ekranie pojawia
+się komunikat `ERROR NA LINK`. Jest to stan zatrzymujący grę do czasu resetu.
+
+## 6. Sterowanie myszą i kursory
+
+Projekt używa myszy PS/2 jako głównego interfejsu użytkownika.
+
+| Akcja | Znaczenie |
+| --- | --- |
+| LPM na postaci w `S_SELECT_SECRET` | Wybór tajnej postaci |
+| LPM na postaci w `S_MY_TURN` | Zgadywanie postaci przeciwnika |
+| PPM na postaci w `S_MY_TURN` | Przełączenie eliminacji lokalnej |
+| LPM na `START` | Zatwierdzenie tajnej postaci |
+| LPM na `KONIEC TURY` | Oddanie tury przeciwnikowi |
+| LPM na `RESET GRY` | Reset gry na obu płytkach |
+
+Kursory:
+
+| Tryb | Kiedy występuje |
+| --- | --- |
+| `CURSOR_POINTER` | Kursor poza aktywnymi hitboxami |
+| `CURSOR_POINTER_HOVER` | Kursor nad planszą lub przyciskami |
+| `CURSOR_BUSY` | Tura przeciwnika, czyli `S_OPPONENT_TURN` |
+
+Bitmapy kursorów znajdują się w `rtl/assets/cursors`.
+
+## 7. Stany maszyny gry
+
+Aktualna maszyna stanów jest zdefiniowana w `rtl/game/guess_who_pkg.sv` jako
+`game_state_t`.
+
+| Stan | Kod | Znaczenie w obecnym projekcie |
+| --- | ---: | --- |
+| `S_RESET` | 0 | Stan po asynchronicznym resecie rejestrów gry |
+| `S_WAIT_LINK` | 1 | Oczekiwanie na poprawny link z drugą płytką |
+| `S_SELECT_SECRET` | 2 | Wybór lokalnej tajnej postaci przez LPM |
+| `S_LOCAL_READY` | 3 | Lokalny gracz kliknął START i czeka na gotowość przeciwnika |
+| `S_GAME_START` | 4 | Stan przejściowy ustalający pierwszą turę na podstawie `player_id` |
+| `S_MY_TURN` | 5 | Lokalny gracz może eliminować, zgadywać lub zakończyć turę |
+| `S_OPPONENT_TURN` | 6 | Lokalny gracz czeka na ruch przeciwnika |
+| `S_WAIT_GUESS_RESULT` | 7 | Po wysłaniu `GUESS` oczekiwany jest wynik od przeciwnika |
+| `S_WRONG_GUESS_FEEDBACK` | 8 | Błędny strzał jest pokazywany przez około 3 sekundy |
+| `S_FINAL_CHECK` | 9 | Po pozostawieniu jednej postaci oczekiwany jest wynik finalnego sprawdzenia |
+| `S_WIN` | 10 | Lokalny gracz wygrał |
+| `S_LOSE` | 11 | Lokalny gracz przegrał |
+| `S_GAME_OVER` | 12 | Stan końcowy zdefiniowany w typie; obecnie normalna ścieżka gry używa `S_WIN` i `S_LOSE` |
+| `S_COMM_ERROR` | 13 | Błąd komunikacji albo utrata linku |
+
+Najważniejsze przejścia:
+
+| Z bieżącego stanu | Warunek | Następny stan |
+| --- | --- | --- |
+| `S_RESET` | `link_ready == 1` | `S_SELECT_SECRET` |
+| `S_RESET` | `link_ready == 0` | `S_WAIT_LINK` |
+| `S_WAIT_LINK` | `link_ready == 1` | `S_SELECT_SECRET` |
+| `S_SELECT_SECRET` | `START` i wybrana postać | `S_LOCAL_READY` |
+| `S_LOCAL_READY` | `local_ready && remote_ready` | `S_GAME_START` |
+| `S_GAME_START` | `player_id == 0` | `S_MY_TURN` |
+| `S_GAME_START` | `player_id == 1` | `S_OPPONENT_TURN` |
+| `S_MY_TURN` | LPM na postaci | `S_WAIT_GUESS_RESULT` |
+| `S_MY_TURN` | PPM zostawia jedną aktywną postać | `S_FINAL_CHECK` |
+| `S_MY_TURN` | `KONIEC TURY` | `S_OPPONENT_TURN` |
+| `S_WAIT_GUESS_RESULT` | wynik poprawny | `S_WIN` |
+| `S_WAIT_GUESS_RESULT` | wynik błędny | `S_WRONG_GUESS_FEEDBACK` |
+| `S_WRONG_GUESS_FEEDBACK` | minęło 180 ramek | `S_OPPONENT_TURN` |
+| `S_FINAL_CHECK` | wynik poprawny | `S_WIN` |
+| `S_FINAL_CHECK` | wynik błędny | `S_LOSE` |
+| `S_OPPONENT_TURN` | `TURN_END` od przeciwnika | `S_MY_TURN` |
+| dowolny stan | `RESET_GRY` lub `RESET_GAME` | `S_WAIT_LINK` |
+| dowolny stan | `comm_error` | `S_COMM_ERROR` |
+
+## 8. Dane przechowywane przez logikę gry
+
+Najważniejsze rejestry i sygnały stanu w `game_core.sv`:
+
+| Sygnał | Znaczenie |
+| --- | --- |
+| `state` | Aktualny stan FSM gry |
+| `eliminated_mask[17:0]` | Lokalna maska eliminacji; 1 oznacza postać wyeliminowaną |
+| `selected_id[4:0]` | Aktualnie kliknięta postać przed zatwierdzeniem START |
+| `local_secret_id[4:0]` | Zatwierdzona tajna postać lokalnego gracza |
+| `last_guess_id[4:0]` | Ostatnio zgadywana albo finalnie sprawdzana postać |
+| `has_secret` | Informacja, że lokalny gracz wybrał postać |
+| `local_ready` | Lokalny gracz zatwierdził wybór |
+| `remote_ready` | Przeciwnik zatwierdził wybór |
+| `feedback_cnt` | Licznik ramek dla komunikatu błędnej postaci |
+
+Maska eliminacji jest lokalna i nie jest synchronizowana z drugą płytką.
+
+## 9. Komunikacja między płytkami
+
+Komunikacja jest realizowana przez `pmod_comm_controller.sv`, który korzysta z
+`uart_byte_link.sv` i rdzenia UART z katalogu `rtl/comm/uart`.
+
+Aktualny format pakietu ma 6 bajtów:
+
+| Bajt | Pole | Znaczenie |
+| ---: | --- | --- |
+| 0 | `START_BYTE` | Stała `8'hA5` |
+| 1 | `packet_type` | Typ pakietu, dolne 4 bity |
+| 2 | `player_id` | ID nadawcy, używany bit 0 |
+| 3 | `payload` | Dane pakietu, np. ID postaci |
+| 4 | `sequence_number` | Numer sekwencyjny pakietu |
+| 5 | `checksum` | XOR pól pakietu |
+
+Pakiet jest akceptowany tylko wtedy, gdy:
+
+- bajt startowy jest poprawny,
+- checksum jest poprawny,
+- typ pakietu jest wspierany,
+- `player_id` nie jest równy lokalnemu `player_id`,
+- payload jest poprawny dla danego typu pakietu.
+
+Typy pakietów:
+
+| Typ | Kod | Payload | Znaczenie |
+| --- | ---: | --- | --- |
+| `PKT_HELLO` | 0 | 0 | Okresowe potwierdzenie obecności drugiej płytki |
+| `PKT_STATUS` | 1 | zależnie od użycia | Typ zdefiniowany i akceptowany przez parser |
+| `PKT_READY` | 2 | 0 | Gracz zatwierdził swoją postać |
+| `PKT_TURN_END` | 3 | 0 | Aktywny gracz kończy turę |
+| `PKT_GUESS` | 4 | `character_id` | Gracz zgaduje postać przeciwnika |
+| `PKT_FINAL_CHECK` | 5 | `character_id` | Sprawdzenie jedynej pozostałej postaci |
+| `PKT_RESULT_CORRECT` | 6 | `character_id` | Wynik poprawny |
+| `PKT_RESULT_WRONG` | 7 | `character_id` | Wynik błędny |
+| `PKT_RESET_GAME` | 8 | 0 | Reset gry na obu płytkach |
+| `PKT_ACK` | 9 | typ potwierdzanego pakietu | Potwierdzenie pakietu wymagającego ACK |
+| `PKT_ERROR` | 10 | 0 | Typ zdefiniowany jako wspierany |
+
+Pakiety `READY`, `TURN_END`, `GUESS`, `FINAL_CHECK`, `RESULT_CORRECT`,
+`RESULT_WRONG` i `RESET_GAME` wymagają potwierdzenia ACK. Jeżeli ACK nie wróci w
+zadanym czasie, pakiet jest wysyłany ponownie z tym samym numerem sekwencyjnym.
+Odbiornik potwierdza duplikaty, ale nie generuje drugi raz tego samego zdarzenia
+gry.
+
+## 10. Renderowanie obrazu
+
+Tor obrazu jest zbudowany warstwowo:
 
 ```text
 vga_timing
+  -> draw_bg
+  -> ui_renderer
+  -> face_renderer
   -> board_renderer
-  -> ui_renderer / text_renderer
+  -> text_renderer
   -> draw_mouse
   -> wyjście VGA
 ```
 
-## 13. Kodowanie postaci
+Rola warstw:
 
-Nie trzeba przechowywać 18 dużych bitmap. Zalecane jest rysowanie proceduralne twarzy na podstawie cech zapisanych w ROM-ie.
+| Moduł | Rola |
+| --- | --- |
+| `vga_timing.sv` | Generuje liczniki, synchronizację i blanking VGA |
+| `draw_bg.sv` | Rysuje tło, planszę i siatkę |
+| `ui_renderer.sv` | Rysuje panel oraz przyciski |
+| `face_renderer.sv` | Rysuje twarze na planszy i w panelu |
+| `board_renderer.sv` | Nakłada eliminacje, zaznaczenia i ramki stanu |
+| `text_renderer.sv` | Nakłada napisy ekranowe |
+| `draw_mouse.sv` | Nakłada kursor jako ostatnią warstwę |
 
-Przykładowe cechy:
+## 11. Pomysł na kodowanie postaci
 
-| Bit | Cecha | Wpływ na rysowanie |
-|---:|---|---|
-| 0 | okulary | Prostokąty albo linie na oczach |
-| 1 | czapka/opaska | Pasek nad głową |
-| 2 | broda | Dolny fragment twarzy w ciemniejszym kolorze |
-| 3 | jasne włosy | Jasny kolor włosów |
-| 4 | ciemne włosy | Ciemny kolor włosów |
-| 5 | długie włosy | Dodatkowe pasy po bokach głowy |
-| 6 | uśmiech | Prosta linia lub segmenty ust |
-| 7 | wariant skóry/twarzy | Inny odcień skóry albo kształt |
+Postacie nie są przechowywane jako 18 pełnych, niezależnych obrazów. Projekt
+używa podejścia cechowego: każda postać ma 12-bitowy wektor cech w
+`face_traits_rom.sv`, a `face_renderer.sv` na tej podstawie dobiera odpowiednie
+bitmapy i kolory.
 
-`face_traits_rom` powinien mieć dokładnie 18 wpisów, po jednym dla każdej postaci z planszy.
+Aktualne znaczenie bitów `traits[11:0]`:
 
-## 14. Zdarzenia systemowe
+| Bit | Nazwa cechy | Wpływ na renderowanie |
+| ---: | --- | --- |
+| 11 | Broda | Włącza warstwę brody |
+| 10 | Czapka z daszkiem | Włącza warstwę czapki |
+| 9 | Kapelusz | Włącza warstwę kapelusza |
+| 8 | Zwykłe okulary | Włącza warstwę okularów |
+| 7 | Włosy 2 | Włącza drugi wariant włosów |
+| 6 | Włosy 1 | Włącza pierwszy wariant włosów |
+| 5 | Kolor włosów | Wybiera blond albo ciemne włosy |
+| 4 | Kolor oczu | Wybiera wariant koloru oczu |
+| 3 | Kolor skóry | Wybiera wariant koloru skóry |
+| 2 | Okulary przeciwsłoneczne | Włącza warstwę okularów przeciwsłonecznych |
+| 1 | Kolor czapki | Wybiera wariant koloru czapki |
+| 0 | Pejsy | Włącza warstwę pejsów |
 
-| Zdarzenie | Stan/kategoria | Reakcja systemu |
-|---|---|---|
-| LPM na postaci przed `START` | Wybór postaci | Ustaw `provisional_secret_id`, pokaż niebieską ramkę i kopię twarzy w panelu |
-| LPM na innej postaci przed `START` | Wybór postaci | Zmień `provisional_secret_id`, poprzednia ramka wraca do szarej |
-| Kliknięcie `START` | Wybór postaci | Zapisz `local_secret_id`, zablokuj zmianę, wyślij `READY` |
-| Odebrano `READY` | Oczekiwanie na drugiego gracza | Ustaw `remote_ready`; jeśli lokalny gracz też gotowy, uruchom grę |
-| PPM na postaci | Moja tura | Ustaw albo przełącz `eliminated_mask[id]` |
-| LPM na postaci po starcie | Moja tura | Wyślij `GUESS(id)` |
-| Odebrano `GUESS(id)` | Tura przeciwnika | Porównaj `id` z `local_secret_id` i odeślij wynik |
-| Odebrano `RESULT_CORRECT` | Czekanie na wynik | Zielona ramka, `WYGRALES`, koniec gry |
-| Odebrano `RESULT_WRONG` | Czekanie na wynik | Czerwona ramka przez ok. 3 s, eliminacja postaci, zmiana tury |
-| Pozostała jedna aktywna postać | Moja tura | Wyślij `FINAL_CHECK(remaining_id)` |
-| Kliknięcie `KONIEC TURY` | Moja tura | Wyślij `TURN_END` i przejdź do tury przeciwnika |
-| Odebrano `TURN_END` | Tura przeciwnika | Przejdź do własnej tury |
-| Kliknięcie `RESET GRY` | Dowolny stan | Wyślij `RESET_GAME`, wyczyść stan gry |
-| Odebrano `RESET_GAME` | Dowolny stan | Wyczyść stan gry i wróć do wyboru postaci |
+Aktualne wpisy ROM dla postaci:
 
-## 15. Kolejność realizacji
+| ID | `traits[11:0]` |
+| ---: | --- |
+| 0 | `0000_0110_1000` |
+| 1 | `0100_0101_1000` |
+| 2 | `0010_1000_0000` |
+| 3 | `1011_1000_0001` |
+| 4 | `0000_1011_1100` |
+| 5 | `0000_0100_0001` |
+| 6 | `1000_0010_1010` |
+| 7 | `0011_0101_1000` |
+| 8 | `0000_1000_0000` |
+| 9 | `1000_0111_1001` |
+| 10 | `0100_1000_1100` |
+| 11 | `0010_0011_0000` |
+| 12 | `0001_1010_1000` |
+| 13 | `1000_0101_0000` |
+| 14 | `0100_0110_1011` |
+| 15 | `0000_1001_1000` |
+| 16 | `0010_0110_0100` |
+| 17 | `1001_0001_0000` |
 
-1. Uruchomić VGA i mysz PS/2 na jednej płytce.
-2. Narysować statyczny ekran: plansza 6 × 3, panel wybranej twarzy po prawej, przyciski na dole.
-3. Dodać `hitbox_decoder` i sprawdzić ID pól `0..17`.
-4. Dodać wybór postaci przed `START`: niebieska ramka i kopia w panelu.
-5. Dodać `game_core` bez komunikacji, w trybie lokalnym/debugowym.
-6. Dodać eliminacje PPM i zgadywanie LPM lokalnie.
-7. Dodać prostą komunikację i pakiety `READY`, `TURN_END`, `GUESS`, `RESULT_*`, `RESET_GAME`.
-8. Połączyć dwie płytki i sprawdzić start gry po gotowości obu graczy.
-9. Dodać obsługę błędnego strzału przez ok. 3 sekundy.
-10. Dodać warunek końca przez pozostawienie jednej postaci.
-11. Dodać napisy, poprawki graficzne i finalne twarze.
-12. Przygotować testbenche, checklistę, film i bitstream.
+Taki sposób kodowania oszczędza pamięć i pozwala tworzyć wiele postaci przez
+kombinowanie tych samych elementów graficznych.
 
-## 16. Minimalny zakres działającej wersji MVP
+## 12. Stany ekranowe i informacja dla gracza
 
-MVP jest zaliczone, jeśli:
+Projekt informuje gracza o stanie gry na dwa sposoby:
 
-- na ekranie widać planszę 6 × 3, panel wybranej twarzy i przyciski,
-- mysz działa i można klikać pola postaci,
-- przed `START` można wybierać i zmieniać własną postać,
-- `START` zapisuje postać i blokuje zmianę,
-- gra startuje dopiero po `READY` z obu płytek,
-- po starcie działa synchronizacja tur,
-- PPM eliminuje postacie tylko podczas własnej tury,
-- LPM zgaduje postać przeciwnika i czeka na odpowiedź drugiej płytki,
-- poprawny strzał kończy grę zwycięstwem,
-- błędny strzał pokazuje czerwoną ramkę przez około 3 sekundy, eliminuje postać i oddaje turę,
-- `RESET GRY` działa z dowolnego stanu i resetuje obie płytki.
+- przez napisy w panelu bocznym,
+- przez zmianę kursora.
 
-## 17. Ryzyka techniczne i decyzje
+Przykłady komunikatów ekranowych:
 
-| Ryzyko/decyzja | Propozycja rozwiązania |
-|---|---|
-| VGA 1024 × 768 wymaga zegara pikselowego ok. 65 MHz | Wygenerować nowy clock wizard |
-| Komunikacja dwóch płytek może być trudna do debugowania | Najpierw zrobić tryb loopback/symulacyjny |
-| PS/2 i VGA mogą być w innych domenach zegarowych | Dodać `mouse_adapter` z synchronizacją i impulsami kliknięć |
-| Duże bitmapy twarzy zużyją pamięć | Rysować twarze proceduralnie z prostych cech |
-| Polskie znaki w napisach wymagają glifów | Na ekranie używać napisów bez polskich znaków: `WYBIERZ SWOJA POSTAC`, `POCZEKAJ NA RYWALA`, `NIEPOPRAWNA POSTAC`, `WYGRALES`, `PRZEGRALES`, `TWOJA POSTAC` |
-| Przypadkowa eliminacja postaci | Docelowo PPM jako toggle eliminacji |
-| Niejasny reset | Konsekwentnie stosować reset asynchroniczny w logice gry |
+| Stan | Komunikat |
+| --- | --- |
+| `S_WAIT_LINK` | `CZEKAM / NA LINK` |
+| `S_SELECT_SECRET` | `WYBIERZ / SWOJA / POSTAC` |
+| `S_LOCAL_READY` | `POCZEKAJ / NA RYWALA` |
+| `S_WAIT_GUESS_RESULT` | `CZEKAM / NA WYNIK` |
+| `S_FINAL_CHECK` | `OSTATNIA / POSTAC` |
+| `S_WRONG_GUESS_FEEDBACK` | `NIEPOPRAWNA / POSTAC` |
+| `S_WIN` | `WYGRALES` |
+| `S_LOSE` | `PRZEGRALES` |
+| `S_COMM_ERROR` | `ERROR / NA LINK` |
 
-## 18. Zasady dla osoby albo AI piszącej kod
+Tura przeciwnika nie jest opisywana dodatkowym tekstem, ponieważ w obecnym
+projekcie jest sygnalizowana klepsydrą (`CURSOR_BUSY`).
 
-1. Nie zmieniaj wymiarów planszy: projekt ma mieć **6 kolumn i 3 wiersze**.
-2. Liczba postaci to **18**, nie 20.
-3. Używaj `N_CHARACTERS = 18` i `eliminated_mask[17:0]`.
-4. ID postaci liczymy jako `row * 6 + col`.
-5. Panel po prawej pokazuje tylko lokalnie wybraną tajną twarz.
-6. Nie wysyłaj `local_secret_id` do przeciwnika na starcie gry.
-7. Synchronizuj tylko: gotowość, tury, zgadywanie, wyniki, reset i koniec gry.
-8. Nie synchronizuj lokalnej maski eliminacji.
-9. Kliknięcia eliminacji i zgadywania ignoruj, jeżeli `my_turn == 0`.
-10. `RESET_GAME` ma działać z każdego stanu.
-11. `top_guess_who.sv` powinien być możliwie strukturalny, bez upychania całej gry w jednym pliku.
-12. Najpierw implementuj MVP, dopiero potem poprawiaj wygląd twarzy.
+## 13. Tabela zdarzeń do raportu
 
-## 19. Sugerowane stałe do `guess_who_pkg.sv`
+| Zdarzenie | Stan/kategoria | Reakcja systemu w obecnym projekcie |
+| --- | --- | --- |
+| Poprawny pakiet od drugiej płytki | `S_WAIT_LINK` | Ustawia `link_ready` i pozwala przejść do wyboru postaci |
+| LPM na postaci przed START | `S_SELECT_SECRET` | Ustawia `selected_id`, ustawia `has_secret`, pokazuje postać w panelu |
+| LPM na innej postaci przed START | `S_SELECT_SECRET` | Zmienia `selected_id`; poprzedni wybór przestaje być aktywny |
+| Kliknięcie START bez wybranej postaci | `S_SELECT_SECRET` | Nie zatwierdza gry, bo `has_secret == 0` |
+| Kliknięcie START po wyborze postaci | `S_SELECT_SECRET` | Zapisuje `local_secret_id`, ustawia `local_ready`, wysyła `READY` |
+| Odebrano `READY` | Przed startem gry | Ustawia `remote_ready` |
+| `local_ready && remote_ready` | `S_LOCAL_READY` | Przejście do `S_GAME_START` |
+| `player_id == 0` | `S_GAME_START` | Lokalna płytka zaczyna turę |
+| `player_id == 1` | `S_GAME_START` | Lokalna płytka czeka na przeciwnika |
+| PPM na postaci | `S_MY_TURN` | Przełącza bit `eliminated_mask[id]` |
+| Po eliminacji zostaje jedna postać | `S_MY_TURN` | Wysyła `FINAL_CHECK(remaining_id)` |
+| LPM na postaci po starcie | `S_MY_TURN` | Wysyła `GUESS(id)` i przechodzi do oczekiwania na wynik |
+| Kliknięcie KONIEC TURY | `S_MY_TURN` | Wysyła `TURN_END` i przechodzi do tury przeciwnika |
+| Odebrano `TURN_END` | `S_OPPONENT_TURN` | Przejście do `S_MY_TURN` |
+| Odebrano `GUESS(id)` | `S_OPPONENT_TURN` | Porównuje `id` z `local_secret_id` i odsyła wynik |
+| Odebrano `FINAL_CHECK(id)` | `S_OPPONENT_TURN` | Porównuje `id` z `local_secret_id` i odsyła wynik |
+| Odebrano `RESULT_CORRECT` po `GUESS` | `S_WAIT_GUESS_RESULT` | Przejście do `S_WIN` |
+| Odebrano `RESULT_WRONG` po `GUESS` | `S_WAIT_GUESS_RESULT` | Przejście do `S_WRONG_GUESS_FEEDBACK` |
+| Koniec feedbacku błędnego strzału | `S_WRONG_GUESS_FEEDBACK` | Przejście do `S_OPPONENT_TURN` |
+| Odebrano poprawny wynik po `FINAL_CHECK` | `S_FINAL_CHECK` | Przejście do `S_WIN` |
+| Odebrano błędny wynik po `FINAL_CHECK` | `S_FINAL_CHECK` | Przejście do `S_LOSE` |
+| Kliknięcie RESET GRY | Dowolny stan | Wysyła `RESET_GAME`, czyści lokalny stan gry |
+| Odebrano `RESET_GAME` | Dowolny stan | Czyści lokalny stan gry |
+| Brak ACK po retransmisjach | Komunikacja | Ustawia `comm_error`, gra przechodzi do `S_COMM_ERROR` |
+| Długi brak poprawnych pakietów | Komunikacja | Ustawia `comm_error`, gra przechodzi do `S_COMM_ERROR` |
 
-```systemverilog
-package guess_who_pkg;
-    localparam int BOARD_COLS   = 6;
-    localparam int BOARD_ROWS   = 3;
-    localparam int N_CHARACTERS = BOARD_COLS * BOARD_ROWS;
+## 14. Moduły projektu
 
-    localparam int CHAR_ID_W = 5; // wystarcza dla 0..17, kompatybilne z payloadem
+| Moduł | Rola w projekcie |
+| --- | --- |
+| `top_basys3.sv` | Top sprzętowy dla Basys 3: piny, zegary, reset, PMOD, VGA, PS/2 |
+| `top_vga.sv` | Główny top funkcjonalny gry |
+| `guess_who_pkg.sv` | Stany gry, typy pakietów, liczba postaci, tryby kursora |
+| `vga_pkg.sv` | Timing VGA i geometria UI |
+| `vga_timing.sv` | Generacja liczników i synchronizacji VGA |
+| `MouseCtl.vhd`, `Ps2Interface.vhd` | Obsługa myszy PS/2 |
+| `mouse_adapter.sv` | Synchronizacja myszy i impulsy kliknięć |
+| `hitbox_decoder.sv` | Mapowanie kliknięć na planszę i przyciski |
+| `game_core.sv` | Główna FSM gry |
+| `pmod_comm_controller.sv` | Pakiety UART, ACK/retry, timeout, zdarzenia przeciwnika |
+| `uart_byte_link.sv` | Adapter bajtowy do rdzenia UART |
+| `draw_bg.sv` | Tło i siatka planszy |
+| `ui_renderer.sv` | Panel i przyciski |
+| `face_traits_rom.sv` | Cechy postaci |
+| `face_renderer.sv` | Rysowanie twarzy |
+| `board_renderer.sv` | Eliminacje, zaznaczenia i ramki |
+| `text_renderer.sv`, `font_rom.sv` | Napisy ekranowe |
+| `cursor_mode_controller.sv` | Wybór trybu kursora |
+| `draw_mouse.sv` | Rysowanie kursora |
 
-    typedef enum logic [3:0] {
-        PKT_HELLO          = 4'h0,
-        PKT_READY          = 4'h1,
-        PKT_TURN_END       = 4'h2,
-        PKT_GUESS          = 4'h3,
-        PKT_FINAL_CHECK    = 4'h4,
-        PKT_RESULT_CORRECT = 4'h5,
-        PKT_RESULT_WRONG   = 4'h6,
-        PKT_RESET_GAME     = 4'h7,
-        PKT_ACK            = 4'h8
-    } packet_type_t;
+## 15. Minimalna procedura demonstracji dla prowadzącego
 
-    typedef enum logic [4:0] {
-        S_RESET,
-        S_WAIT_LINK,
-        S_SELECT_SECRET,
-        S_LOCAL_READY,
-        S_GAME_START,
-        S_MY_TURN,
-        S_OPPONENT_TURN,
-        S_WAIT_GUESS_RESULT,
-        S_WRONG_GUESS_FEEDBACK,
-        S_WIN,
-        S_LOSE,
-        S_GAME_OVER,
-        S_COMM_ERROR
-    } game_state_t;
-endpackage
-```
+1. Zaprogramować obie płytki tym samym bitstreamem.
+2. Ustawić `SW[0] = 0` na pierwszej płytce i `SW[0] = 1` na drugiej.
+3. Połączyć UART: `JA2` pierwszej płytki z `JA3` drugiej, `JA3` pierwszej z
+   `JA2` drugiej oraz wspólne GND.
+4. Podłączyć osobne monitory VGA albo testować płytki po kolei na jednym
+   monitorze.
+5. Podłączyć myszy PS/2.
+6. Zresetować układ przyciskiem `BTNC`, jeśli obraz lub stan gry nie startuje od
+   początku.
+7. Poczekać na link.
+8. Na obu płytkach wybrać tajną postać LPM.
+9. Na obu płytkach kliknąć START.
+10. Gracz z `SW[0] = 0` wykonuje pierwszy ruch.
+11. Pokazać eliminację PPM, zakończenie tury, zgadywanie LPM oraz reakcję drugiej
+    płytki.
+12. Pokazać reset gry przyciskiem `RESET GRY`.
 
-## 20. Podsumowanie
+## 16. Podsumowanie
 
-Projekt ma być prostą, czytelną i działającą implementacją gry „Zgadnij kto?” na dwóch płytkach Basys 3. Najważniejsze elementy to: plansza 6 × 3, panel wybranej twarzy po prawej, obsługa myszy, lokalna eliminacja postaci, tury, zgadywanie przez komunikację między płytkami i reset gry. Grafika twarzy może być prosta i proceduralna; kluczowe jest poprawne działanie logiki gry i komunikacji.
+Aktualny projekt jest kompletną implementacją podstawowej logiki Guess Who na
+dwóch płytkach Basys 3. Najważniejsze elementy projektu to plansza 6 x 3,
+lokalny wybór tajnej postaci, tury, lokalne eliminacje, zgadywanie przez UART,
+automatyczne finalne sprawdzenie ostatniej postaci, obsługa wyniku gry,
+komunikaty ekranowe, kursory zależne od kontekstu oraz reset gry.
+
+Projekt jest podzielony na czytelne moduły: osobno logika gry, osobno
+komunikacja, osobno obsługa myszy i osobno renderowanie VGA. Taki podział
+ułatwia prezentację projektu, testowanie i dalsze rozwijanie kodu.

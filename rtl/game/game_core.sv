@@ -29,6 +29,7 @@ module game_core (
     input  logic       guess_result_correct,
     input  logic       final_result_valid,
     input  logic       final_result_correct,
+    input  logic       comm_error,
     output guess_who_pkg::game_state_t game_state,
     output logic [guess_who_pkg::CHAR_COUNT-1:0] eliminated_mask,
     output logic [guess_who_pkg::CHAR_ID_W-1:0] selected_id,
@@ -163,6 +164,9 @@ always_comb begin
         remote_ready_nxt = 1'b0;
         feedback_cnt_nxt = '0;
         send_reset_game = reset_click;
+    end else if (comm_error) begin
+        state_nxt = S_COMM_ERROR;
+        feedback_cnt_nxt = '0;
     end else begin
         if (opponent_ready) begin
             remote_ready_nxt = 1'b1;
