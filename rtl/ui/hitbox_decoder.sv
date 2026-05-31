@@ -82,7 +82,6 @@ always_comb begin
 
     start_click = left_click && in_start_btn;
     reset_click = left_click && in_reset_btn;
-    char_left_click = left_click && in_board;
     char_left_click  = left_click  && in_board && (char_id < CHAR_COUNT);
     char_right_click = right_click && in_board && (char_id < CHAR_COUNT);
 end

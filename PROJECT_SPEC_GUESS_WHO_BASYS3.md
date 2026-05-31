@@ -244,7 +244,9 @@ Jeśli wynik jest błędny:
 - błędnie wskazana postać zostaje dopisana do lokalnej maski eliminacji,
 - błędnie wskazana postać jest oznaczona czerwoną ramką,
 - komunikat `NIEPOPRAWNA POSTAC` jest widoczny przez około 3 sekundy,
-- po czasie feedbacku tura przechodzi do przeciwnika.
+- po czasie feedbacku zgadująca płytka wysyła `TURN_END` i przechodzi do
+  `S_OPPONENT_TURN`,
+- druga płytka przechodzi do `S_MY_TURN` dopiero po odebraniu tego `TURN_END`.
 
 W kodzie czas komunikatu jest ustawiony jako:
 
@@ -284,8 +286,9 @@ W tym stanie:
   `RESET_GAME`.
 
 Jeżeli przeciwnik wyśle `GUESS` albo `FINAL_CHECK`, lokalna płytka porównuje ID
-z `local_secret_id` i odsyła odpowiedni wynik. Jeżeli przeciwnik wyśle
-`TURN_END`, lokalna płytka przechodzi do `S_MY_TURN`.
+z `local_secret_id` i odsyła odpowiedni wynik. Po błędnym `GUESS` lokalna płytka
+nadal zostaje w `S_OPPONENT_TURN`, aby przeciwnik zdążył pokazać komunikat
+`NIEPOPRAWNA POSTAC`. Do `S_MY_TURN` przechodzi dopiero po odebraniu `TURN_END`.
 
 ### 5.10. Reset gry
 
@@ -301,11 +304,14 @@ Kliknięcie resetu:
 - zeruje `has_secret`,
 - zeruje `local_ready` i `remote_ready`,
 - usuwa komunikaty wygranej/przegranej,
+- czyści błąd komunikacji, liczniki ACK/retry, timeout i oczekujący pakiet,
 - wraca do oczekiwania na link i wyboru postaci.
 
 Odebrany pakiet `RESET_GAME` wykonuje analogiczny reset po stronie drugiej
-płytki. Jest to reset logiki gry, a nie pełny reset układu FPGA ani clock
-wizarda.
+płytki. Pakiet resetu jest traktowany idempotentnie, więc może wyczyścić
+`comm_error` także wtedy, gdy wygląda jak retransmisja pakietu z tym samym
+numerem sekwencyjnym. Jest to reset logiki gry i komunikacji, a nie pełny reset
+układu FPGA ani clock wizarda.
 
 ### 5.11. Błąd komunikacji
 
@@ -316,7 +322,9 @@ Projekt ma obsługę błędu komunikacji. `pmod_comm_controller` ustawia
 - pakiet wymagający ACK nie zostanie potwierdzony mimo ponowień.
 
 Po takim błędzie `game_core` przechodzi do `S_COMM_ERROR`. Na ekranie pojawia
-się komunikat `ERROR NA LINK`. Jest to stan zatrzymujący grę do czasu resetu.
+się komunikat `ERROR NA LINK`. Kliknięcie ekranowego `RESET GRY` wysyła
+`RESET_GAME`, czyści lokalny stan komunikacji i wraca do ponownego szukania
+linku.
 
 ## 6. Sterowanie myszą i kursory
 
@@ -379,9 +387,12 @@ Najważniejsze przejścia:
 | `S_MY_TURN` | `KONIEC TURY` | `S_OPPONENT_TURN` |
 | `S_WAIT_GUESS_RESULT` | wynik poprawny | `S_WIN` |
 | `S_WAIT_GUESS_RESULT` | wynik błędny | `S_WRONG_GUESS_FEEDBACK` |
-| `S_WRONG_GUESS_FEEDBACK` | minęło 180 ramek | `S_OPPONENT_TURN` |
+| `S_WAIT_GUESS_RESULT` | brak wyniku przez 600 ramek | `S_COMM_ERROR` |
+| `S_WRONG_GUESS_FEEDBACK` | minęło 180 ramek; wysyłane jest `TURN_END` | `S_OPPONENT_TURN` |
 | `S_FINAL_CHECK` | wynik poprawny | `S_WIN` |
 | `S_FINAL_CHECK` | wynik błędny | `S_LOSE` |
+| `S_FINAL_CHECK` | brak wyniku przez 600 ramek | `S_COMM_ERROR` |
+| `S_OPPONENT_TURN` | błędny `GUESS` przeciwnika | `S_OPPONENT_TURN` |
 | `S_OPPONENT_TURN` | `TURN_END` od przeciwnika | `S_MY_TURN` |
 | dowolny stan | `RESET_GRY` lub `RESET_GAME` | `S_WAIT_LINK` |
 | dowolny stan | `comm_error` | `S_COMM_ERROR` |
@@ -401,6 +412,7 @@ Najważniejsze rejestry i sygnały stanu w `game_core.sv`:
 | `local_ready` | Lokalny gracz zatwierdził wybór |
 | `remote_ready` | Przeciwnik zatwierdził wybór |
 | `feedback_cnt` | Licznik ramek dla komunikatu błędnej postaci |
+| `result_wait_cnt` | Licznik ramek oczekiwania na wynik `GUESS` albo `FINAL_CHECK` |
 
 Maska eliminacji jest lokalna i nie jest synchronizowana z drugą płytką.
 
@@ -433,7 +445,7 @@ Typy pakietów:
 | Typ | Kod | Payload | Znaczenie |
 | --- | ---: | --- | --- |
 | `PKT_HELLO` | 0 | 0 | Okresowe potwierdzenie obecności drugiej płytki |
-| `PKT_STATUS` | 1 | zależnie od użycia | Typ zdefiniowany i akceptowany przez parser |
+| `PKT_STATUS` | 1 | zależnie od użycia | Typ zarezerwowany; parser go akceptuje, ale FSM gry go nie używa |
 | `PKT_READY` | 2 | 0 | Gracz zatwierdził swoją postać |
 | `PKT_TURN_END` | 3 | 0 | Aktywny gracz kończy turę |
 | `PKT_GUESS` | 4 | `character_id` | Gracz zgaduje postać przeciwnika |
@@ -442,13 +454,15 @@ Typy pakietów:
 | `PKT_RESULT_WRONG` | 7 | `character_id` | Wynik błędny |
 | `PKT_RESET_GAME` | 8 | 0 | Reset gry na obu płytkach |
 | `PKT_ACK` | 9 | typ potwierdzanego pakietu | Potwierdzenie pakietu wymagającego ACK |
-| `PKT_ERROR` | 10 | 0 | Typ zdefiniowany jako wspierany |
+| `PKT_ERROR` | 10 | 0 | Typ zarezerwowany; parser go akceptuje, ale FSM gry go nie używa |
 
 Pakiety `READY`, `TURN_END`, `GUESS`, `FINAL_CHECK`, `RESULT_CORRECT`,
 `RESULT_WRONG` i `RESET_GAME` wymagają potwierdzenia ACK. Jeżeli ACK nie wróci w
 zadanym czasie, pakiet jest wysyłany ponownie z tym samym numerem sekwencyjnym.
 Odbiornik potwierdza duplikaty, ale nie generuje drugi raz tego samego zdarzenia
-gry.
+gry. Wyjątkiem jest `RESET_GAME`, który jest idempotentny i może ponownie
+wyczyścić stan gry oraz komunikacji, jeśli przychodzi jako retransmisja po
+błędzie linku.
 
 ## 10. Renderowanie obrazu
 
@@ -474,8 +488,14 @@ Rola warstw:
 | `ui_renderer.sv` | Rysuje panel oraz przyciski |
 | `face_renderer.sv` | Rysuje twarze na planszy i w panelu |
 | `board_renderer.sv` | Nakłada eliminacje, zaznaczenia i ramki stanu |
-| `text_renderer.sv` | Nakłada napisy ekranowe |
+| `text_renderer.sv` | Nakłada napisy ekranowe; moduł jest potokowany, aby zamknąć timing toru VGA |
 | `draw_mouse.sv` | Nakłada kursor jako ostatnią warstwę |
+
+`text_renderer.sv` działa w kilku etapach zegarowych: najpierw rejestruje piksel
+wejściowy i stan gry, następnie wybiera aktywny napis, potem wyznacza znak oraz
+pozycję w fontcie, a na końcu składa wynikowy kolor RGB. Ten potok usuwa długą
+ścieżkę kombinacyjną między `board_renderer` i wyjściowym rejestrem RGB tekstu.
+Po tej zmianie implementacja Vivado spełnia timing dla zegara 65 MHz.
 
 ## 11. Pomysł na kodowanie postaci
 
@@ -565,6 +585,7 @@ projekcie jest sygnalizowana klepsydrą (`CURSOR_BUSY`).
 | `player_id == 0` | `S_GAME_START` | Lokalna płytka zaczyna turę |
 | `player_id == 1` | `S_GAME_START` | Lokalna płytka czeka na przeciwnika |
 | PPM na postaci | `S_MY_TURN` | Przełącza bit `eliminated_mask[id]` |
+| PPM na ostatniej aktywnej postaci | `S_MY_TURN` | Kliknięcie jest ignorowane, aby nie zostawić planszy bez żadnej postaci |
 | Po eliminacji zostaje jedna postać | `S_MY_TURN` | Wysyła `FINAL_CHECK(remaining_id)` |
 | LPM na postaci po starcie | `S_MY_TURN` | Wysyła `GUESS(id)` i przechodzi do oczekiwania na wynik |
 | Kliknięcie KONIEC TURY | `S_MY_TURN` | Wysyła `TURN_END` i przechodzi do tury przeciwnika |
@@ -573,11 +594,13 @@ projekcie jest sygnalizowana klepsydrą (`CURSOR_BUSY`).
 | Odebrano `FINAL_CHECK(id)` | `S_OPPONENT_TURN` | Porównuje `id` z `local_secret_id` i odsyła wynik |
 | Odebrano `RESULT_CORRECT` po `GUESS` | `S_WAIT_GUESS_RESULT` | Przejście do `S_WIN` |
 | Odebrano `RESULT_WRONG` po `GUESS` | `S_WAIT_GUESS_RESULT` | Przejście do `S_WRONG_GUESS_FEEDBACK` |
-| Koniec feedbacku błędnego strzału | `S_WRONG_GUESS_FEEDBACK` | Przejście do `S_OPPONENT_TURN` |
+| Koniec feedbacku błędnego strzału | `S_WRONG_GUESS_FEEDBACK` | Wysyła `TURN_END` i przechodzi do `S_OPPONENT_TURN` |
+| Brak wyniku po `GUESS` | `S_WAIT_GUESS_RESULT` | Po 600 ramkach przechodzi do `S_COMM_ERROR` |
 | Odebrano poprawny wynik po `FINAL_CHECK` | `S_FINAL_CHECK` | Przejście do `S_WIN` |
 | Odebrano błędny wynik po `FINAL_CHECK` | `S_FINAL_CHECK` | Przejście do `S_LOSE` |
-| Kliknięcie RESET GRY | Dowolny stan | Wysyła `RESET_GAME`, czyści lokalny stan gry |
-| Odebrano `RESET_GAME` | Dowolny stan | Czyści lokalny stan gry |
+| Brak wyniku po `FINAL_CHECK` | `S_FINAL_CHECK` | Po 600 ramkach przechodzi do `S_COMM_ERROR` |
+| Kliknięcie RESET GRY | Dowolny stan | Wysyła `RESET_GAME`, czyści lokalny stan gry i stan komunikacji |
+| Odebrano `RESET_GAME` | Dowolny stan | Czyści lokalny stan gry i stan komunikacji |
 | Brak ACK po retransmisjach | Komunikacja | Ustawia `comm_error`, gra przechodzi do `S_COMM_ERROR` |
 | Długi brak poprawnych pakietów | Komunikacja | Ustawia `comm_error`, gra przechodzi do `S_COMM_ERROR` |
 

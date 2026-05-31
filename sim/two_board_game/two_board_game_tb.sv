@@ -406,7 +406,7 @@ initial begin
 
     pulse_left_a(5'd4);
     wait_state_a(S_WRONG_GUESS_FEEDBACK);
-    wait_state_b(S_MY_TURN);
+    wait_state_b(S_OPPONENT_TURN);
     assert (last_guess_id_a == 5'd4 && eliminated_mask_a[4])
         else $error("Wrong guess did not mark local elimination on board A");
     assert (wrong_guess_visible_a) else $error("Wrong guess feedback is not visible");
@@ -416,6 +416,7 @@ initial begin
         pulse_frame_both;
     end
     wait_state_a(S_OPPONENT_TURN);
+    wait_state_b(S_MY_TURN);
 
     pulse_left_b(5'd3);
     wait_state_b(S_WIN);

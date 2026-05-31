@@ -58,6 +58,8 @@ timeprecision 1ps;
 import guess_who_pkg::*;
 
 localparam int FEEDBACK_FRAMES = 180;
+localparam int RESULT_TIMEOUT_FRAMES = 600;
+localparam int RESULT_TIMEOUT_CNT_W = $clog2(RESULT_TIMEOUT_FRAMES + 1);
 game_state_t state;
 game_state_t state_nxt;
 
@@ -71,9 +73,12 @@ logic remote_ready_nxt;
 
 logic [7:0] feedback_cnt;
 logic [7:0] feedback_cnt_nxt;
+logic [RESULT_TIMEOUT_CNT_W-1:0] result_wait_cnt;
+logic [RESULT_TIMEOUT_CNT_W-1:0] result_wait_cnt_nxt;
 logic [CHAR_COUNT-1:0] char_mask;
 logic [CHAR_COUNT-1:0] last_guess_mask;
 logic [CHAR_COUNT-1:0] elim_after_click;
+logic [4:0] active_after_click;
 logic [CHAR_ID_W-1:0] remaining_id;
 logic valid_char;
 logic valid_opponent_char;
@@ -129,6 +134,7 @@ end
 
 always_comb begin
     elim_after_click = eliminated_mask ^ char_mask;
+    active_after_click = count_active(elim_after_click);
     remaining_id = find_active(elim_after_click);
 end
 
@@ -142,6 +148,7 @@ always_comb begin
     local_ready_nxt = local_ready;
     remote_ready_nxt = remote_ready;
     feedback_cnt_nxt = feedback_cnt;
+    result_wait_cnt_nxt = result_wait_cnt;
     send_ready = 1'b0;
     send_turn_end = 1'b0;
     send_guess = 1'b0;
@@ -163,10 +170,12 @@ always_comb begin
         local_ready_nxt = 1'b0;
         remote_ready_nxt = 1'b0;
         feedback_cnt_nxt = '0;
+        result_wait_cnt_nxt = '0;
         send_reset_game = reset_click;
     end else if (comm_error) begin
         state_nxt = S_COMM_ERROR;
         feedback_cnt_nxt = '0;
+        result_wait_cnt_nxt = '0;
     end else begin
         if (opponent_ready) begin
             remote_ready_nxt = 1'b1;
@@ -197,6 +206,7 @@ always_comb begin
                     local_secret_id_nxt = selected_id;
                     local_ready_nxt = 1'b1;
                     send_ready = 1'b1;
+                    result_wait_cnt_nxt = '0;
                     state_nxt = S_LOCAL_READY;
                 end
             end
@@ -206,6 +216,7 @@ always_comb begin
                     state_nxt = S_GAME_START;
                 end
                 feedback_cnt_nxt = '0;
+                result_wait_cnt_nxt = '0;
             end
 
             S_GAME_START: begin
@@ -217,22 +228,24 @@ always_comb begin
             end
 
             S_MY_TURN: begin
-                if (char_right_click && valid_char) begin
-                    eliminated_mask_nxt = elim_after_click;
-
-                    if (count_active(elim_after_click) == 5'd1) begin
-                        last_guess_id_nxt = remaining_id;
-                        send_final_check = 1'b1;
-                        send_final_check_id = remaining_id;
-                        state_nxt = S_FINAL_CHECK;
-                    end
-                end
-
                 if (char_left_click && valid_char) begin
                     last_guess_id_nxt = char_id;
                     send_guess = 1'b1;
                     send_guess_id = char_id;
+                    result_wait_cnt_nxt = '0;
                     state_nxt = S_WAIT_GUESS_RESULT;
+                end else if (char_right_click && valid_char) begin
+                    if (active_after_click != 5'd0) begin
+                        eliminated_mask_nxt = elim_after_click;
+                    end
+
+                    if (active_after_click == 5'd1) begin
+                        last_guess_id_nxt = remaining_id;
+                        send_final_check = 1'b1;
+                        send_final_check_id = remaining_id;
+                        result_wait_cnt_nxt = '0;
+                        state_nxt = S_FINAL_CHECK;
+                    end
                 end else if (start_click) begin
                     send_turn_end = 1'b1;
                     state_nxt = S_OPPONENT_TURN;
@@ -246,7 +259,15 @@ always_comb begin
                     end else begin
                         eliminated_mask_nxt = eliminated_mask | last_guess_mask;
                         feedback_cnt_nxt = '0;
+                        result_wait_cnt_nxt = '0;
                         state_nxt = S_WRONG_GUESS_FEEDBACK;
+                    end
+                end else if (frame_tick) begin
+                    if (result_wait_cnt == RESULT_TIMEOUT_FRAMES - 1) begin
+                        result_wait_cnt_nxt = '0;
+                        state_nxt = S_COMM_ERROR;
+                    end else begin
+                        result_wait_cnt_nxt = result_wait_cnt + {{(RESULT_TIMEOUT_CNT_W-1){1'b0}}, 1'b1};
                     end
                 end
             end
@@ -255,6 +276,7 @@ always_comb begin
                 if (frame_tick) begin
                     if (feedback_cnt == FEEDBACK_FRAMES - 1) begin
                         feedback_cnt_nxt = '0;
+                        send_turn_end = 1'b1;
                         state_nxt = S_OPPONENT_TURN;
                     end else begin
                         feedback_cnt_nxt = feedback_cnt + 8'd1;
@@ -268,6 +290,14 @@ always_comb begin
                         state_nxt = S_WIN;
                     end else begin
                         state_nxt = S_LOSE;
+                    end
+                    result_wait_cnt_nxt = '0;
+                end else if (frame_tick) begin
+                    if (result_wait_cnt == RESULT_TIMEOUT_FRAMES - 1) begin
+                        result_wait_cnt_nxt = '0;
+                        state_nxt = S_COMM_ERROR;
+                    end else begin
+                        result_wait_cnt_nxt = result_wait_cnt + {{(RESULT_TIMEOUT_CNT_W-1){1'b0}}, 1'b1};
                     end
                 end
             end
@@ -330,6 +360,7 @@ always_ff @(posedge clk or negedge rst_n) begin
         local_ready <= 1'b0;
         remote_ready <= 1'b0;
         feedback_cnt <= '0;
+        result_wait_cnt <= '0;
     end else begin
         state <= state_nxt;
         eliminated_mask <= eliminated_mask_nxt;
@@ -340,6 +371,7 @@ always_ff @(posedge clk or negedge rst_n) begin
         local_ready <= local_ready_nxt;
         remote_ready <= remote_ready_nxt;
         feedback_cnt <= feedback_cnt_nxt;
+        result_wait_cnt <= result_wait_cnt_nxt;
     end
 end
 

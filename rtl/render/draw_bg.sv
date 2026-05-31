@@ -48,14 +48,14 @@ always_ff @(posedge clk or negedge rst_n) begin : bg_ff_blk
 end
 
 always_comb begin : bg_comb_blk
-    in_board = (in.hcount >= BOARD_X) && (in.hcount <= BOARD_X + BOARD_W) &&
-               (in.vcount >= BOARD_Y) && (in.vcount <= BOARD_Y + BOARD_H);
+    in_board = (in.hcount >= BOARD_X) && (in.hcount < BOARD_X + BOARD_W) &&
+               (in.vcount >= BOARD_Y) && (in.vcount < BOARD_Y + BOARD_H);
 
     is_board_frame = in_board && (
         (in.hcount < BOARD_X + 3) ||
-        (in.hcount > BOARD_X + BOARD_W - 3) ||
+        (in.hcount >= BOARD_X + BOARD_W - 3) ||
         (in.vcount < BOARD_Y + 3) ||
-        (in.vcount > BOARD_Y + BOARD_H - 3)
+        (in.vcount >= BOARD_Y + BOARD_H - 3)
     );
 
     is_grid_col =

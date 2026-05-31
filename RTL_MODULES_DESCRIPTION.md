@@ -281,6 +281,20 @@ potrzebne w UI.
 `text_renderer` nakłada tekst na gotowy obraz VGA. Korzysta z `font_rom.sv`,
 wylicza pozycję znaku i wybiera odpowiedni kolor tekstu.
 
+Moduł jest potokowany. Oznacza to, że operacje nie są wykonywane jako jeden
+długi blok kombinacyjny w jednym cyklu zegara, tylko są rozdzielone na kolejne
+etapy rejestrowane:
+
+- pierwszy etap zapamiętuje wejściowy piksel VGA oraz aktualny stan gry,
+- drugi etap wybiera, który napis dotyczy danego piksela,
+- trzeci etap wyznacza znak, kolumnę i wiersz fontu,
+- ostatni etap składa wynikowy kolor RGB.
+
+Takie rozwiązanie jest istotne dla implementacji na FPGA. Wcześniejsza wersja
+łączyła wyjście `board_renderer` z rejestrem `out.rgb` w `text_renderer` przez
+zbyt długą ścieżkę kombinacyjną. Po dodaniu potoku ścieżka renderowania tekstu
+spełnia wymagania czasowe dla zegara pikselowego 65 MHz.
+
 Moduł rysuje między innymi:
 
 - napisy na przyciskach: `START`, `KONIEC TURY`, `RESET GRY`,
@@ -318,6 +332,9 @@ Moduł obsługuje:
 - zgadywanie postaci lewym kliknięciem,
 - finalne sprawdzenie ostatniej pozostałej postaci,
 - odpowiedzi na zgadywanie przeciwnika,
+- trzysekundowy komunikat po błędnym własnym strzale,
+- wysłanie `TURN_END` dopiero po zakończeniu komunikatu błędnego strzału,
+- timeout oczekiwania na wynik `GUESS` albo `FINAL_CHECK`,
 - stan wygranej i przegranej,
 - reset gry,
 - przejście do stanu `S_COMM_ERROR` przy błędzie komunikacji.
@@ -330,7 +347,9 @@ komunikacji.
 
 Jeżeli trzeba zmienić reguły rozgrywki, kolejność stanów, reakcję na kliknięcia
 albo zachowanie po wyniku zgadywania, to najważniejszym plikiem jest
-`game_core.sv`.
+`game_core.sv`. To właśnie tutaj znajduje się decyzja, że przeciwnik dostaje
+turę po błędnym strzale dopiero po odebraniu `TURN_END`, a nie natychmiast po
+wysłaniu wyniku `RESULT_WRONG`.
 
 ## Obsługa myszy, kliknięć i kursorów
 
@@ -450,7 +469,8 @@ Moduł odpowiada za:
 - okresowe pakiety HELLO,
 - potwierdzenia ACK,
 - retransmisję ważnych pakietów,
-- timeout komunikacji i sygnał `comm_error`.
+- timeout komunikacji i sygnał `comm_error`,
+- czyszczenie stanu komunikacji po lokalnym albo odebranym `RESET_GAME`.
 
 Pakiet gry składa się z sześciu bajtów:
 
@@ -465,6 +485,10 @@ Ten moduł jest kluczowy dla gry na dwóch płytkach. Jeżeli komunikacja międz
 Basysami nie działa, trzeba sprawdzić zarówno ten plik, jak i fizyczne
 połączenie PMOD: TX jednej płytki musi być podłączony do RX drugiej płytki oraz
 obie płytki muszą mieć wspólną masę.
+
+`pmod_comm_controller` nie decyduje już sam o zmianie tury po błędnym strzale.
+Jego rola kończy się na wysłaniu albo odebraniu pakietu z wynikiem. Decyzję, co
+zrobić z turą po tym wyniku, podejmuje `game_core.sv`.
 
 ### `rtl/comm/uart_byte_link.sv`
 

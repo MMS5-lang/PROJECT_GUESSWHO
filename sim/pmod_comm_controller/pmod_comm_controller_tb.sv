@@ -402,7 +402,7 @@ initial begin
     send_result_id_b = 5'd7;
     send_result_b = 1'b1;
     wait_clk;
-    assert (opponent_turn_end_b) else $error("Wrong local result should end opponent turn locally");
+    assert (!opponent_turn_end_b) else $error("PMOD controller should not synthesize TURN_END for a wrong result");
     send_result_b = 1'b0;
     send_result_correct_b = 1'b0;
     send_result_id_b = '0;
@@ -465,6 +465,28 @@ initial begin
         wait_clk;
     end
     assert (comm_error_a && comm_error_b) else $error("Broken UART link did not raise communication timeout");
+
+    connect_b_to_a = 1'b1;
+    send_reset_game_b = 1'b1;
+    wait_clk;
+    assert (!comm_error_b) else $error("Local RESET_GAME should soft-clear communication error");
+    assert (!link_ready_b) else $error("Local RESET_GAME should return link discovery to not-ready");
+    assert (!dut_b.tx_active) else $error("Local RESET_GAME should stop an active PMOD packet");
+    assert (!dut_b.reliable_valid && !dut_b.reliable_sent)
+        else $error("Local RESET_GAME should clear pending reliable packet state");
+    assert (!dut_b.ack_pending) else $error("Local RESET_GAME should clear pending ACK state");
+    assert (dut_b.ack_counter == '0 && dut_b.retry_count == '0)
+        else $error("Local RESET_GAME should clear ACK retry counters");
+    assert (dut_b.comm_timeout_counter == '0)
+        else $error("Local RESET_GAME should clear communication timeout counter");
+    send_reset_game_b = 1'b0;
+
+    for (i = 0; i < TIMEOUT_CYCLES && !opponent_reset_game_a; i++) begin
+        wait_clk;
+    end
+    assert (opponent_reset_game_a) else $error("Board A did not receive RESET_GAME after communication error");
+    assert (!comm_error_a) else $error("Received RESET_GAME should soft-clear communication error");
+    assert (link_ready_a) else $error("Received RESET_GAME should make the link ready again");
 
     $finish;
 end

@@ -86,21 +86,61 @@ typedef enum logic [4:0] {
 } text_id_t;
 
 logic [11:0] rgb_nxt;
-logic [11:0] text_color;
-logic text_active;
-logic show_end_turn;
-logic [10:0] text_x;
-logic [10:0] text_y;
-logic [3:0] text_len;
-logic [3:0] char_index;
-logic [7:0] char_code;
-logic [7:0] local_x;
-logic [7:0] char_start;
-logic [4:0] char_cell_x;
-logic [2:0] font_col;
-logic [2:0] font_row;
-logic [4:0] font_pixels;
-text_id_t text_id;
+logic        show_end_turn;
+
+logic [10:0] s0_vcount;
+logic        s0_vsync;
+logic        s0_vblnk;
+logic [10:0] s0_hcount;
+logic        s0_hsync;
+logic        s0_hblnk;
+logic [11:0] s0_rgb;
+game_state_t s0_game_state;
+
+logic        text_active_nxt;
+text_id_t    text_id_nxt;
+logic [10:0] text_x_nxt;
+logic [10:0] text_y_nxt;
+logic [3:0]  text_len_nxt;
+logic [11:0] text_color_nxt;
+
+logic [10:0] s1_vcount;
+logic        s1_vsync;
+logic        s1_vblnk;
+logic [10:0] s1_hcount;
+logic        s1_hsync;
+logic        s1_hblnk;
+logic [11:0] s1_rgb;
+logic        s1_text_active;
+text_id_t    s1_text_id;
+logic [10:0] s1_text_x;
+logic [10:0] s1_text_y;
+logic [3:0]  s1_text_len;
+logic [11:0] s1_text_color;
+
+logic [3:0] char_index_nxt;
+logic [7:0] char_code_nxt;
+logic [7:0] local_x_nxt;
+logic [7:0] char_start_nxt;
+logic [4:0] char_cell_x_nxt;
+logic [2:0] font_col_nxt;
+logic [2:0] font_row_nxt;
+logic [4:0] font_pixels_nxt;
+
+logic [10:0] s2_vcount;
+logic        s2_vsync;
+logic        s2_vblnk;
+logic [10:0] s2_hcount;
+logic        s2_hsync;
+logic        s2_hblnk;
+logic [11:0] s2_rgb;
+logic        s2_text_active;
+logic [3:0]  s2_text_len;
+logic [11:0] s2_text_color;
+logic [3:0]  s2_char_index;
+logic [2:0]  s2_font_col;
+logic [2:0]  s2_font_row;
+logic [4:0]  s2_font_pixels;
 
 function automatic logic select_font_bit(input logic [4:0] pixels, input logic [2:0] col);
 begin
@@ -374,277 +414,341 @@ end
 endfunction
 
 font_rom u_font_rom (
-    .char_code (char_code),
-    .row       (font_row),
-    .pixels    (font_pixels)
+    .char_code (char_code_nxt),
+    .row       (font_row_nxt),
+    .pixels    (font_pixels_nxt)
 );
 
 always_comb begin
-    show_end_turn = (game_state == S_MY_TURN);
+    show_end_turn = (s0_game_state == S_MY_TURN);
 
-    text_active = 1'b0;
-    text_id = TEXT_NONE;
-    text_x = 11'd0;
-    text_y = 11'd0;
-    text_len = 4'd0;
-    text_color = COLOR_WHITE;
+    text_active_nxt = 1'b0;
+    text_id_nxt = TEXT_NONE;
+    text_x_nxt = 11'd0;
+    text_y_nxt = 11'd0;
+    text_len_nxt = 4'd0;
+    text_color_nxt = COLOR_WHITE;
 
-    if ((game_state == S_WAIT_LINK) &&
-        inside_text(in.hcount, in.vcount, STATUS_LEN6_X, STATUS_TEXT_Y1, 6)) begin
-        text_active = 1'b1;
-        text_id = TEXT_CZEKAM;
-        text_x = STATUS_LEN6_X;
-        text_y = STATUS_TEXT_Y1;
-        text_len = 4'd6;
-        text_color = COLOR_BLACK;
-    end else if ((game_state == S_WAIT_LINK) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN7_X, STATUS_TEXT_Y2, 7)) begin
-        text_active = 1'b1;
-        text_id = TEXT_NA_LINK;
-        text_x = STATUS_LEN7_X;
-        text_y = STATUS_TEXT_Y2;
-        text_len = 4'd7;
-        text_color = COLOR_BLACK;
-    end else if ((game_state == S_SELECT_SECRET) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN7_X, STATUS_TEXT_Y1, 7)) begin
-        text_active = 1'b1;
-        text_id = TEXT_WYBIERZ;
-        text_x = STATUS_LEN7_X;
-        text_y = STATUS_TEXT_Y1;
-        text_len = 4'd7;
-        text_color = COLOR_BLACK;
-    end else if ((game_state == S_SELECT_SECRET) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN5_X, STATUS_TEXT_Y2, 5)) begin
-        text_active = 1'b1;
-        text_id = TEXT_SWOJA;
-        text_x = STATUS_LEN5_X;
-        text_y = STATUS_TEXT_Y2;
-        text_len = 4'd5;
-        text_color = COLOR_BLACK;
-    end else if ((game_state == S_SELECT_SECRET) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN6_X, STATUS_TEXT_Y3, 6)) begin
-        text_active = 1'b1;
-        text_id = TEXT_POSTAC;
-        text_x = STATUS_LEN6_X;
-        text_y = STATUS_TEXT_Y3;
-        text_len = 4'd6;
-        text_color = COLOR_BLACK;
-    end else if ((game_state == S_LOCAL_READY) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN8_X, STATUS_TEXT_Y1, 8)) begin
-        text_active = 1'b1;
-        text_id = TEXT_POCZEKAJ;
-        text_x = STATUS_LEN8_X;
-        text_y = STATUS_TEXT_Y1;
-        text_len = 4'd8;
-        text_color = COLOR_BLACK;
-    end else if ((game_state == S_LOCAL_READY) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN9_X, STATUS_TEXT_Y2, 9)) begin
-        text_active = 1'b1;
-        text_id = TEXT_NA_RYWALA;
-        text_x = STATUS_LEN9_X;
-        text_y = STATUS_TEXT_Y2;
-        text_len = 4'd9;
-        text_color = COLOR_BLACK;
-    end else if ((game_state == S_WAIT_GUESS_RESULT) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN6_X, STATUS_TEXT_Y1, 6)) begin
-        text_active = 1'b1;
-        text_id = TEXT_CZEKAM;
-        text_x = STATUS_LEN6_X;
-        text_y = STATUS_TEXT_Y1;
-        text_len = 4'd6;
-        text_color = COLOR_BLACK;
-    end else if ((game_state == S_WAIT_GUESS_RESULT) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN8_X, STATUS_TEXT_Y2, 8)) begin
-        text_active = 1'b1;
-        text_id = TEXT_NA_WYNIK;
-        text_x = STATUS_LEN8_X;
-        text_y = STATUS_TEXT_Y2;
-        text_len = 4'd8;
-        text_color = COLOR_BLACK;
-    end else if ((game_state == S_FINAL_CHECK) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN8_X, STATUS_TEXT_Y1, 8)) begin
-        text_active = 1'b1;
-        text_id = TEXT_OSTATNIA;
-        text_x = STATUS_LEN8_X;
-        text_y = STATUS_TEXT_Y1;
-        text_len = 4'd8;
-        text_color = COLOR_BLACK;
-    end else if ((game_state == S_FINAL_CHECK) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN6_X, STATUS_TEXT_Y2, 6)) begin
-        text_active = 1'b1;
-        text_id = TEXT_POSTAC;
-        text_x = STATUS_LEN6_X;
-        text_y = STATUS_TEXT_Y2;
-        text_len = 4'd6;
-        text_color = COLOR_BLACK;
-    end else if ((game_state == S_WRONG_GUESS_FEEDBACK) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN11_X, STATUS_TEXT_Y1, 11)) begin
-        text_active = 1'b1;
-        text_id = TEXT_NIEPOPRAWNA;
-        text_x = STATUS_LEN11_X;
-        text_y = STATUS_TEXT_Y1;
-        text_len = 4'd11;
-        text_color = COLOR_RED;
-    end else if ((game_state == S_WRONG_GUESS_FEEDBACK) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN6_X, STATUS_TEXT_Y2, 6)) begin
-        text_active = 1'b1;
-        text_id = TEXT_POSTAC;
-        text_x = STATUS_LEN6_X;
-        text_y = STATUS_TEXT_Y2;
-        text_len = 4'd6;
-        text_color = COLOR_RED;
-    end else if ((game_state == S_COMM_ERROR) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN5_X, STATUS_TEXT_Y1, 5)) begin
-        text_active = 1'b1;
-        text_id = TEXT_ERROR;
-        text_x = STATUS_LEN5_X;
-        text_y = STATUS_TEXT_Y1;
-        text_len = 4'd5;
-        text_color = COLOR_RED;
-    end else if ((game_state == S_COMM_ERROR) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN7_X, STATUS_TEXT_Y2, 7)) begin
-        text_active = 1'b1;
-        text_id = TEXT_NA_LINK;
-        text_x = STATUS_LEN7_X;
-        text_y = STATUS_TEXT_Y2;
-        text_len = 4'd7;
-        text_color = COLOR_RED;
-    end else if ((game_state == S_WIN) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN8_X, STATUS_TEXT_Y2, 8)) begin
-        text_active = 1'b1;
-        text_id = TEXT_WYGRALES;
-        text_x = STATUS_LEN8_X;
-        text_y = STATUS_TEXT_Y2;
-        text_len = 4'd8;
-        text_color = COLOR_GREEN;
-    end else if ((game_state == S_LOSE) &&
-                 inside_text(in.hcount, in.vcount, STATUS_LEN10_X, STATUS_TEXT_Y2, 10)) begin
-        text_active = 1'b1;
-        text_id = TEXT_PRZEGRALES;
-        text_x = STATUS_LEN10_X;
-        text_y = STATUS_TEXT_Y2;
-        text_len = 4'd10;
-        text_color = COLOR_RED;
-    end else if (!show_end_turn &&
-                 inside_text(in.hcount, in.vcount, START_TEXT_X, START_TEXT_Y, 5)) begin
-        text_active = 1'b1;
-        text_id = TEXT_START;
-        text_x = START_TEXT_X;
-        text_y = START_TEXT_Y;
-        text_len = 4'd5;
-    end else if (show_end_turn && inside_text(in.hcount, in.vcount, END_TEXT_X, END_TEXT_Y1, 6)) begin
-        text_active = 1'b1;
-        text_id = TEXT_KONIEC;
-        text_x = END_TEXT_X;
-        text_y = END_TEXT_Y1;
-        text_len = 4'd6;
-    end else if (show_end_turn && inside_text(in.hcount, in.vcount, END_TURY_TEXT_X, END_TEXT_Y2, 4)) begin
-        text_active = 1'b1;
-        text_id = TEXT_TURY;
-        text_x = END_TURY_TEXT_X;
-        text_y = END_TEXT_Y2;
-        text_len = 4'd4;
-    end else if (inside_text(in.hcount, in.vcount, RESET_TEXT_X, RESET_TEXT_Y1, 5)) begin
-        text_active = 1'b1;
-        text_id = TEXT_RESET;
-        text_x = RESET_TEXT_X;
-        text_y = RESET_TEXT_Y1;
-        text_len = 4'd5;
-    end else if (inside_text(in.hcount, in.vcount, RESET_GRY_TEXT_X, RESET_TEXT_Y2, 3)) begin
-        text_active = 1'b1;
-        text_id = TEXT_GRY;
-        text_x = RESET_GRY_TEXT_X;
-        text_y = RESET_TEXT_Y2;
-        text_len = 4'd3;
-    end else if (inside_text(in.hcount, in.vcount, PANEL_TEXT_X, PANEL_TEXT_Y1, 5)) begin
-        text_active = 1'b1;
-        text_id = TEXT_TWOJA;
-        text_x = PANEL_TEXT_X;
-        text_y = PANEL_TEXT_Y1;
-        text_len = 4'd5;
-        text_color = COLOR_BLACK;
-    end else if (inside_text(in.hcount, in.vcount, PANEL_POSTAC_TEXT_X, PANEL_TEXT_Y2, 6)) begin
-        text_active = 1'b1;
-        text_id = TEXT_POSTAC;
-        text_x = PANEL_POSTAC_TEXT_X;
-        text_y = PANEL_TEXT_Y2;
-        text_len = 4'd6;
-        text_color = COLOR_BLACK;
-    end
-end
-
-always_comb begin
-    local_x = '0;
-    char_start = '0;
-    char_index = 4'd0;
-    char_cell_x = 5'd0;
-    font_col = 3'd0;
-    font_row = 3'd0;
-    char_code = " ";
-
-    if (text_active) begin
-        local_x = in.hcount[7:0] - text_x[7:0];
-        font_row = (in.vcount - text_y) >> 1;
-
-        if (local_x < 8'd12) begin
-            char_index = 4'd0;
-        end else if (local_x < 8'd24) begin
-            char_index = 4'd1;
-        end else if (local_x < 8'd36) begin
-            char_index = 4'd2;
-        end else if (local_x < 8'd48) begin
-            char_index = 4'd3;
-        end else if (local_x < 8'd60) begin
-            char_index = 4'd4;
-        end else if (local_x < 8'd72) begin
-            char_index = 4'd5;
-        end else if (local_x < 8'd84) begin
-            char_index = 4'd6;
-        end else if (local_x < 8'd96) begin
-            char_index = 4'd7;
-        end else if (local_x < 8'd108) begin
-            char_index = 4'd8;
-        end else if (local_x < 8'd120) begin
-            char_index = 4'd9;
-        end else begin
-            char_index = 4'd10;
+    case (s0_game_state)
+        S_WAIT_LINK: begin
+            if (inside_text(s0_hcount, s0_vcount, STATUS_LEN6_X, STATUS_TEXT_Y1, 6)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_CZEKAM;
+                text_x_nxt = STATUS_LEN6_X;
+                text_y_nxt = STATUS_TEXT_Y1;
+                text_len_nxt = 4'd6;
+                text_color_nxt = COLOR_BLACK;
+            end else if (inside_text(s0_hcount, s0_vcount, STATUS_LEN7_X, STATUS_TEXT_Y2, 7)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_NA_LINK;
+                text_x_nxt = STATUS_LEN7_X;
+                text_y_nxt = STATUS_TEXT_Y2;
+                text_len_nxt = 4'd7;
+                text_color_nxt = COLOR_BLACK;
+            end
         end
 
-        case (char_index)
-            4'd0: char_start = 8'd0;
-            4'd1: char_start = 8'd12;
-            4'd2: char_start = 8'd24;
-            4'd3: char_start = 8'd36;
-            4'd4: char_start = 8'd48;
-            4'd5: char_start = 8'd60;
-            4'd6: char_start = 8'd72;
-            4'd7: char_start = 8'd84;
-            4'd8: char_start = 8'd96;
-            4'd9: char_start = 8'd108;
-            default: char_start = 8'd120;
-        endcase
+        S_SELECT_SECRET: begin
+            if (inside_text(s0_hcount, s0_vcount, STATUS_LEN7_X, STATUS_TEXT_Y1, 7)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_WYBIERZ;
+                text_x_nxt = STATUS_LEN7_X;
+                text_y_nxt = STATUS_TEXT_Y1;
+                text_len_nxt = 4'd7;
+                text_color_nxt = COLOR_BLACK;
+            end else if (inside_text(s0_hcount, s0_vcount, STATUS_LEN5_X, STATUS_TEXT_Y2, 5)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_SWOJA;
+                text_x_nxt = STATUS_LEN5_X;
+                text_y_nxt = STATUS_TEXT_Y2;
+                text_len_nxt = 4'd5;
+                text_color_nxt = COLOR_BLACK;
+            end else if (inside_text(s0_hcount, s0_vcount, STATUS_LEN6_X, STATUS_TEXT_Y3, 6)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_POSTAC;
+                text_x_nxt = STATUS_LEN6_X;
+                text_y_nxt = STATUS_TEXT_Y3;
+                text_len_nxt = 4'd6;
+                text_color_nxt = COLOR_BLACK;
+            end
+        end
 
-        char_cell_x = local_x - char_start;
-        font_col = char_cell_x >> 1;
-        char_code = get_char(text_id, char_index);
+        S_LOCAL_READY: begin
+            if (inside_text(s0_hcount, s0_vcount, STATUS_LEN8_X, STATUS_TEXT_Y1, 8)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_POCZEKAJ;
+                text_x_nxt = STATUS_LEN8_X;
+                text_y_nxt = STATUS_TEXT_Y1;
+                text_len_nxt = 4'd8;
+                text_color_nxt = COLOR_BLACK;
+            end else if (inside_text(s0_hcount, s0_vcount, STATUS_LEN9_X, STATUS_TEXT_Y2, 9)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_NA_RYWALA;
+                text_x_nxt = STATUS_LEN9_X;
+                text_y_nxt = STATUS_TEXT_Y2;
+                text_len_nxt = 4'd9;
+                text_color_nxt = COLOR_BLACK;
+            end
+        end
+
+        S_WAIT_GUESS_RESULT: begin
+            if (inside_text(s0_hcount, s0_vcount, STATUS_LEN6_X, STATUS_TEXT_Y1, 6)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_CZEKAM;
+                text_x_nxt = STATUS_LEN6_X;
+                text_y_nxt = STATUS_TEXT_Y1;
+                text_len_nxt = 4'd6;
+                text_color_nxt = COLOR_BLACK;
+            end else if (inside_text(s0_hcount, s0_vcount, STATUS_LEN8_X, STATUS_TEXT_Y2, 8)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_NA_WYNIK;
+                text_x_nxt = STATUS_LEN8_X;
+                text_y_nxt = STATUS_TEXT_Y2;
+                text_len_nxt = 4'd8;
+                text_color_nxt = COLOR_BLACK;
+            end
+        end
+
+        S_FINAL_CHECK: begin
+            if (inside_text(s0_hcount, s0_vcount, STATUS_LEN8_X, STATUS_TEXT_Y1, 8)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_OSTATNIA;
+                text_x_nxt = STATUS_LEN8_X;
+                text_y_nxt = STATUS_TEXT_Y1;
+                text_len_nxt = 4'd8;
+                text_color_nxt = COLOR_BLACK;
+            end else if (inside_text(s0_hcount, s0_vcount, STATUS_LEN6_X, STATUS_TEXT_Y2, 6)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_POSTAC;
+                text_x_nxt = STATUS_LEN6_X;
+                text_y_nxt = STATUS_TEXT_Y2;
+                text_len_nxt = 4'd6;
+                text_color_nxt = COLOR_BLACK;
+            end
+        end
+
+        S_WRONG_GUESS_FEEDBACK: begin
+            if (inside_text(s0_hcount, s0_vcount, STATUS_LEN11_X, STATUS_TEXT_Y1, 11)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_NIEPOPRAWNA;
+                text_x_nxt = STATUS_LEN11_X;
+                text_y_nxt = STATUS_TEXT_Y1;
+                text_len_nxt = 4'd11;
+                text_color_nxt = COLOR_RED;
+            end else if (inside_text(s0_hcount, s0_vcount, STATUS_LEN6_X, STATUS_TEXT_Y2, 6)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_POSTAC;
+                text_x_nxt = STATUS_LEN6_X;
+                text_y_nxt = STATUS_TEXT_Y2;
+                text_len_nxt = 4'd6;
+                text_color_nxt = COLOR_RED;
+            end
+        end
+
+        S_COMM_ERROR: begin
+            if (inside_text(s0_hcount, s0_vcount, STATUS_LEN5_X, STATUS_TEXT_Y1, 5)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_ERROR;
+                text_x_nxt = STATUS_LEN5_X;
+                text_y_nxt = STATUS_TEXT_Y1;
+                text_len_nxt = 4'd5;
+                text_color_nxt = COLOR_RED;
+            end else if (inside_text(s0_hcount, s0_vcount, STATUS_LEN7_X, STATUS_TEXT_Y2, 7)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_NA_LINK;
+                text_x_nxt = STATUS_LEN7_X;
+                text_y_nxt = STATUS_TEXT_Y2;
+                text_len_nxt = 4'd7;
+                text_color_nxt = COLOR_RED;
+            end
+        end
+
+        S_WIN: begin
+            if (inside_text(s0_hcount, s0_vcount, STATUS_LEN8_X, STATUS_TEXT_Y2, 8)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_WYGRALES;
+                text_x_nxt = STATUS_LEN8_X;
+                text_y_nxt = STATUS_TEXT_Y2;
+                text_len_nxt = 4'd8;
+                text_color_nxt = COLOR_GREEN;
+            end
+        end
+
+        S_LOSE: begin
+            if (inside_text(s0_hcount, s0_vcount, STATUS_LEN10_X, STATUS_TEXT_Y2, 10)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_PRZEGRALES;
+                text_x_nxt = STATUS_LEN10_X;
+                text_y_nxt = STATUS_TEXT_Y2;
+                text_len_nxt = 4'd10;
+                text_color_nxt = COLOR_RED;
+            end
+        end
+
+        default: begin
+            text_active_nxt = 1'b0;
+        end
+    endcase
+
+    if (!text_active_nxt) begin
+        if (!show_end_turn && inside_text(s0_hcount, s0_vcount, START_TEXT_X, START_TEXT_Y, 5)) begin
+            text_active_nxt = 1'b1;
+            text_id_nxt = TEXT_START;
+            text_x_nxt = START_TEXT_X;
+            text_y_nxt = START_TEXT_Y;
+            text_len_nxt = 4'd5;
+        end else if (show_end_turn && inside_text(s0_hcount, s0_vcount, END_TEXT_X, END_TEXT_Y1, 6)) begin
+            text_active_nxt = 1'b1;
+            text_id_nxt = TEXT_KONIEC;
+            text_x_nxt = END_TEXT_X;
+            text_y_nxt = END_TEXT_Y1;
+            text_len_nxt = 4'd6;
+        end else if (show_end_turn && inside_text(s0_hcount, s0_vcount, END_TURY_TEXT_X, END_TEXT_Y2, 4)) begin
+            text_active_nxt = 1'b1;
+            text_id_nxt = TEXT_TURY;
+            text_x_nxt = END_TURY_TEXT_X;
+            text_y_nxt = END_TEXT_Y2;
+            text_len_nxt = 4'd4;
+        end else if (inside_text(s0_hcount, s0_vcount, RESET_TEXT_X, RESET_TEXT_Y1, 5)) begin
+            text_active_nxt = 1'b1;
+            text_id_nxt = TEXT_RESET;
+            text_x_nxt = RESET_TEXT_X;
+            text_y_nxt = RESET_TEXT_Y1;
+            text_len_nxt = 4'd5;
+        end else if (inside_text(s0_hcount, s0_vcount, RESET_GRY_TEXT_X, RESET_TEXT_Y2, 3)) begin
+            text_active_nxt = 1'b1;
+            text_id_nxt = TEXT_GRY;
+            text_x_nxt = RESET_GRY_TEXT_X;
+            text_y_nxt = RESET_TEXT_Y2;
+            text_len_nxt = 4'd3;
+        end else if (inside_text(s0_hcount, s0_vcount, PANEL_TEXT_X, PANEL_TEXT_Y1, 5)) begin
+            text_active_nxt = 1'b1;
+            text_id_nxt = TEXT_TWOJA;
+            text_x_nxt = PANEL_TEXT_X;
+            text_y_nxt = PANEL_TEXT_Y1;
+            text_len_nxt = 4'd5;
+            text_color_nxt = COLOR_BLACK;
+        end else if (inside_text(s0_hcount, s0_vcount, PANEL_POSTAC_TEXT_X, PANEL_TEXT_Y2, 6)) begin
+            text_active_nxt = 1'b1;
+            text_id_nxt = TEXT_POSTAC;
+            text_x_nxt = PANEL_POSTAC_TEXT_X;
+            text_y_nxt = PANEL_TEXT_Y2;
+            text_len_nxt = 4'd6;
+            text_color_nxt = COLOR_BLACK;
+        end
     end
 end
 
 always_comb begin
-    rgb_nxt = in.rgb;
+    local_x_nxt = '0;
+    char_start_nxt = '0;
+    char_index_nxt = 4'd0;
+    char_cell_x_nxt = 5'd0;
+    font_col_nxt = 3'd0;
+    font_row_nxt = 3'd0;
+    char_code_nxt = " ";
 
-    if (in.vblnk || in.hblnk) begin
+    if (s1_text_active) begin
+        local_x_nxt = s1_hcount[7:0] - s1_text_x[7:0];
+        font_row_nxt = (s1_vcount - s1_text_y) >> 1;
+
+        if (local_x_nxt < 8'd12) begin
+            char_index_nxt = 4'd0;
+        end else if (local_x_nxt < 8'd24) begin
+            char_index_nxt = 4'd1;
+        end else if (local_x_nxt < 8'd36) begin
+            char_index_nxt = 4'd2;
+        end else if (local_x_nxt < 8'd48) begin
+            char_index_nxt = 4'd3;
+        end else if (local_x_nxt < 8'd60) begin
+            char_index_nxt = 4'd4;
+        end else if (local_x_nxt < 8'd72) begin
+            char_index_nxt = 4'd5;
+        end else if (local_x_nxt < 8'd84) begin
+            char_index_nxt = 4'd6;
+        end else if (local_x_nxt < 8'd96) begin
+            char_index_nxt = 4'd7;
+        end else if (local_x_nxt < 8'd108) begin
+            char_index_nxt = 4'd8;
+        end else if (local_x_nxt < 8'd120) begin
+            char_index_nxt = 4'd9;
+        end else begin
+            char_index_nxt = 4'd10;
+        end
+
+        case (char_index_nxt)
+            4'd0: char_start_nxt = 8'd0;
+            4'd1: char_start_nxt = 8'd12;
+            4'd2: char_start_nxt = 8'd24;
+            4'd3: char_start_nxt = 8'd36;
+            4'd4: char_start_nxt = 8'd48;
+            4'd5: char_start_nxt = 8'd60;
+            4'd6: char_start_nxt = 8'd72;
+            4'd7: char_start_nxt = 8'd84;
+            4'd8: char_start_nxt = 8'd96;
+            4'd9: char_start_nxt = 8'd108;
+            default: char_start_nxt = 8'd120;
+        endcase
+
+        char_cell_x_nxt = local_x_nxt - char_start_nxt;
+        font_col_nxt = char_cell_x_nxt >> 1;
+        char_code_nxt = get_char(s1_text_id, char_index_nxt);
+    end
+end
+
+always_comb begin
+    rgb_nxt = s2_rgb;
+
+    if (s2_vblnk || s2_hblnk) begin
         rgb_nxt = COLOR_BLACK;
-    end else if (text_active &&
-                 (char_index < text_len) &&
-                 (font_row < FONT_H) &&
-                 select_font_bit(font_pixels, font_col)) begin
-        rgb_nxt = text_color;
+    end else if (s2_text_active &&
+                 (s2_char_index < s2_text_len) &&
+                 (s2_font_row < FONT_H) &&
+                 select_font_bit(s2_font_pixels, s2_font_col)) begin
+        rgb_nxt = s2_text_color;
     end
 end
 
 always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
+        s0_vcount <= '0;
+        s0_vsync <= '0;
+        s0_vblnk <= '0;
+        s0_hcount <= '0;
+        s0_hsync <= '0;
+        s0_hblnk <= '0;
+        s0_rgb <= '0;
+        s0_game_state <= S_RESET;
+
+        s1_vcount <= '0;
+        s1_vsync <= '0;
+        s1_vblnk <= '0;
+        s1_hcount <= '0;
+        s1_hsync <= '0;
+        s1_hblnk <= '0;
+        s1_rgb <= '0;
+        s1_text_active <= 1'b0;
+        s1_text_id <= TEXT_NONE;
+        s1_text_x <= '0;
+        s1_text_y <= '0;
+        s1_text_len <= '0;
+        s1_text_color <= COLOR_WHITE;
+
+        s2_vcount <= '0;
+        s2_vsync <= '0;
+        s2_vblnk <= '0;
+        s2_hcount <= '0;
+        s2_hsync <= '0;
+        s2_hblnk <= '0;
+        s2_rgb <= '0;
+        s2_text_active <= 1'b0;
+        s2_text_len <= '0;
+        s2_text_color <= COLOR_WHITE;
+        s2_char_index <= '0;
+        s2_font_col <= '0;
+        s2_font_row <= '0;
+        s2_font_pixels <= '0;
+
         out.vcount <= '0;
         out.vsync <= '0;
         out.vblnk <= '0;
@@ -653,12 +757,50 @@ always_ff @(posedge clk or negedge rst_n) begin
         out.hblnk <= '0;
         out.rgb <= '0;
     end else begin
-        out.vcount <= in.vcount;
-        out.vsync <= in.vsync;
-        out.vblnk <= in.vblnk;
-        out.hcount <= in.hcount;
-        out.hsync <= in.hsync;
-        out.hblnk <= in.hblnk;
+        s0_vcount <= in.vcount;
+        s0_vsync <= in.vsync;
+        s0_vblnk <= in.vblnk;
+        s0_hcount <= in.hcount;
+        s0_hsync <= in.hsync;
+        s0_hblnk <= in.hblnk;
+        s0_rgb <= in.rgb;
+        s0_game_state <= game_state;
+
+        s1_vcount <= s0_vcount;
+        s1_vsync <= s0_vsync;
+        s1_vblnk <= s0_vblnk;
+        s1_hcount <= s0_hcount;
+        s1_hsync <= s0_hsync;
+        s1_hblnk <= s0_hblnk;
+        s1_rgb <= s0_rgb;
+        s1_text_active <= text_active_nxt;
+        s1_text_id <= text_id_nxt;
+        s1_text_x <= text_x_nxt;
+        s1_text_y <= text_y_nxt;
+        s1_text_len <= text_len_nxt;
+        s1_text_color <= text_color_nxt;
+
+        s2_vcount <= s1_vcount;
+        s2_vsync <= s1_vsync;
+        s2_vblnk <= s1_vblnk;
+        s2_hcount <= s1_hcount;
+        s2_hsync <= s1_hsync;
+        s2_hblnk <= s1_hblnk;
+        s2_rgb <= s1_rgb;
+        s2_text_active <= s1_text_active;
+        s2_text_len <= s1_text_len;
+        s2_text_color <= s1_text_color;
+        s2_char_index <= char_index_nxt;
+        s2_font_col <= font_col_nxt;
+        s2_font_row <= font_row_nxt;
+        s2_font_pixels <= font_pixels_nxt;
+
+        out.vcount <= s2_vcount;
+        out.vsync <= s2_vsync;
+        out.vblnk <= s2_vblnk;
+        out.hcount <= s2_hcount;
+        out.hsync <= s2_hsync;
+        out.hblnk <= s2_hblnk;
         out.rgb <= rgb_nxt;
     end
 end

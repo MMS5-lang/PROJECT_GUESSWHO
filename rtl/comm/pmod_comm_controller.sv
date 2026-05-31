@@ -403,8 +403,34 @@ always_ff @(posedge clk or negedge rst_n) begin
             awaiting_result_payload <= '0;
             reliable_valid <= 1'b0;
             reliable_sent <= 1'b0;
+            reliable_type <= PKT_HELLO;
+            reliable_payload <= '0;
+            reliable_seq <= 8'h00;
             ack_counter <= '0;
             retry_count <= '0;
+            ack_pending <= 1'b0;
+            ack_payload <= '0;
+            ack_seq <= 8'h00;
+            rx_reliable_seen <= 1'b0;
+            last_rx_reliable_seq <= 8'h00;
+            comm_timeout_counter <= '0;
+            hello_counter <= '0;
+            comm_error <= 1'b0;
+
+            if (comm_error) begin
+                tx_active <= 1'b0;
+                tx_type <= PKT_HELLO;
+                tx_payload <= '0;
+                tx_byte_index <= 3'd0;
+                tx_seq <= next_tx_seq;
+                rx_state <= RX_WAIT_START;
+                rx_type_byte <= 8'h00;
+                rx_player_byte <= 8'h00;
+                rx_payload_byte <= 8'h00;
+                rx_seq_byte <= 8'h00;
+                link_ready <= 1'b0;
+            end
+
             pending_valid <= 1'b1;
             pending_is_hello <= 1'b0;
             pending_type <= PKT_RESET_GAME;
@@ -534,7 +560,8 @@ always_ff @(posedge clk or negedge rst_n) begin
 
                             if (!packet_type_needs_ack(packet_type_t'(rx_type_byte[3:0])) ||
                                 !rx_reliable_seen ||
-                                (rx_seq_byte != last_rx_reliable_seq)) begin
+                                (rx_seq_byte != last_rx_reliable_seq) ||
+                                (rx_type_byte[3:0] == PKT_RESET_GAME)) begin
                                 if (packet_type_needs_ack(packet_type_t'(rx_type_byte[3:0]))) begin
                                     rx_reliable_seen <= 1'b1;
                                     last_rx_reliable_seq <= rx_seq_byte;
@@ -580,6 +607,21 @@ always_ff @(posedge clk or negedge rst_n) begin
                                         opponent_reset_game <= 1'b1;
                                         awaiting_guess_result <= 1'b0;
                                         awaiting_final_result <= 1'b0;
+                                        awaiting_result_payload <= '0;
+                                        reliable_valid <= 1'b0;
+                                        reliable_sent <= 1'b0;
+                                        reliable_type <= PKT_HELLO;
+                                        reliable_payload <= '0;
+                                        reliable_seq <= 8'h00;
+                                        ack_counter <= '0;
+                                        retry_count <= '0;
+                                        pending_valid <= 1'b0;
+                                        pending_is_hello <= 1'b0;
+                                        pending_type <= PKT_HELLO;
+                                        pending_payload <= '0;
+                                        comm_timeout_counter <= '0;
+                                        hello_counter <= '0;
+                                        comm_error <= 1'b0;
                                     end
 
                                     default: begin
@@ -597,9 +639,6 @@ always_ff @(posedge clk or negedge rst_n) begin
             endcase
         end
 
-        if (send_result && !send_result_correct) begin
-            opponent_turn_end <= 1'b1;
-        end
     end
 end
 

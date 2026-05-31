@@ -28,12 +28,14 @@ typedef enum logic [3:0] {
     S_FINAL_CHECK          = 4'd9,
     S_WIN                  = 4'd10,
     S_LOSE                 = 4'd11,
+    // Reserved terminal value kept for compatibility with older simulations.
     S_GAME_OVER            = 4'd12,
     S_COMM_ERROR           = 4'd13
 } game_state_t;
 
 typedef enum logic [3:0] {
     PKT_HELLO          = 4'd0,
+    // Reserved packet codes accepted by the parser, not used by the game FSM.
     PKT_STATUS         = 4'd1,
     PKT_READY          = 4'd2,
     PKT_TURN_END       = 4'd3,
@@ -43,6 +45,7 @@ typedef enum logic [3:0] {
     PKT_RESULT_WRONG   = 4'd7,
     PKT_RESET_GAME     = 4'd8,
     PKT_ACK            = 4'd9,
+    // Reserved packet codes accepted by the parser, not used by the game FSM.
     PKT_ERROR          = 4'd10
 } packet_type_t;
 

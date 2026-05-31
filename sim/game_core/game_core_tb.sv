@@ -362,7 +362,14 @@ initial begin
     assert (eliminated_mask[4]) else $error("Wrong guessed character should be eliminated");
     assert (last_guess_id == 5'd4) else $error("Last guess id not stored");
 
-    pulse_frames(180);
+    pulse_frames(179);
+    assert (game_state == S_WRONG_GUESS_FEEDBACK) else $error("Feedback should last before the final frame");
+    frame_tick = 1'b1;
+    #1;
+    assert (send_turn_end) else $error("Final feedback frame should send TURN_END");
+    wait_clk;
+    frame_tick = 1'b0;
+    wait_clk;
     assert (game_state == S_OPPONENT_TURN) else $error("Wrong feedback should end in opponent turn");
 
     expect_local_actions_ignored_in_opponent_turn;
@@ -386,6 +393,17 @@ initial begin
     pulse_opponent_ready;
     assert (game_state == S_MY_TURN) else $error("FSM should restart after reset");
 
+    pulse_left_char(5'd6);
+    assert (game_state == S_WAIT_GUESS_RESULT) else $error("Guess should enter wait-for-result before timeout test");
+    pulse_frames(600);
+    assert (game_state == S_COMM_ERROR) else $error("Missing guess result should enter communication error");
+
+    pulse_reset_button;
+    pulse_left_char(5'd2);
+    pulse_start;
+    pulse_opponent_ready;
+    assert (game_state == S_MY_TURN) else $error("FSM should restart after result timeout reset");
+
     for (i = 0; i < CHAR_COUNT; i++) begin
         if (i != 7) begin
             pulse_right_char(i[CHAR_ID_W-1:0]);
@@ -394,6 +412,20 @@ initial begin
     assert (game_state == S_FINAL_CHECK) else $error("One active character should start final check");
     assert (last_guess_id == 5'd7) else $error("Final check should remember remaining id");
     assert (send_final_check_id == 5'd7) else $error("Final check id should be remaining id");
+
+    pulse_frames(600);
+    assert (game_state == S_COMM_ERROR) else $error("Missing final-check result should enter communication error");
+
+    pulse_reset_button;
+    pulse_left_char(5'd2);
+    pulse_start;
+    pulse_opponent_ready;
+    for (i = 0; i < CHAR_COUNT; i++) begin
+        if (i != 7) begin
+            pulse_right_char(i[CHAR_ID_W-1:0]);
+        end
+    end
+    assert (game_state == S_FINAL_CHECK) else $error("One active character should start final check after timeout reset");
 
     pulse_final_result(1'b1);
     assert (game_state == S_WIN) else $error("Correct final check should win");
@@ -404,6 +436,16 @@ initial begin
     pulse_opponent_ready;
     pulse_start;
     assert (game_state == S_OPPONENT_TURN) else $error("End turn should enter opponent turn");
+
+    pulse_opponent_guess(5'd1);
+    assert (game_state == S_OPPONENT_TURN) else $error("Wrong opponent guess should wait for remote TURN_END");
+    assert (!my_turn) else $error("my_turn should stay low until remote feedback finishes");
+    pulse_opponent_turn_end;
+    assert (game_state == S_MY_TURN) else $error("TURN_END after wrong opponent guess should give the local player the turn");
+    assert (my_turn) else $error("my_turn should be high after remote TURN_END");
+
+    pulse_start;
+    assert (game_state == S_OPPONENT_TURN) else $error("End turn should return to opponent turn");
 
     pulse_opponent_guess(5'd2);
     assert (game_state == S_LOSE) else $error("Correct opponent guess should lose the game");
