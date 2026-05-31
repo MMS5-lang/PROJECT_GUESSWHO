@@ -62,9 +62,75 @@ submission/demo of the Basys 3 Guess Who project.
   one-cycle click pulses.
 - `sim/render_modules` checks key pixels from background, UI, board overlays,
   text, face rendering, face traits, font ROM and mouse cursor overlay.
+- `sim/cursor_modes` checks normal, hover and busy cursor mode selection and
+  writes three cursor preview BMP files into `results`.
 - `sim/pmod_comm_controller` checks UART packets and rejects result packets whose
   payload id does not match the pending guess/final-check.
 - `sim/two_board_game` checks two game FSMs connected through UART end to end.
+
+## Strict project assessment
+
+The project is in a solid simulation-and-bitstream state, but it is not yet a
+fully proven hardware demo. The RTL structure is now much cleaner than before:
+board-specific files are under `fpga`, logical game/video code is under `rtl`,
+tests are grouped under `sim`, UART example code is isolated under
+`rtl/comm/uart`, and generated cursor assets are separated under
+`rtl/assets/cursors`. The current simulation suite is broad enough to catch many
+logic regressions, and the build currently reaches a clean warning summary.
+
+The biggest weakness is hardware proof. A design can pass all current XSim tests
+and still fail in front of two real Basys 3 boards because of PMOD wiring, baud
+timing tolerance, PS/2 mouse behavior, monitor compatibility, or reset timing.
+Do not treat the project as finished until the two-board physical demo is tested
+from power-up several times.
+
+The second weakness is communication robustness. UART packets have checksum and
+player-id filtering, but there is no ACK/retry layer, no timeout recovery, no
+visible `S_COMM_ERROR` path in normal gameplay, and no user-friendly indication
+that the other board disappeared. For a lab demo this may be acceptable; for a
+more reliable project this is the first RTL area I would improve.
+
+The third weakness is verification depth around real external interfaces. The
+project tests the adapted mouse coordinates, click pulses, UART packet handling
+and two-board logical flow, but it does not simulate realistic PS/2 traffic into
+`MouseCtl`, noisy PMOD/UART wires, malformed byte streams at every packet byte,
+or random resets during active communication. The tests are good for module
+logic, not exhaustive hardware abuse.
+
+The fourth weakness is UI/game feedback. The game is playable in principle, but
+the screen should make every state obvious without needing someone to know the
+FSM. Waiting states, link status, whose turn it is, selected secret lock-in,
+wrong guess feedback and final win/lose/reset states should be visually checked
+on real VGA. The cursor modes help, but they do not replace clear state text.
+
+The fifth weakness is final packaging. `results/` is ignored by Git, which is
+good for day-to-day development, but the final course package may require the
+bitstream in `results`. If the repository itself must contain the final
+bitstream, add a narrow `.gitignore` exception only for `results/top_basys3.bit`
+instead of committing random generated frames and logs.
+
+What I would add if there was more time:
+
+- A hardware bring-up checklist with exact steps: program both boards, set
+  different `SW[0]`, reset both boards, verify HELLO/link readiness, select
+  secrets, perform one wrong guess, one correct guess and reset.
+- A communication watchdog that enters `S_COMM_ERROR` after many frames without
+  valid packets from the other board.
+- ACK/retry or at least repeated command transmission for important packets such
+  as READY, GUESS, FINAL_CHECK, RESULT and RESET_GAME.
+- On-screen link/turn/status text that makes `S_WAIT_LINK`, `S_LOCAL_READY`,
+  `S_MY_TURN`, `S_OPPONENT_TURN`, `S_WAIT_GUESS_RESULT`, `S_WIN` and `S_LOSE`
+  impossible to confuse.
+- A test that injects corrupted UART bytes directly below `pmod_comm_controller`,
+  not only valid high-level packets.
+- A visual regression test that compares generated cursor/renderer images
+  against golden images, not only selected pixels and visible-pixel counts.
+- A reset stress test that resets during UART transmit, during result wait and
+  during wrong-guess feedback.
+- A small note in the final report explaining why RGB444 `000` is transparent
+  for cursor ROMs and why visible black cursor pixels would need a different key.
+- A final clean-clone test on another directory or machine before submission,
+  because local Vivado build products can hide missing source-file references.
 
 ## Missing before final submission
 
