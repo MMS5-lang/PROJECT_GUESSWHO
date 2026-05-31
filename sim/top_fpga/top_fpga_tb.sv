@@ -96,6 +96,11 @@ module top_fpga_tb;
         $display("completes, use the menu option to run all.");
         $display("Prepare to wait a long time...");
         $display("Initial HS state: %b", hs);
+        if ($isunknown(pmod_uart_tx)) begin
+            $warning("PMOD UART TX is unknown at %t.", $time);
+        end else begin
+            $display("Initial PMOD UART TX state: %b", pmod_uart_tx);
+        end
 
         wait (vs == 1'b0);
         @(negedge vs) begin

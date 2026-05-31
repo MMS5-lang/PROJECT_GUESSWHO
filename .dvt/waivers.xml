@@ -39,4 +39,9 @@
         <match path="*tiff_writer.sv" message="*Reset signal 'file_open' is not an input port*"/>
         <match path="*tiff_writer.sv" message="*Clock signal 'go_delayed' is not an input port*"/>
     </waiver>
+
+    <waiver name="Simulation-generated clocks" severity="DISABLED">
+        <description>Testbenches create local clocks intentionally.</description>
+        <match path="*common_primitives_tb.sv" message="*Clock signal 'clk' is not an input port*"/>
+    </waiver>
 </waivers>

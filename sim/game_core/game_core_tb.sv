@@ -125,6 +125,17 @@ begin
 end
 endtask
 
+task automatic pulse_start_expect_ready;
+begin
+    start_click = 1'b1;
+    #1;
+    assert (send_ready) else $error("START with a selected secret should request READY transmit");
+    wait_clk;
+    start_click = 1'b0;
+    wait_clk;
+end
+endtask
+
 task automatic pulse_reset_button;
 begin
     reset_click = 1'b1;
@@ -320,7 +331,7 @@ initial begin
     pulse_left_char(5'd8);
     assert (selected_id == 5'd8) else $error("Selection should be changeable before START");
 
-    pulse_start;
+    pulse_start_expect_ready;
     assert (game_state == S_LOCAL_READY) else $error("START should wait for remote READY");
     assert (local_ready) else $error("Local READY should be latched");
     assert (local_secret_id == 5'd8) else $error("Secret was not locked on start");
@@ -402,6 +413,13 @@ initial begin
     pulse_start;
     pulse_opponent_final(5'd1);
     assert (game_state == S_WIN) else $error("Wrong opponent final check should win locally");
+
+    $display("Final game_core status snapshot: local_ready=%0b remote_ready=%0b my_turn=%0b wrong_guess_visible=%0b send_ready=%0b",
+             local_ready,
+             remote_ready,
+             my_turn,
+             wrong_guess_visible,
+             send_ready);
 
     $finish;
 end

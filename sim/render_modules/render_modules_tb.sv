@@ -373,7 +373,7 @@ initial begin
     #1;
     assert (traits == 12'b0000_0000_0000) else $error("face_traits_rom invalid id should be blank");
 
-    drive_bg(11'd0, 11'd0, 12'h1_2_3, 1'b0, 1'b0);
+    drive_bg(0, 0, 12'h1_2_3, 1'b0, 1'b0);
     assert (bg_out.rgb == 12'h1_2_3) else $error("draw_bg should pass outside-board pixels");
     drive_bg(BOARD_X, BOARD_Y, 12'h1_2_3, 1'b0, 1'b0);
     assert (bg_out.rgb == COLOR_BLACK) else $error("draw_bg board frame should be black");
@@ -423,38 +423,38 @@ initial begin
     expect_text_pixels(S_MY_TURN, START_X + 24, BUTTON_Y + 8, 6, COLOR_WHITE, "KONIEC");
     expect_text_pixels(S_WIN, PANEL_X + 18, PANEL_Y + CELL_H + 40, 8, COLOR_GREEN, "WYGRALES");
     expect_text_pixels(S_LOSE, PANEL_X + 6, PANEL_Y + CELL_H + 40, 10, COLOR_RED, "PRZEGRALES");
-    drive_text(11'd0, 11'd0, 12'h1_2_3, 1'b0, 1'b0);
+    drive_text(0, 0, 12'h1_2_3, 1'b0, 1'b0);
     assert (text_out.rgb == 12'h1_2_3) else $error("text_renderer should pass unrelated pixels");
 
     face_selected_id = 5'd0;
     face_has_secret = 1'b1;
     drive_face(BOARD_X + 70, BOARD_Y + 100, COLOR_WHITE, 1'b0, 1'b0);
     assert (face_out.rgb == COLOR_DARK_SKIN) else $error("face_renderer should color head skin pixels");
-    drive_face(11'd0, 11'd0, 12'h1_2_3, 1'b0, 1'b0);
+    drive_face(0, 0, 12'h1_2_3, 1'b0, 1'b0);
     assert (face_out.rgb == 12'h1_2_3) else $error("face_renderer should pass unrelated pixels");
 
     mouse_xpos = 12'd10;
     mouse_ypos = 12'd10;
     mouse_cursor_mode = CURSOR_POINTER;
-    drive_mouse(11'd100, 11'd100, 12'h1_2_3, 1'b0, 1'b0);
+    drive_mouse(100, 100, 12'h1_2_3, 1'b0, 1'b0);
     assert (mouse_out.rgb == 12'h1_2_3) else $error("draw_mouse should pass pixels outside cursor");
 
-    drive_mouse(11'd47, 11'd42, 12'h7_7_7, 1'b0, 1'b0);
+    drive_mouse(47, 42, 12'h7_7_7, 1'b0, 1'b0);
     assert (mouse_out.rgb == COLOR_WHITE) else $error("draw_mouse normal cursor pixel mismatch");
 
     mouse_cursor_mode = CURSOR_POINTER_HOVER;
-    drive_mouse(11'd41, 11'd41, 12'h7_7_7, 1'b0, 1'b0);
+    drive_mouse(41, 41, 12'h7_7_7, 1'b0, 1'b0);
     assert (mouse_out.rgb == COLOR_WHITE) else $error("draw_mouse hover cursor pixel mismatch");
 
     mouse_cursor_mode = CURSOR_BUSY;
-    drive_mouse(11'd35, 11'd44, 12'h7_7_7, 1'b0, 1'b0);
+    drive_mouse(35, 44, 12'h7_7_7, 1'b0, 1'b0);
     assert (mouse_out.rgb == COLOR_WHITE) else $error("draw_mouse busy cursor pixel mismatch");
 
     mouse_cursor_mode = CURSOR_POINTER;
-    drive_mouse(11'd10, 11'd10, 12'h7_7_7, 1'b0, 1'b0);
+    drive_mouse(10, 10, 12'h7_7_7, 1'b0, 1'b0);
     assert (mouse_out.rgb == 12'h7_7_7) else $error("draw_mouse transparent cursor pixel should pass input");
 
-    drive_mouse(11'd100, 11'd100, 12'h7_7_7, 1'b1, 1'b0);
+    drive_mouse(100, 100, 12'h7_7_7, 1'b1, 1'b0);
     assert (mouse_out.rgb == COLOR_BLACK) else $error("draw_mouse blanking should be black");
 
     $finish;

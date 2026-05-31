@@ -185,6 +185,23 @@ begin
 end
 endtask
 
+task automatic report_monitor_snapshot;
+begin
+    $display("Board A opponent monitor snapshot: turn_end=%0b guess=%0b guess_id=%0d final_check=%0b final_check_id=%0d reset=%0b",
+             opponent_turn_end_a,
+             opponent_guess_a,
+             opponent_guess_id_a,
+             opponent_final_check_a,
+             opponent_final_check_id_a,
+             opponent_reset_game_a);
+    $display("Board B result monitor snapshot: guess_valid=%0b guess_correct=%0b final_valid=%0b final_correct=%0b",
+             guess_result_valid_b,
+             guess_result_correct_b,
+             final_result_valid_b,
+             final_result_correct_b);
+end
+endtask
+
 initial begin
     int i;
 
@@ -298,6 +315,16 @@ initial begin
         wait_clk;
     end
     assert (opponent_reset_game_b) else $error("Board B did not receive RESET_GAME from board A");
+
+    repeat (4) begin
+        wait_clk;
+    end
+    assert (!opponent_turn_end_a && !opponent_guess_a &&
+            !opponent_final_check_a && !opponent_reset_game_a)
+        else $error("Board A received an unexpected opponent command");
+    assert (!guess_result_valid_b && !final_result_valid_b)
+        else $error("Board B received an unexpected result response");
+    report_monitor_snapshot();
 
     $finish;
 end

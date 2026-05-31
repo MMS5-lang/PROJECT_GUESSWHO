@@ -141,9 +141,9 @@ endtask
 
 task automatic write_rgb444_as_bgr888(input int fd, input logic [11:0] rgb);
 begin
-    write_byte(fd, {rgb[3:0], rgb[3:0]});
-    write_byte(fd, {rgb[7:4], rgb[7:4]});
-    write_byte(fd, {rgb[11:8], rgb[11:8]});
+    write_byte(fd, int'({rgb[3:0], rgb[3:0]}));
+    write_byte(fd, int'({rgb[7:4], rgb[7:4]}));
+    write_byte(fd, int'({rgb[11:8], rgb[11:8]}));
 end
 endtask
 

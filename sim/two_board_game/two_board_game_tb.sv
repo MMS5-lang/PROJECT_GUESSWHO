@@ -404,6 +404,7 @@ initial begin
     assert (last_guess_id_a == 5'd4 && eliminated_mask_a[4])
         else $error("Wrong guess did not mark local elimination on board A");
     assert (wrong_guess_visible_a) else $error("Wrong guess feedback is not visible");
+    assert (!wrong_guess_visible_b) else $error("Wrong guess feedback should be local to board A");
 
     for (i = 0; i < 180; i++) begin
         pulse_frame_both;
@@ -421,6 +422,8 @@ initial begin
     assert (!has_secret_a && !has_secret_b) else $error("RESET_GAME did not clear secrets");
     assert (eliminated_mask_a == '0 && eliminated_mask_b == '0)
         else $error("RESET_GAME did not clear eliminated masks");
+    assert (!wrong_guess_visible_a && !wrong_guess_visible_b)
+        else $error("RESET_GAME did not clear wrong-guess feedback");
 
     $finish;
 end
