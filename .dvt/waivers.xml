@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE waivers PUBLIC "-//DVT//waivers" "waivers.dtd">
+<waivers version="1">
+    <waiver name="Generated Vivado clock wizard" severity="DISABLED">
+        <description>Generated Vivado IP contains intentionally unused ports and helper nets.</description>
+        <match path="*clk_wiz_0_clk_wiz.v"/>
+    </waiver>
+
+    <waiver name="Xilinx simulation globals" severity="DISABLED">
+        <description>Xilinx glbl.v is a simulator support file, not project RTL.</description>
+        <match path="*glbl.v"/>
+    </waiver>
+
+    <waiver name="External PS2 VHDL sources" severity="DISABLED">
+        <description>Provided VHDL mouse controller files are kept unchanged.</description>
+        <match path="*MouseCtl.vhd"/>
+        <match path="*Ps2Interface.vhd"/>
+    </waiver>
+
+    <waiver name="ROM loaded from file" severity="DISABLED">
+        <description>The ROM contents are loaded with $readmemh, which DVT reports as never written.</description>
+        <match path="*image_rom.sv" message="*Signal 'rom' is never written*"/>
+        <match path="*draw_mouse.sv" message="*Signal 'pointer_rom' is never written*"/>
+        <match path="*draw_mouse.sv" message="*Signal 'pointer_hover_rom' is never written*"/>
+        <match path="*draw_mouse.sv" message="*Signal 'busy_rom' is never written*"/>
+        <match path="*face_renderer.sv" message="*Signal 'head_rom' is never written*"/>
+        <match path="*face_renderer.sv" message="*Signal 'sunglasses_rom' is never written*"/>
+        <match path="*face_renderer.sv" message="*Signal 'glasses_rom' is never written*"/>
+        <match path="*face_renderer.sv" message="*Signal 'hair1_rom' is never written*"/>
+        <match path="*face_renderer.sv" message="*Signal 'hair2_rom' is never written*"/>
+        <match path="*face_renderer.sv" message="*Signal 'beard_rom' is never written*"/>
+        <match path="*face_renderer.sv" message="*Signal 'hat_rom' is never written*"/>
+        <match path="*face_renderer.sv" message="*Signal 'cap_rom' is never written*"/>
+        <match path="*face_renderer.sv" message="*Signal 'payot_rom' is never written*"/>
+    </waiver>
+
+    <waiver name="Simulation TIFF writer" severity="DISABLED">
+        <description>Testbench-only image writer uses event-controlled helper signals that DVT reports as generated reset/clock.</description>
+        <match path="*tiff_writer.sv" message="*Reset signal 'file_open' is not an input port*"/>
+        <match path="*tiff_writer.sv" message="*Clock signal 'go_delayed' is not an input port*"/>
+    </waiver>
+</waivers>

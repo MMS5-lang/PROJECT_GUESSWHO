@@ -34,7 +34,9 @@ xsim*
 **/.nfs*
 
 dvt_build.log
-.dvt/
+.dvt/*
+!.dvt/default.build
+!.dvt/waivers.xml
 dfx_runtime.txt
 **/dfx_runtime.txt
 

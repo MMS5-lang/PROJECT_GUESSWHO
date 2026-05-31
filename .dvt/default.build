@@ -1,0 +1,42 @@
+# Project source list for DVT.
+# Keep generated Vivado build products out of this list; copied IP sources live in fpga/rtl.
++dvt_init
+-top top_basys3
+
+rtl/vga/vga_pkg.sv
+rtl/game/guess_who_pkg.sv
+rtl/vga/vga_if.sv
+rtl/vga/vga_timing.sv
+rtl/common/reset_sync.sv
+rtl/common/debounce.v
+rtl/ui/hitbox_decoder.sv
+rtl/game/game_core.sv
+rtl/comm/uart/mod_m_counter.v
+rtl/comm/uart/fifo.v
+rtl/comm/uart/uart_rx.v
+rtl/comm/uart/uart_tx.v
+rtl/comm/uart/uart.v
+rtl/comm/uart_byte_link.sv
+rtl/comm/pmod_comm_controller.sv
+rtl/render/draw_bg.sv
+rtl/render/ui_renderer.sv
+rtl/render/face_traits_rom.sv
+rtl/render/face_renderer.sv
+rtl/render/board_renderer.sv
+rtl/text/font_rom.sv
+rtl/text/text_renderer.sv
+rtl/mouse/mouse_adapter.sv
+rtl/mouse/cursor_mode_controller.sv
+rtl/mouse/draw_mouse.sv
+rtl/top/top_vga.sv
+fpga/rtl/clk_wiz_0_clk_wiz.v
+fpga/rtl/clk_wiz_0.v
+fpga/rtl/top_basys3.sv
+
++dvt_init_xilinx+UNISIM
++dvt_env+DVT_XILINX_HOME=C:\AMDDesignTools\2025.2\Vivado\
+
++dvt_init -work work
+
+rtl\mouse\Ps2Interface.vhd
+rtl\mouse\MouseCtl.vhd
