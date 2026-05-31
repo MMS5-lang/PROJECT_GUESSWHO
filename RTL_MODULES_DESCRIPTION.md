@@ -1,8 +1,8 @@
 # Opis modułów RTL projektu Guess Who
 
 Ten dokument opisuje strukturę części RTL projektu Guess Who przygotowanego na
-platformę Basys 3. Jego celem jest pokazanie, za co odpowiadają poszczególne
-moduły, jak są ze sobą połączone i gdzie należy szukać konkretnych fragmentów
+platformę Basys 3. Opis wskazuje, za co odpowiadają poszczególne moduły, jak są
+ze sobą połączone i gdzie należy szukać konkretnych fragmentów
 funkcjonalności. Dokument nie jest opisem każdej pojedynczej linii kodu, tylko
 technicznym przewodnikiem po architekturze projektu.
 
@@ -24,7 +24,7 @@ Najważniejsze pliki startowe to:
   płytkami,
 - `rtl/vga/vga_pkg.sv`, czyli wspólna geometria ekranu, planszy i przycisków.
 
-## Ogólny przepływ danych w projekcie
+## Przepływ danych w projekcie
 
 Projekt działa w sposób potokowy i modułowy. Z punktu widzenia działania gry
 najważniejszy jest następujący przepływ:
@@ -114,8 +114,8 @@ Najważniejsze elementy pakietu:
 - `cursor_mode_t` opisuje tryby kursora: zwykły kursor, kursor nad hitboxem i
   kursor oczekiwania.
 
-Do tego pliku należy zajrzeć, gdy dodawany jest nowy stan gry, nowy typ pakietu
-komunikacyjnego albo nowy tryb kursora.
+Zmiana stanów gry, typów pakietów komunikacyjnych albo trybów kursora wymaga
+aktualizacji tego pakietu.
 
 ### `rtl/vga/vga_pkg.sv`
 
@@ -246,8 +246,8 @@ istnieje potok, ponieważ bitmapy są czytane z pamięci ROM. Moduł musi więc
 opóźnić współrzędne i sygnały VGA tak, aby kolor z ROM-u pasował do właściwego
 piksela.
 
-Do tego pliku należy zajrzeć, gdy zmieniany jest wygląd postaci, położenie
-elementów twarzy albo sposób kolorowania skóry, włosów i dodatków.
+Zmiana wyglądu postaci, położenia elementów twarzy albo sposobu kolorowania
+skóry, włosów i dodatków dotyczy przede wszystkim tego modułu.
 
 ### `rtl/render/board_renderer.sv`
 
@@ -305,11 +305,9 @@ Moduł rysuje między innymi:
 - komunikaty końcowe: `WYGRAŁEŚ`, `PRZEGRAŁEŚ`,
 - komunikat błędu komunikacji: `ERROR NA LINK`.
 
-Ten moduł jest miejscem, w którym stan gry zostaje zamieniony na czytelny
-komunikat dla użytkownika. Jeżeli prowadzący pyta, gdzie projekt informuje
-gracza o aktualnej fazie gry, odpowiedź znajduje się właśnie tutaj oraz w
-`cursor_mode_controller.sv`, który dodatkowo pokazuje turę przeciwnika przez
-klepsydrę.
+Ten moduł zamienia stan gry na czytelny komunikat dla użytkownika. Informacja o
+turze przeciwnika jest dodatkowo sygnalizowana w `cursor_mode_controller.sv`
+przez wybór kursora klepsydry.
 
 ## Logika gry
 
@@ -610,14 +608,3 @@ czasowo kilka sygnałów w potoku.
 - Bajtowy interfejs UART: `rtl/comm/uart_byte_link.sv`
 - Rdzeń UART: `rtl/comm/uart/uart.v`
 - Reset i domeny zegarowe Basys 3: `fpga/rtl/top_basys3.sv`
-
-## Podsumowanie architektury
-
-Projekt jest rozdzielony na wyraźne warstwy. Logika gry znajduje się w
-`game_core.sv`, komunikacja w `pmod_comm_controller.sv`, a obraz jest budowany
-przez kolejne renderery VGA. Dzięki temu można analizować i rozwijać projekt
-modułowo: zmiana wyglądu postaci nie wymaga zmian w UART, a zmiana protokołu
-komunikacji nie wymaga modyfikowania rendererów.
-
-Taki podział jest istotny w projekcie FPGA, ponieważ ułatwia testowanie,
-utrzymanie kodu i wyjaśnienie działania układu podczas prezentacji na sprzęcie.

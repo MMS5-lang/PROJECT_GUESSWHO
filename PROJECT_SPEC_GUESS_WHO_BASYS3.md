@@ -1,20 +1,14 @@
-# Specyfikacja projektu Guess Who na Basys 3
-
-Ten dokument opisuje aktualny stan projektu Guess Who realizowanego na dwóch
-płytkach Digilent Basys 3. Opis jest przygotowany tak, aby można było pokazać go
-prowadzącemu zajęcia jako instrukcję działania projektu, opis architektury oraz
-uzasadnienie najważniejszych decyzji implementacyjnych.
-
-Dokument bazuje na obecnym kodzie RTL w repozytorium. W szczególności uwzględnia
-aktualną planszę 6 x 3, komunikację UART między płytkami, obecne stany maszyny
-gry, obsługę myszy PS/2, renderowanie VGA 1024 x 768 oraz aktualny sposób
-kodowania postaci.
+# Guess Who na Basys 3
 
 ## 1. Cel projektu
 
 Celem projektu jest wykonanie sprzętowej wersji gry Guess Who na dwóch płytkach
 Basys 3. Każdy gracz korzysta z osobnej płytki, osobnego monitora VGA oraz myszy
 PS/2. Płytki komunikują się ze sobą przez UART wyprowadzony na złącze PMOD.
+
+Dokument opisuje aktualny stan implementacji RTL: planszę 6 x 3, komunikację
+UART między płytkami, stany maszyny gry, obsługę myszy PS/2, renderowanie VGA
+1024 x 768 oraz sposób kodowania postaci.
 
 FPGA nie analizuje rozmowy między graczami. Gracze zadają pytania słownie, tak
 jak w klasycznej grze. Układ FPGA odpowiada za:
@@ -116,8 +110,7 @@ odrzucane w logice gry albo w kontrolerze komunikacji.
 
 ## 5. Działanie gry krok po kroku
 
-Ta sekcja opisuje przebieg działania projektu w stylu instrukcji dla osoby
-sprawdzającej projekt na zajęciach.
+Ta sekcja opisuje przebieg działania projektu z punktu widzenia użytkownika.
 
 ### 5.1. Reset i oczekiwanie na link
 
@@ -178,7 +171,7 @@ Pierwsza tura zależy od `player_id`:
 | 0 | Lokalny gracz zaczyna i przechodzi do `S_MY_TURN` |
 | 1 | Lokalny gracz czeka i przechodzi do `S_OPPONENT_TURN` |
 
-Dlatego przed demonstracją należy ustawić różne wartości `SW[0]` na dwóch
+Dlatego przed uruchomieniem gry należy ustawić różne wartości `SW[0]` na dwóch
 płytkach. Jeśli obie płytki mają ten sam `player_id`, logika tur nie będzie
 odpowiadała poprawnej grze dwuosobowej.
 
@@ -287,7 +280,7 @@ W tym stanie:
 
 Jeżeli przeciwnik wyśle `GUESS` albo `FINAL_CHECK`, lokalna płytka porównuje ID
 z `local_secret_id` i odsyła odpowiedni wynik. Po błędnym `GUESS` lokalna płytka
-nadal zostaje w `S_OPPONENT_TURN`, aby przeciwnik zdążył pokazać komunikat
+nadal zostaje w `S_OPPONENT_TURN`, aby przeciwnik zdążył wyświetlić komunikat
 `NIEPOPRAWNA POSTAC`. Do `S_MY_TURN` przechodzi dopiero po odebraniu `TURN_END`.
 
 ### 5.10. Reset gry
@@ -628,7 +621,7 @@ projekcie jest sygnalizowana klepsydrą (`CURSOR_BUSY`).
 | `cursor_mode_controller.sv` | Wybór trybu kursora |
 | `draw_mouse.sv` | Rysowanie kursora |
 
-## 15. Minimalna procedura demonstracji dla prowadzącego
+## 15. Minimalna procedura uruchomienia
 
 1. Zaprogramować obie płytki tym samym bitstreamem.
 2. Ustawić `SW[0] = 0` na pierwszej płytce i `SW[0] = 1` na drugiej.
@@ -643,18 +636,6 @@ projekcie jest sygnalizowana klepsydrą (`CURSOR_BUSY`).
 8. Na obu płytkach wybrać tajną postać LPM.
 9. Na obu płytkach kliknąć START.
 10. Gracz z `SW[0] = 0` wykonuje pierwszy ruch.
-11. Pokazać eliminację PPM, zakończenie tury, zgadywanie LPM oraz reakcję drugiej
+11. Sprawdzić eliminację PPM, zakończenie tury, zgadywanie LPM oraz reakcję drugiej
     płytki.
-12. Pokazać reset gry przyciskiem `RESET GRY`.
-
-## 16. Podsumowanie
-
-Aktualny projekt jest kompletną implementacją podstawowej logiki Guess Who na
-dwóch płytkach Basys 3. Najważniejsze elementy projektu to plansza 6 x 3,
-lokalny wybór tajnej postaci, tury, lokalne eliminacje, zgadywanie przez UART,
-automatyczne finalne sprawdzenie ostatniej postaci, obsługa wyniku gry,
-komunikaty ekranowe, kursory zależne od kontekstu oraz reset gry.
-
-Projekt jest podzielony na czytelne moduły: osobno logika gry, osobno
-komunikacja, osobno obsługa myszy i osobno renderowanie VGA. Taki podział
-ułatwia prezentację projektu, testowanie i dalsze rozwijanie kodu.
+12. Sprawdzić reset gry przyciskiem `RESET GRY`.
