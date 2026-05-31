@@ -87,12 +87,12 @@ initial begin
         end
     end
 
-    drive_click(START_X + 2, BUTTON_Y + 2, 1'b1, 1'b0);
+    drive_click(START_X + 2, START_Y + 2, 1'b1, 1'b0);
     assert (start_click) else $error("START button not detected");
     assert (!reset_click && !char_left_click && !char_right_click)
         else $error("START click should not decode as another hit");
 
-    drive_click(RESET_X + 2, BUTTON_Y + 2, 1'b1, 1'b0);
+    drive_click(RESET_X + 2, RESET_Y + 2, 1'b1, 1'b0);
     assert (reset_click) else $error("RESET button not detected");
     assert (!start_click && !char_left_click && !char_right_click)
         else $error("RESET click should not decode as another hit");

@@ -32,6 +32,18 @@ always_comb begin
                 default: pixels = 5'b00000;
             endcase
         end
+        "B": begin
+            case (row)
+                3'd0: pixels = 5'b11110;
+                3'd1: pixels = 5'b10001;
+                3'd2: pixels = 5'b10001;
+                3'd3: pixels = 5'b11110;
+                3'd4: pixels = 5'b10001;
+                3'd5: pixels = 5'b10001;
+                3'd6: pixels = 5'b11110;
+                default: pixels = 5'b00000;
+            endcase
+        end
         "C": begin
             case (row)
                 3'd0: pixels = 5'b01111;

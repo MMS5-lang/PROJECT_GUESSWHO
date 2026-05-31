@@ -36,7 +36,6 @@ logic [CHAR_ID_W-1:0] traits_char_id;
 logic [11:0] traits;
 
 game_state_t ui_state;
-logic ui_has_secret;
 logic ui_local_ready;
 logic ui_remote_ready;
 
@@ -90,7 +89,6 @@ ui_renderer dut_ui_renderer (
     .clk,
     .rst_n,
     .game_state   (ui_state),
-    .has_secret   (ui_has_secret),
     .local_ready  (ui_local_ready),
     .remote_ready (ui_remote_ready),
     .in           (ui_in.in),
@@ -317,7 +315,6 @@ endtask
 initial begin
     rst_n = 1'b0;
     ui_state = S_SELECT_SECRET;
-    ui_has_secret = 1'b0;
     ui_local_ready = 1'b0;
     ui_remote_ready = 1'b0;
     board_state = S_SELECT_SECRET;
@@ -354,6 +351,10 @@ initial begin
     font_row = 3'd0;
     #1;
     assert (font_pixels == 5'b01110) else $error("font_rom A row 0 mismatch");
+    font_char_code = "B";
+    font_row = 3'd0;
+    #1;
+    assert (font_pixels == 5'b11110) else $error("font_rom B row 0 mismatch");
     font_char_code = "S";
     font_row = 3'd3;
     #1;
@@ -385,17 +386,16 @@ initial begin
     assert (bg_out.rgb == COLOR_BLACK) else $error("draw_bg blanking should be black");
 
     ui_state = S_SELECT_SECRET;
-    ui_has_secret = 1'b0;
-    drive_ui(START_X + 2, BUTTON_Y + 2, 12'h1_2_3, 1'b0, 1'b0);
-    assert (ui_out.rgb == 12'h6_6_6) else $error("START button should be inactive without secret");
-    ui_has_secret = 1'b1;
-    drive_ui(START_X + 2, BUTTON_Y + 2, 12'h1_2_3, 1'b0, 1'b0);
-    assert (ui_out.rgb == COLOR_GREEN) else $error("START button should be green when secret exists");
-    drive_ui(RESET_X + 2, BUTTON_Y + 2, 12'h1_2_3, 1'b0, 1'b0);
+    drive_ui(START_X + 2, START_Y + 2, 12'h1_2_3, 1'b0, 1'b0);
+    assert (ui_out.rgb == 12'h1_b_5) else $error("START button should be green during selection");
+    drive_ui(RESET_X + 2, RESET_Y + 2, 12'h1_2_3, 1'b0, 1'b0);
     assert (ui_out.rgb == 12'hd_0_0) else $error("RESET button should be red");
     ui_state = S_LOCAL_READY;
     drive_ui(PANEL_X + 10, PANEL_Y + 10, 12'h1_2_3, 1'b0, 1'b0);
-    assert (ui_out.rgb == 12'hf_e_b) else $error("Panel color for LOCAL_READY mismatch");
+    assert (ui_out.rgb == COLOR_WHITE) else $error("Panel should stay white");
+    ui_state = S_MY_TURN;
+    drive_ui(START_X + 2, START_Y + 2, 12'h1_2_3, 1'b0, 1'b0);
+    assert (ui_out.rgb == COLOR_BLUE) else $error("End-turn button should be blue");
 
     board_state = S_SELECT_SECRET;
     board_has_secret = 1'b1;
@@ -419,10 +419,25 @@ initial begin
     drive_board(PANEL_X + 1, PANEL_Y + 1, 12'h1_2_3, 1'b0, 1'b0);
     assert (board_out.rgb == COLOR_ORANGE) else $error("Opponent turn panel border should be orange");
 
-    expect_text_pixels(S_SELECT_SECRET, START_X + 30, BUTTON_Y + 18, 5, COLOR_WHITE, "START");
-    expect_text_pixels(S_MY_TURN, START_X + 24, BUTTON_Y + 8, 6, COLOR_WHITE, "KONIEC");
-    expect_text_pixels(S_WIN, PANEL_X + 18, PANEL_Y + CELL_H + 40, 8, COLOR_GREEN, "WYGRALES");
-    expect_text_pixels(S_LOSE, PANEL_X + 6, PANEL_Y + CELL_H + 40, 10, COLOR_RED, "PRZEGRALES");
+    expect_text_pixels(S_SELECT_SECRET, START_X + 20, START_Y + 18, 5, COLOR_WHITE, "START");
+    expect_text_pixels(S_MY_TURN, START_X + 14, START_Y + 8, 6, COLOR_WHITE, "KONIEC");
+    expect_text_pixels(S_MY_TURN, START_X + 26, START_Y + 28, 4, COLOR_WHITE, "TURY");
+    expect_text_pixels(S_WAIT_LINK, PANEL_X + ((CELL_W - 6 * 12) / 2),
+                       PANEL_Y + CELL_H + 8, 6, COLOR_BLACK, "CZEKAM");
+    expect_text_pixels(S_SELECT_SECRET, PANEL_X + ((CELL_W - 7 * 12) / 2),
+                       PANEL_Y + CELL_H + 8, 7, COLOR_BLACK, "WYBIERZ");
+    expect_text_pixels(S_SELECT_SECRET, PANEL_X + ((CELL_W - 5 * 12) / 2),
+                       PANEL_Y + CELL_H + 28, 5, COLOR_BLACK, "SWOJA");
+    expect_text_pixels(S_LOCAL_READY, PANEL_X + ((CELL_W - 8 * 12) / 2),
+                       PANEL_Y + CELL_H + 8, 8, COLOR_BLACK, "POCZEKAJ");
+    expect_text_pixels(S_WAIT_GUESS_RESULT, PANEL_X + ((CELL_W - 8 * 12) / 2),
+                       PANEL_Y + CELL_H + 28, 8, COLOR_BLACK, "NA WYNIK");
+    expect_text_pixels(S_WRONG_GUESS_FEEDBACK, PANEL_X + ((CELL_W - 11 * 12) / 2),
+                       PANEL_Y + CELL_H + 8, 11, COLOR_RED, "NIEPOPRAWNA");
+    expect_text_pixels(S_WIN, PANEL_X + ((CELL_W - 8 * 12) / 2),
+                       PANEL_Y + CELL_H + 28, 8, COLOR_GREEN, "WYGRALES");
+    expect_text_pixels(S_LOSE, PANEL_X + ((CELL_W - 10 * 12) / 2),
+                       PANEL_Y + CELL_H + 28, 10, COLOR_RED, "PRZEGRALES");
     drive_text(0, 0, 12'h1_2_3, 1'b0, 1'b0);
     assert (text_out.rgb == 12'h1_2_3) else $error("text_renderer should pass unrelated pixels");
 
@@ -439,11 +454,11 @@ initial begin
     drive_mouse(100, 100, 12'h1_2_3, 1'b0, 1'b0);
     assert (mouse_out.rgb == 12'h1_2_3) else $error("draw_mouse should pass pixels outside cursor");
 
-    drive_mouse(47, 42, 12'h7_7_7, 1'b0, 1'b0);
+    drive_mouse(16, 16, 12'h7_7_7, 1'b0, 1'b0);
     assert (mouse_out.rgb == COLOR_WHITE) else $error("draw_mouse normal cursor pixel mismatch");
 
     mouse_cursor_mode = CURSOR_POINTER_HOVER;
-    drive_mouse(41, 41, 12'h7_7_7, 1'b0, 1'b0);
+    drive_mouse(32, 31, 12'h7_7_7, 1'b0, 1'b0);
     assert (mouse_out.rgb == COLOR_WHITE) else $error("draw_mouse hover cursor pixel mismatch");
 
     mouse_cursor_mode = CURSOR_BUSY;
@@ -451,7 +466,7 @@ initial begin
     assert (mouse_out.rgb == COLOR_WHITE) else $error("draw_mouse busy cursor pixel mismatch");
 
     mouse_cursor_mode = CURSOR_POINTER;
-    drive_mouse(10, 10, 12'h7_7_7, 1'b0, 1'b0);
+    drive_mouse(60, 60, 12'h7_7_7, 1'b0, 1'b0);
     assert (mouse_out.rgb == 12'h7_7_7) else $error("draw_mouse transparent cursor pixel should pass input");
 
     drive_mouse(100, 100, 12'h7_7_7, 1'b1, 1'b0);

@@ -60,18 +60,22 @@ character_id = row * BOARD_COLS + col;
 Valid character IDs are `0` through `17`. Use 5 bits for character IDs because
 that fits the UART payload cleanly and leaves simple room for range checks.
 
-The screen contains a large 6 x 3 board on the left, a local secret preview panel
-on the right and buttons at the bottom. The right panel shows only the local
-player's selected secret. It must never show or infer the opponent's secret. The
-bottom button is `START` before the game starts and `KONIEC TURY` during a local
-turn. `RESET GRY` is available from every game state.
+The screen contains a large 6 x 3 board on the left and a right-side control
+column with the local secret preview panel and the game buttons below it. The
+right panel shows only the local player's selected secret. It must never show or
+infer the opponent's secret. The main action button is `START` before the game
+starts and `KONIEC TURY` during a local turn. `RESET GRY` is available from
+every game state.
 
 Rendering is procedural. The design does not store a full frame buffer. Renderer
 modules use the current VGA pixel coordinates, game state and masks to draw the
 background, UI, faces, board overlays, text and mouse cursor. The cursor is the
 last visible layer. Text should avoid Polish characters on screen, so strings
-such as `WYGRALES`, `PRZEGRALES`, `TWOJA POSTAC`, `TWOJA TURA`, `TURA RYWALA`,
-`CZEKAM NA RYWALA`, `START`, `KONIEC TURY` and `RESET GRY` are preferred.
+such as `WYBIERZ SWOJA POSTAC`, `POCZEKAJ NA RYWALA`, `CZEKAM NA WYNIK`,
+`NIEPOPRAWNA POSTAC`, `WYGRALES`, `PRZEGRALES`, `TWOJA POSTAC`, `START`,
+`KONIEC TURY` and `RESET GRY` are preferred. Do not duplicate local/opponent
+turn text on screen; the normal/hover cursor marks an interactive local turn,
+and the hourglass cursor marks waiting for the opponent.
 
 Cursor graphics are stored as RGB444 ROM data under `rtl/assets/cursors`.
 `pointer_b` is the normal cursor outside interactive hitboxes. `pointer_toon_b`

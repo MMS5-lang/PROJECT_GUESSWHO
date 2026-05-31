@@ -36,10 +36,10 @@ always_comb begin
                (mouse_y >= BOARD_Y) && (mouse_y < BOARD_Y + BOARD_H);
 
     in_start_btn = (mouse_x >= START_X) && (mouse_x < START_X + BUTTON_W) &&
-                   (mouse_y >= BUTTON_Y) && (mouse_y < BUTTON_Y + BUTTON_H);
+                   (mouse_y >= START_Y) && (mouse_y < START_Y + BUTTON_H);
 
     in_reset_btn = (mouse_x >= RESET_X) && (mouse_x < RESET_X + BUTTON_W) &&
-                   (mouse_y >= BUTTON_Y) && (mouse_y < BUTTON_Y + BUTTON_H);
+                   (mouse_y >= RESET_Y) && (mouse_y < RESET_Y + BUTTON_H);
 
     col = 3'd0;
     row = 2'd0;

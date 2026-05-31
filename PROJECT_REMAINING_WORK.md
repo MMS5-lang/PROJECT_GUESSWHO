@@ -97,11 +97,11 @@ and two-board logical flow, but it does not simulate realistic PS/2 traffic into
 or random resets during active communication. The tests are good for module
 logic, not exhaustive hardware abuse.
 
-The fourth weakness is UI/game feedback. The game is playable in principle, but
-the screen should make every state obvious without needing someone to know the
-FSM. Waiting states, link status, whose turn it is, selected secret lock-in,
-wrong guess feedback and final win/lose/reset states should be visually checked
-on real VGA. The cursor modes help, but they do not replace clear state text.
+The fourth weakness is UI/game feedback on real hardware. The RTL now has
+non-turn status text for link/wait/result/win/lose states, while turn ownership
+is intentionally shown by cursor mode. The remaining risk is visual polish on
+the actual VGA monitor: contrast, exact spacing and whether a first-time player
+understands the cursor convention without an explanation.
 
 The fifth weakness is final packaging. `results/` is ignored by Git, which is
 good for day-to-day development, but the final course package may require the
@@ -118,9 +118,8 @@ What I would add if there was more time:
   valid packets from the other board.
 - ACK/retry or at least repeated command transmission for important packets such
   as READY, GUESS, FINAL_CHECK, RESULT and RESET_GAME.
-- On-screen link/turn/status text that makes `S_WAIT_LINK`, `S_LOCAL_READY`,
-  `S_MY_TURN`, `S_OPPONENT_TURN`, `S_WAIT_GUESS_RESULT`, `S_WIN` and `S_LOSE`
-  impossible to confuse.
+- A real-hardware visual review of the non-turn status text and cursor-based
+  turn indication, especially on a bright VGA monitor.
 - A test that injects corrupted UART bytes directly below `pmod_comm_controller`,
   not only valid high-level packets.
 - A visual regression test that compares generated cursor/renderer images
@@ -155,8 +154,8 @@ What I would add if there was more time:
   sending valid packets for a long time.
 - Add ACK/retry handling if the physical UART link proves unreliable. The current
   protocol validates checksum and player id but does not retransmit lost packets.
-- Add a visible on-screen status for waiting states, for example `CZEKAM NA RYWALA`,
-  `TWOJA TURA` and `TURA RYWALA`.
+- Tune the visible status area on real VGA if needed. Turn ownership is shown by
+  cursor mode, while text is reserved for link/wait/result/win/lose states.
 - Add deeper negative UART tests for malformed raw packets, for example bad
   checksum and same-player packets injected at the byte-stream level.
 - Consider using `S_GAME_OVER` explicitly after `S_WIN`/`S_LOSE` if the UI should

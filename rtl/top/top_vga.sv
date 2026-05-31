@@ -239,7 +239,6 @@ ui_renderer u_ui_renderer (
     .clk          (clk),
     .rst_n        (rst_n),
     .game_state   (game_state),
-    .has_secret   (has_secret),
     .local_ready  (local_ready),
     .remote_ready (remote_ready),
     .in           (if_bg.in),

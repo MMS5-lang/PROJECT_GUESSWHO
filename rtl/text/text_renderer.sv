@@ -37,25 +37,32 @@ localparam int TEXT_SCALE = 2;
 localparam int TEXT_PITCH = 12;
 localparam int TEXT_H = FONT_H * TEXT_SCALE;
 
-localparam logic [10:0] START_TEXT_X = pos11(START_X + 30);
-localparam logic [10:0] START_TEXT_Y = pos11(BUTTON_Y + 18);
-localparam logic [10:0] END_TEXT_X = pos11(START_X + 24);
-localparam logic [10:0] END_TURY_TEXT_X = END_TEXT_X + 11'd12;
-localparam logic [10:0] END_TEXT_Y1 = pos11(BUTTON_Y + 8);
-localparam logic [10:0] END_TEXT_Y2 = pos11(BUTTON_Y + 28);
-localparam logic [10:0] RESET_TEXT_X = pos11(RESET_X + 30);
-localparam logic [10:0] RESET_GRY_TEXT_X = RESET_TEXT_X + 11'd12;
-localparam logic [10:0] RESET_TEXT_Y1 = pos11(BUTTON_Y + 8);
-localparam logic [10:0] RESET_TEXT_Y2 = pos11(BUTTON_Y + 28);
-localparam logic [10:0] PANEL_TEXT_X = pos11(PANEL_X + 26);
-localparam logic [10:0] PANEL_POSTAC_TEXT_X = PANEL_TEXT_X - 11'd6;
+localparam logic [10:0] START_TEXT_X = pos11(START_X + ((BUTTON_W - 5 * TEXT_PITCH) / 2));
+localparam logic [10:0] START_TEXT_Y = pos11(START_Y + ((BUTTON_H - TEXT_H) / 2));
+localparam logic [10:0] END_TEXT_X = pos11(START_X + ((BUTTON_W - 6 * TEXT_PITCH) / 2));
+localparam logic [10:0] END_TURY_TEXT_X = pos11(START_X + ((BUTTON_W - 4 * TEXT_PITCH) / 2));
+localparam logic [10:0] END_TEXT_Y1 = pos11(START_Y + 8);
+localparam logic [10:0] END_TEXT_Y2 = pos11(START_Y + 28);
+localparam logic [10:0] RESET_TEXT_X = pos11(RESET_X + ((BUTTON_W - 5 * TEXT_PITCH) / 2));
+localparam logic [10:0] RESET_GRY_TEXT_X = pos11(RESET_X + ((BUTTON_W - 3 * TEXT_PITCH) / 2));
+localparam logic [10:0] RESET_TEXT_Y1 = pos11(RESET_Y + 8);
+localparam logic [10:0] RESET_TEXT_Y2 = pos11(RESET_Y + 28);
+localparam logic [10:0] PANEL_TEXT_X = pos11(PANEL_X + ((CELL_W - 5 * TEXT_PITCH) / 2));
+localparam logic [10:0] PANEL_POSTAC_TEXT_X = pos11(PANEL_X + ((CELL_W - 6 * TEXT_PITCH) / 2));
 localparam logic [10:0] PANEL_TEXT_Y1 = pos11(PANEL_Y - 42);
 localparam logic [10:0] PANEL_TEXT_Y2 = pos11(PANEL_Y - 22);
-localparam logic [10:0] MSG_TEXT_X = pos11(PANEL_X + 18);
-localparam logic [10:0] MSG_LOSE_X = MSG_TEXT_X - 11'd12;
-localparam logic [10:0] MSG_TEXT_Y = pos11(PANEL_Y + CELL_H + 40);
+localparam logic [10:0] STATUS_LEN5_X = pos11(PANEL_X + ((CELL_W - 5 * TEXT_PITCH) / 2));
+localparam logic [10:0] STATUS_LEN6_X = pos11(PANEL_X + ((CELL_W - 6 * TEXT_PITCH) / 2));
+localparam logic [10:0] STATUS_LEN7_X = pos11(PANEL_X + ((CELL_W - 7 * TEXT_PITCH) / 2));
+localparam logic [10:0] STATUS_LEN8_X = pos11(PANEL_X + ((CELL_W - 8 * TEXT_PITCH) / 2));
+localparam logic [10:0] STATUS_LEN9_X = pos11(PANEL_X + ((CELL_W - 9 * TEXT_PITCH) / 2));
+localparam logic [10:0] STATUS_LEN10_X = pos11(PANEL_X + ((CELL_W - 10 * TEXT_PITCH) / 2));
+localparam logic [10:0] STATUS_LEN11_X = pos11(PANEL_X + ((CELL_W - 11 * TEXT_PITCH) / 2));
+localparam logic [10:0] STATUS_TEXT_Y1 = pos11(PANEL_Y + CELL_H + 8);
+localparam logic [10:0] STATUS_TEXT_Y2 = pos11(PANEL_Y + CELL_H + 28);
+localparam logic [10:0] STATUS_TEXT_Y3 = pos11(PANEL_Y + CELL_H + 48);
 
-typedef enum logic [3:0] {
+typedef enum logic [4:0] {
     TEXT_NONE,
     TEXT_START,
     TEXT_KONIEC,
@@ -65,7 +72,16 @@ typedef enum logic [3:0] {
     TEXT_TWOJA,
     TEXT_POSTAC,
     TEXT_WYGRALES,
-    TEXT_PRZEGRALES
+    TEXT_PRZEGRALES,
+    TEXT_WYBIERZ,
+    TEXT_SWOJA,
+    TEXT_POCZEKAJ,
+    TEXT_NA_RYWALA,
+    TEXT_CZEKAM,
+    TEXT_NA_LINK,
+    TEXT_NA_WYNIK,
+    TEXT_OSTATNIA,
+    TEXT_NIEPOPRAWNA
 } text_id_t;
 
 logic [11:0] rgb_nxt;
@@ -225,6 +241,120 @@ begin
                 default: get_char = " ";
             endcase
         end
+        TEXT_WYBIERZ: begin
+            case (idx)
+                4'd0: get_char = "W";
+                4'd1: get_char = "Y";
+                4'd2: get_char = "B";
+                4'd3: get_char = "I";
+                4'd4: get_char = "E";
+                4'd5: get_char = "R";
+                4'd6: get_char = "Z";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_SWOJA: begin
+            case (idx)
+                4'd0: get_char = "S";
+                4'd1: get_char = "W";
+                4'd2: get_char = "O";
+                4'd3: get_char = "J";
+                4'd4: get_char = "A";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_POCZEKAJ: begin
+            case (idx)
+                4'd0: get_char = "P";
+                4'd1: get_char = "O";
+                4'd2: get_char = "C";
+                4'd3: get_char = "Z";
+                4'd4: get_char = "E";
+                4'd5: get_char = "K";
+                4'd6: get_char = "A";
+                4'd7: get_char = "J";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_NA_RYWALA: begin
+            case (idx)
+                4'd0: get_char = "N";
+                4'd1: get_char = "A";
+                4'd2: get_char = " ";
+                4'd3: get_char = "R";
+                4'd4: get_char = "Y";
+                4'd5: get_char = "W";
+                4'd6: get_char = "A";
+                4'd7: get_char = "L";
+                4'd8: get_char = "A";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_CZEKAM: begin
+            case (idx)
+                4'd0: get_char = "C";
+                4'd1: get_char = "Z";
+                4'd2: get_char = "E";
+                4'd3: get_char = "K";
+                4'd4: get_char = "A";
+                4'd5: get_char = "M";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_NA_LINK: begin
+            case (idx)
+                4'd0: get_char = "N";
+                4'd1: get_char = "A";
+                4'd2: get_char = " ";
+                4'd3: get_char = "L";
+                4'd4: get_char = "I";
+                4'd5: get_char = "N";
+                4'd6: get_char = "K";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_NA_WYNIK: begin
+            case (idx)
+                4'd0: get_char = "N";
+                4'd1: get_char = "A";
+                4'd2: get_char = " ";
+                4'd3: get_char = "W";
+                4'd4: get_char = "Y";
+                4'd5: get_char = "N";
+                4'd6: get_char = "I";
+                4'd7: get_char = "K";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_OSTATNIA: begin
+            case (idx)
+                4'd0: get_char = "O";
+                4'd1: get_char = "S";
+                4'd2: get_char = "T";
+                4'd3: get_char = "A";
+                4'd4: get_char = "T";
+                4'd5: get_char = "N";
+                4'd6: get_char = "I";
+                4'd7: get_char = "A";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_NIEPOPRAWNA: begin
+            case (idx)
+                4'd0: get_char = "N";
+                4'd1: get_char = "I";
+                4'd2: get_char = "E";
+                4'd3: get_char = "P";
+                4'd4: get_char = "O";
+                4'd5: get_char = "P";
+                4'd6: get_char = "R";
+                4'd7: get_char = "A";
+                4'd8: get_char = "W";
+                4'd9: get_char = "N";
+                4'd10: get_char = "A";
+                default: get_char = " ";
+            endcase
+        end
         default: begin
             get_char = " ";
         end
@@ -239,11 +369,7 @@ font_rom u_font_rom (
 );
 
 always_comb begin
-    show_end_turn = (game_state == S_MY_TURN) ||
-                    (game_state == S_OPPONENT_TURN) ||
-                    (game_state == S_WAIT_GUESS_RESULT) ||
-                    (game_state == S_WRONG_GUESS_FEEDBACK) ||
-                    (game_state == S_FINAL_CHECK);
+    show_end_turn = (game_state == S_MY_TURN);
 
     text_active = 1'b0;
     text_id = TEXT_NONE;
@@ -252,19 +378,124 @@ always_comb begin
     text_len = 4'd0;
     text_color = COLOR_WHITE;
 
-    if ((game_state == S_WIN) && inside_text(in.hcount, in.vcount, MSG_TEXT_X, MSG_TEXT_Y, 8)) begin
+    if ((game_state == S_WAIT_LINK) &&
+        inside_text(in.hcount, in.vcount, STATUS_LEN6_X, STATUS_TEXT_Y1, 6)) begin
+        text_active = 1'b1;
+        text_id = TEXT_CZEKAM;
+        text_x = STATUS_LEN6_X;
+        text_y = STATUS_TEXT_Y1;
+        text_len = 4'd6;
+        text_color = COLOR_BLACK;
+    end else if ((game_state == S_WAIT_LINK) &&
+                 inside_text(in.hcount, in.vcount, STATUS_LEN7_X, STATUS_TEXT_Y2, 7)) begin
+        text_active = 1'b1;
+        text_id = TEXT_NA_LINK;
+        text_x = STATUS_LEN7_X;
+        text_y = STATUS_TEXT_Y2;
+        text_len = 4'd7;
+        text_color = COLOR_BLACK;
+    end else if ((game_state == S_SELECT_SECRET) &&
+                 inside_text(in.hcount, in.vcount, STATUS_LEN7_X, STATUS_TEXT_Y1, 7)) begin
+        text_active = 1'b1;
+        text_id = TEXT_WYBIERZ;
+        text_x = STATUS_LEN7_X;
+        text_y = STATUS_TEXT_Y1;
+        text_len = 4'd7;
+        text_color = COLOR_BLACK;
+    end else if ((game_state == S_SELECT_SECRET) &&
+                 inside_text(in.hcount, in.vcount, STATUS_LEN5_X, STATUS_TEXT_Y2, 5)) begin
+        text_active = 1'b1;
+        text_id = TEXT_SWOJA;
+        text_x = STATUS_LEN5_X;
+        text_y = STATUS_TEXT_Y2;
+        text_len = 4'd5;
+        text_color = COLOR_BLACK;
+    end else if ((game_state == S_SELECT_SECRET) &&
+                 inside_text(in.hcount, in.vcount, STATUS_LEN6_X, STATUS_TEXT_Y3, 6)) begin
+        text_active = 1'b1;
+        text_id = TEXT_POSTAC;
+        text_x = STATUS_LEN6_X;
+        text_y = STATUS_TEXT_Y3;
+        text_len = 4'd6;
+        text_color = COLOR_BLACK;
+    end else if ((game_state == S_LOCAL_READY) &&
+                 inside_text(in.hcount, in.vcount, STATUS_LEN8_X, STATUS_TEXT_Y1, 8)) begin
+        text_active = 1'b1;
+        text_id = TEXT_POCZEKAJ;
+        text_x = STATUS_LEN8_X;
+        text_y = STATUS_TEXT_Y1;
+        text_len = 4'd8;
+        text_color = COLOR_BLACK;
+    end else if ((game_state == S_LOCAL_READY) &&
+                 inside_text(in.hcount, in.vcount, STATUS_LEN9_X, STATUS_TEXT_Y2, 9)) begin
+        text_active = 1'b1;
+        text_id = TEXT_NA_RYWALA;
+        text_x = STATUS_LEN9_X;
+        text_y = STATUS_TEXT_Y2;
+        text_len = 4'd9;
+        text_color = COLOR_BLACK;
+    end else if ((game_state == S_WAIT_GUESS_RESULT) &&
+                 inside_text(in.hcount, in.vcount, STATUS_LEN6_X, STATUS_TEXT_Y1, 6)) begin
+        text_active = 1'b1;
+        text_id = TEXT_CZEKAM;
+        text_x = STATUS_LEN6_X;
+        text_y = STATUS_TEXT_Y1;
+        text_len = 4'd6;
+        text_color = COLOR_BLACK;
+    end else if ((game_state == S_WAIT_GUESS_RESULT) &&
+                 inside_text(in.hcount, in.vcount, STATUS_LEN8_X, STATUS_TEXT_Y2, 8)) begin
+        text_active = 1'b1;
+        text_id = TEXT_NA_WYNIK;
+        text_x = STATUS_LEN8_X;
+        text_y = STATUS_TEXT_Y2;
+        text_len = 4'd8;
+        text_color = COLOR_BLACK;
+    end else if ((game_state == S_FINAL_CHECK) &&
+                 inside_text(in.hcount, in.vcount, STATUS_LEN8_X, STATUS_TEXT_Y1, 8)) begin
+        text_active = 1'b1;
+        text_id = TEXT_OSTATNIA;
+        text_x = STATUS_LEN8_X;
+        text_y = STATUS_TEXT_Y1;
+        text_len = 4'd8;
+        text_color = COLOR_BLACK;
+    end else if ((game_state == S_FINAL_CHECK) &&
+                 inside_text(in.hcount, in.vcount, STATUS_LEN6_X, STATUS_TEXT_Y2, 6)) begin
+        text_active = 1'b1;
+        text_id = TEXT_POSTAC;
+        text_x = STATUS_LEN6_X;
+        text_y = STATUS_TEXT_Y2;
+        text_len = 4'd6;
+        text_color = COLOR_BLACK;
+    end else if ((game_state == S_WRONG_GUESS_FEEDBACK) &&
+                 inside_text(in.hcount, in.vcount, STATUS_LEN11_X, STATUS_TEXT_Y1, 11)) begin
+        text_active = 1'b1;
+        text_id = TEXT_NIEPOPRAWNA;
+        text_x = STATUS_LEN11_X;
+        text_y = STATUS_TEXT_Y1;
+        text_len = 4'd11;
+        text_color = COLOR_RED;
+    end else if ((game_state == S_WRONG_GUESS_FEEDBACK) &&
+                 inside_text(in.hcount, in.vcount, STATUS_LEN6_X, STATUS_TEXT_Y2, 6)) begin
+        text_active = 1'b1;
+        text_id = TEXT_POSTAC;
+        text_x = STATUS_LEN6_X;
+        text_y = STATUS_TEXT_Y2;
+        text_len = 4'd6;
+        text_color = COLOR_RED;
+    end else if ((game_state == S_WIN) &&
+                 inside_text(in.hcount, in.vcount, STATUS_LEN8_X, STATUS_TEXT_Y2, 8)) begin
         text_active = 1'b1;
         text_id = TEXT_WYGRALES;
-        text_x = MSG_TEXT_X;
-        text_y = MSG_TEXT_Y;
+        text_x = STATUS_LEN8_X;
+        text_y = STATUS_TEXT_Y2;
         text_len = 4'd8;
         text_color = COLOR_GREEN;
     end else if ((game_state == S_LOSE) &&
-                 inside_text(in.hcount, in.vcount, MSG_LOSE_X, MSG_TEXT_Y, 10)) begin
+                 inside_text(in.hcount, in.vcount, STATUS_LEN10_X, STATUS_TEXT_Y2, 10)) begin
         text_active = 1'b1;
         text_id = TEXT_PRZEGRALES;
-        text_x = MSG_LOSE_X;
-        text_y = MSG_TEXT_Y;
+        text_x = STATUS_LEN10_X;
+        text_y = STATUS_TEXT_Y2;
         text_len = 4'd10;
         text_color = COLOR_RED;
     end else if (!show_end_turn &&
@@ -346,8 +577,10 @@ always_comb begin
             char_index = 4'd7;
         end else if (local_x < 8'd108) begin
             char_index = 4'd8;
-        end else begin
+        end else if (local_x < 8'd120) begin
             char_index = 4'd9;
+        end else begin
+            char_index = 4'd10;
         end
 
         case (char_index)
@@ -360,7 +593,8 @@ always_comb begin
             4'd6: char_start = 8'd72;
             4'd7: char_start = 8'd84;
             4'd8: char_start = 8'd96;
-            default: char_start = 8'd108;
+            4'd9: char_start = 8'd108;
+            default: char_start = 8'd120;
         endcase
 
         char_cell_x = local_x - char_start;

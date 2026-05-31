@@ -184,9 +184,9 @@ begin
         ((origin_x >= BOARD_X) && (origin_x < BOARD_X + BOARD_W) &&
          (origin_y >= BOARD_Y) && (origin_y < BOARD_Y + BOARD_H)) ||
         ((origin_x >= START_X) && (origin_x < START_X + BUTTON_W) &&
-         (origin_y >= BUTTON_Y) && (origin_y < BUTTON_Y + BUTTON_H)) ||
+         (origin_y >= START_Y) && (origin_y < START_Y + BUTTON_H)) ||
         ((origin_x >= RESET_X) && (origin_x < RESET_X + BUTTON_W) &&
-         (origin_y >= BUTTON_Y) && (origin_y < BUTTON_Y + BUTTON_H)));
+         (origin_y >= RESET_Y) && (origin_y < RESET_Y + BUTTON_H)));
 
     path = {"../../results/", filename};
     fd = $fopen(path, "wb");
@@ -230,9 +230,9 @@ initial begin
     expect_cursor_mode("outside normal", S_MY_TURN, 900, 650, CURSOR_POINTER, 1'b0);
     expect_cursor_mode("board hover", S_MY_TURN, BOARD_X + 20, BOARD_Y + 20,
         CURSOR_POINTER_HOVER, 1'b1);
-    expect_cursor_mode("start hover", S_SELECT_SECRET, START_X + 2, BUTTON_Y + 2,
+    expect_cursor_mode("start hover", S_SELECT_SECRET, START_X + 2, START_Y + 2,
         CURSOR_POINTER_HOVER, 1'b1);
-    expect_cursor_mode("reset hover", S_WIN, RESET_X + 2, BUTTON_Y + 2,
+    expect_cursor_mode("reset hover", S_WIN, RESET_X + 2, RESET_Y + 2,
         CURSOR_POINTER_HOVER, 1'b1);
     expect_cursor_mode("busy outside", S_OPPONENT_TURN, 900, 650,
         CURSOR_BUSY, 1'b0);

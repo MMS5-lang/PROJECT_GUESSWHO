@@ -45,7 +45,7 @@ Ekran ma być podzielony na trzy główne części:
 
 1. **Plansza po lewej stronie**: siatka 6 kolumn × 3 wiersze. Każde pole zawiera jedną twarz/postać.
 2. **Panel wybranej postaci po prawej stronie**: miejsce na kopię lokalnej tajnej postaci gracza. Panel nie pokazuje sekretu przeciwnika.
-3. **Przyciski ekranowe na dole**: `START` / `KONIEC TURY` oraz `RESET GRY`.
+3. **Przyciski ekranowe w prawej kolumnie pod panelem postaci**: `START` / `KONIEC TURY` oraz `RESET GRY`.
 
 Przykładowy układ dla VGA 1024 × 768:
 
@@ -53,22 +53,27 @@ Przykładowy układ dla VGA 1024 × 768:
 localparam int SCREEN_W = 1024;
 localparam int SCREEN_H = 768;
 
-localparam int BOARD_X  = 32;
-localparam int BOARD_Y  = 32;
-localparam int BOARD_W  = 720;
-localparam int BOARD_H  = 540;
-localparam int CELL_W   = BOARD_W / 6;   // 120
-localparam int CELL_H   = BOARD_H / 3;   // 180
+localparam int BOARD_X  = 15;
+localparam int BOARD_Y  = 83;
+localparam int CELL_W   = 140;
+localparam int CELL_H   = 200;
+localparam int BOARD_W  = 6 * CELL_W;    // 840
+localparam int BOARD_H  = 3 * CELL_H;    // 600
 
-localparam int SELECTED_FACE_PANEL_X = 820;
-localparam int SELECTED_FACE_PANEL_Y = 100;
-localparam int SELECTED_FACE_PANEL_W = 150;
+localparam int SELECTED_FACE_PANEL_X = 869;
+localparam int SELECTED_FACE_PANEL_Y = 170;
+localparam int SELECTED_FACE_PANEL_W = 140;
 localparam int SELECTED_FACE_PANEL_H = 200;
 
-localparam int BUTTON_Y = 700;
+localparam int BUTTON_W = 100;
+localparam int BUTTON_H = 50;
+localparam int START_X  = 887;
+localparam int START_Y  = 451;
+localparam int RESET_X  = 887;
+localparam int RESET_Y  = 524;
 ```
 
-Współrzędne można dostroić do finalnego renderera, ale **relacja układu ma pozostać taka sama**: duża plansza 6 × 3 po lewej, panel wybranej twarzy po prawej, przyciski na dole.
+Współrzędne można dostroić do finalnego renderera, ale **relacja układu ma pozostać taka sama**: duża plansza 6 × 3 po lewej, panel wybranej twarzy po prawej, przyciski pod panelem w prawej kolumnie.
 
 ## 5. Kolory i znaczenie ramek
 
@@ -264,7 +269,7 @@ W RTL najlepiej unikać dzielenia przez zmienne. Ponieważ pola mają stały roz
 | `S_MY_TURN` | Lokalny gracz może eliminować, zgadywać albo zakończyć turę |
 | `S_OPPONENT_TURN` | Lokalny gracz czeka; kliknięcia planszy są ignorowane |
 | `S_WAIT_GUESS_RESULT` | Po wysłaniu `GUESS` albo `FINAL_CHECK` czekamy na wynik |
-| `S_WRONG_GUESS_FEEDBACK` | Czerwona ramka błędnego strzału przez ok. 3 sekundy |
+| `S_WRONG_GUESS_FEEDBACK` | Czerwona ramka i `NIEPOPRAWNA POSTAC` przez ok. 3 sekundy |
 | `S_WIN` | Komunikat `WYGRALES`, zielona ramka, koniec gry |
 | `S_LOSE` | Komunikat `PRZEGRALES`, koniec gry |
 | `S_GAME_OVER` | Stan końcowy do kliknięcia `RESET GRY` |
@@ -408,7 +413,7 @@ MVP jest zaliczone, jeśli:
 | Komunikacja dwóch płytek może być trudna do debugowania | Najpierw zrobić tryb loopback/symulacyjny |
 | PS/2 i VGA mogą być w innych domenach zegarowych | Dodać `mouse_adapter` z synchronizacją i impulsami kliknięć |
 | Duże bitmapy twarzy zużyją pamięć | Rysować twarze proceduralnie z prostych cech |
-| Polskie znaki w napisach wymagają glifów | Na ekranie używać napisów bez polskich znaków: `WYGRALES`, `PRZEGRALES`, `TWOJA POSTAC` |
+| Polskie znaki w napisach wymagają glifów | Na ekranie używać napisów bez polskich znaków: `WYBIERZ SWOJA POSTAC`, `POCZEKAJ NA RYWALA`, `NIEPOPRAWNA POSTAC`, `WYGRALES`, `PRZEGRALES`, `TWOJA POSTAC` |
 | Przypadkowa eliminacja postaci | Docelowo PPM jako toggle eliminacji |
 | Niejasny reset | Konsekwentnie stosować reset asynchroniczny w logice gry |
 
