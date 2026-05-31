@@ -8,9 +8,9 @@
  */
 
 module font_rom (
+    output logic [4:0] pixels,
     input  logic [7:0] char_code,
-    input  logic [2:0] row,
-    output logic [4:0] pixels
+    input  logic [2:0] row
 );
 
 timeunit 1ns;

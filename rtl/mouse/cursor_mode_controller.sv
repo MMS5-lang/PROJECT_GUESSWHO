@@ -7,18 +7,18 @@
  * Cursor mode selection for board/button hitboxes and opponent-turn waiting.
  */
 
-module cursor_mode_controller (
+module cursor_mode_controller
+import guess_who_pkg::*;
+(
+    output cursor_mode_t cursor_mode,
+    output logic mouse_over_hitbox,
     input  logic [11:0] mouse_x,
     input  logic [11:0] mouse_y,
-    input  guess_who_pkg::game_state_t game_state,
-    output guess_who_pkg::cursor_mode_t cursor_mode,
-    output logic mouse_over_hitbox
+    input  game_state_t game_state
 );
 
 timeunit 1ns;
 timeprecision 1ps;
-
-import guess_who_pkg::*;
 
 logic mouse_over_board;
 logic mouse_over_start_btn;

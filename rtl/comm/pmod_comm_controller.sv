@@ -10,7 +10,9 @@
  * Packet controller for board-to-board Guess Who communication over PMOD UART.
  */
 
-module pmod_comm_controller #(
+module pmod_comm_controller
+import guess_who_pkg::*;
+#(
     parameter int CLK_FREQ_HZ = 65_000_000,
     parameter int BAUD_RATE = 115_200,
     parameter int HELLO_INTERVAL_CYCLES = 1_000_000,
@@ -20,38 +22,36 @@ module pmod_comm_controller #(
 ) (
     input  logic clk,
     input  logic rst_n,
-    input  logic player_id,
-    input  logic uart_rx,
-    input  logic send_ready,
-    input  logic send_turn_end,
-    input  logic send_guess,
-    input  logic [guess_who_pkg::CHAR_ID_W-1:0] send_guess_id,
-    input  logic send_final_check,
-    input  logic [guess_who_pkg::CHAR_ID_W-1:0] send_final_check_id,
-    input  logic send_result,
-    input  logic send_result_correct,
-    input  logic [guess_who_pkg::CHAR_ID_W-1:0] send_result_id,
-    input  logic send_reset_game,
     output logic uart_tx,
     output logic link_ready,
     output logic opponent_ready,
     output logic opponent_turn_end,
     output logic opponent_guess,
-    output logic [guess_who_pkg::CHAR_ID_W-1:0] opponent_guess_id,
+    output logic [CHAR_ID_W-1:0] opponent_guess_id,
     output logic opponent_final_check,
-    output logic [guess_who_pkg::CHAR_ID_W-1:0] opponent_final_check_id,
+    output logic [CHAR_ID_W-1:0] opponent_final_check_id,
     output logic opponent_reset_game,
     output logic guess_result_valid,
     output logic guess_result_correct,
     output logic final_result_valid,
     output logic final_result_correct,
-    output logic comm_error
+    output logic comm_error,
+    input  logic player_id,
+    input  logic uart_rx,
+    input  logic send_ready,
+    input  logic send_turn_end,
+    input  logic send_guess,
+    input  logic [CHAR_ID_W-1:0] send_guess_id,
+    input  logic send_final_check,
+    input  logic [CHAR_ID_W-1:0] send_final_check_id,
+    input  logic send_result,
+    input  logic send_result_correct,
+    input  logic [CHAR_ID_W-1:0] send_result_id,
+    input  logic send_reset_game
 );
 
 timeunit 1ns;
 timeprecision 1ps;
-
-import guess_who_pkg::*;
 
 localparam logic [7:0] START_BYTE = 8'hA5;
 localparam int PACKET_BYTES = 6;

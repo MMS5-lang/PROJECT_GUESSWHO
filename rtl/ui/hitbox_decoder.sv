@@ -7,23 +7,23 @@
  * Mouse hitbox decoder for board cells and game buttons.
  */
 
-module hitbox_decoder (
-    input  logic [11:0] mouse_x,
-    input  logic [11:0] mouse_y,
-    input  logic        left_click,
-    input  logic        right_click,
+module hitbox_decoder
+import vga_pkg::*;
+import guess_who_pkg::*;
+(
     output logic        start_click,
     output logic        reset_click,
     output logic        char_left_click,
     output logic        char_right_click,
-    output logic [guess_who_pkg::CHAR_ID_W-1:0] char_id
+    output logic [CHAR_ID_W-1:0] char_id,
+    input  logic [11:0] mouse_x,
+    input  logic [11:0] mouse_y,
+    input  logic        left_click,
+    input  logic        right_click
 );
 
 timeunit 1ns;
 timeprecision 1ps;
-
-import vga_pkg::*;
-import guess_who_pkg::*;
 
 logic in_board;
 logic in_start_btn;

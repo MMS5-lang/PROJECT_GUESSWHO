@@ -7,20 +7,20 @@
  * Pipelined renderer for the procedural Guess Who face layer.
  */
 
- module face_renderer (
+module face_renderer
+import vga_pkg::*;
+import guess_who_pkg::*;
+(
     input  logic clk,
     input  logic rst_n,
-    input  logic [guess_who_pkg::CHAR_ID_W-1:0] selected_id,
+    vga_if.out   out,
+    input  logic [CHAR_ID_W-1:0] selected_id,
     input  logic has_secret,
-    vga_if.in    in,
-    vga_if.out   out
+    vga_if.in    in
 );
 
 timeunit 1ns;
 timeprecision 1ps;
-
-import vga_pkg::*;
-import guess_who_pkg::*;
 
 localparam logic [11:0] COLOR_BLACK       = 12'h0_0_0;
 localparam logic [11:0] COLOR_WHITE       = 12'hf_f_f;
@@ -394,7 +394,7 @@ always_comb begin
         rgb_nxt = COLOR_BLACK;
     end else if (s1_draw_face) begin
         
-        // 1. Kapelusz i Czapka
+        /* Kapelusz i czapka. */
         if (s1_in_hat_area && hat_pixel != COLOR_TRANSPARENT) begin
             rgb_nxt = hat_pixel;
             
@@ -404,14 +404,14 @@ always_comb begin
             else
                 rgb_nxt = cap_pixel;
                 
-        // 2. Okulary (Przeciwsłoneczne i Zwykłe)
+        /* Okulary przeciwsłoneczne i zwykłe. */
         end else if (s1_in_sunglasses_area && sunglasses_pixel != COLOR_TRANSPARENT) begin
             rgb_nxt = sunglasses_pixel;
             
         end else if (s1_in_glasses_area && glasses_pixel != COLOR_TRANSPARENT) begin
             rgb_nxt = glasses_pixel;
 
-        // 3. Broda
+        /* Broda. */
         end else if (s1_in_beard_area && beard_pixel != COLOR_TRANSPARENT) begin
             if (beard_pixel == 12'h3_2_2)
                 rgb_nxt = s1_traits[5] ? 12'hd_b_7 : 12'h2_1_0;
@@ -420,7 +420,7 @@ always_comb begin
             else
                 rgb_nxt = beard_pixel;
                 
-        // 4. Włosy
+        /* Włosy. */
         end else if (s1_in_hair1_area && hair1_pixel != COLOR_TRANSPARENT) begin
             if (hair1_pixel == 12'h3_2_2) begin
                 rgb_nxt = s1_traits[5] ? 12'hd_b_7 : 12'h2_1_0;
@@ -438,7 +438,7 @@ always_comb begin
                 rgb_nxt = hair2_pixel;
             end
             
-        // 5. Pejsy
+        /* Pejsy. */
         end else if (s1_in_payot_area && payot_pixel != COLOR_TRANSPARENT) begin
             if (payot_pixel == 12'h3_2_2) begin
                 rgb_nxt = s1_traits[5] ? 12'hd_b_7 : 12'h3_2_2;
@@ -446,7 +446,7 @@ always_comb begin
                 rgb_nxt = payot_pixel;
             end
             
-        // 6. Skóra / Głowa
+        /* Skóra i głowa. */
         end else if (s1_in_head_area && head_pixel != COLOR_TRANSPARENT) begin
             if (head_pixel == COLOR_WHITE) begin
                 rgb_nxt = s1_traits[3] ? 12'h8_5_2 : 12'hf_d_b;
@@ -528,7 +528,7 @@ always_ff @(posedge clk or negedge rst_n) begin
         out.hblnk <= '0;
         out.rgb <= '0;
     end else begin
-        // Przepisanie z logiki Nxt do Stage 0
+        /* Stage 0. */
         s0_vcount <= in.vcount;
         s0_vsync <= in.vsync;
         s0_vblnk <= in.vblnk;
@@ -559,7 +559,7 @@ always_ff @(posedge clk or negedge rst_n) begin
         s0_cap_addr <= cap_addr_nxt;
         s0_payot_addr <= payot_addr_nxt;
 
-        // Przepisanie Stage 0 -> Stage 1
+        /* Stage 1. */
         s1_vcount <= s0_vcount;
         s1_vsync <= s0_vsync;
         s1_vblnk <= s0_vblnk;
@@ -580,7 +580,7 @@ always_ff @(posedge clk or negedge rst_n) begin
         s1_in_cap_area <= s0_in_cap_area;
         s1_in_payot_area <= s0_in_payot_area;
 
-        // Odczyt z pamięci (BRAM Inference)
+        /* ROM read. */
         head_pixel <= head_rom[s0_head_addr];
         sunglasses_pixel <= sunglasses_rom[s0_sunglasses_addr];
         glasses_pixel <= glasses_rom[s0_glasses_addr];
@@ -591,7 +591,7 @@ always_ff @(posedge clk or negedge rst_n) begin
         cap_pixel <= cap_rom[s0_cap_addr];
         payot_pixel <= payot_rom[s0_payot_addr];
 
-        // Wyjście z nałożonymi kolorami z Stage 1
+        /* Output stage. */
         out.vcount <= s1_vcount;
         out.vsync <= s1_vsync;
         out.vblnk <= s1_vblnk;

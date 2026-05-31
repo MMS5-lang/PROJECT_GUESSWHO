@@ -7,27 +7,27 @@
  * Main structural top for the Guess Who game.
  */
 
-module top_vga (
+module top_vga
+import guess_who_pkg::*;
+(
     input  logic clk,
     input  logic clk_100mhz,
     input  logic rst_n,
     input  logic rst_100mhz_n,
-    input  logic player_id,
-    input  logic pmod_uart_rx,
-    inout  wire  ps2_clk,
-    inout  wire  ps2_data,
     output logic pmod_uart_tx,
     output logic vs,
     output logic hs,
     output logic [3:0] r,
     output logic [3:0] g,
-    output logic [3:0] b
+    output logic [3:0] b,
+    input  logic player_id,
+    input  logic pmod_uart_rx,
+    inout  wire  ps2_clk,
+    inout  wire  ps2_data
 );
 
 timeunit 1ns;
 timeprecision 1ps;
-
-import guess_who_pkg::*;
 
 logic [11:0] mouse_xpos_raw;
 logic [11:0] mouse_ypos_raw;

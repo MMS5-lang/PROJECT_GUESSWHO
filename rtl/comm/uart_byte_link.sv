@@ -18,10 +18,10 @@ module uart_byte_link #(
     input  logic rst_n,
     output logic tx,
     output logic tx_ready,
-    input  logic tx_valid,
-    input  logic [DATA_BITS-1:0] tx_data,
     output logic rx_valid,
     output logic [DATA_BITS-1:0] rx_data,
+    input  logic tx_valid,
+    input  logic [DATA_BITS-1:0] tx_data,
     input  logic rx
 );
 

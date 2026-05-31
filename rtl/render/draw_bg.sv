@@ -7,17 +7,17 @@
  * Rysowanie tla i planszy 6x3 dla gry Guess Who.
  */
 
-module draw_bg (
+module draw_bg
+import vga_pkg::*;
+(
     input  logic clk,
     input  logic rst_n,
-    vga_if.in    in,
-    vga_if.out   out
+    vga_if.out   out,
+    vga_if.in    in
 );
 
 timeunit 1ns;
 timeprecision 1ps;
-
-import vga_pkg::*;
 
 logic [11:0] rgb_nxt;
 

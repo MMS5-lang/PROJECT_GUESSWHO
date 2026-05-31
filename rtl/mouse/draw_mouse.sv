@@ -10,11 +10,11 @@
 module draw_mouse (
     input  logic                       clk,
     input  logic                       rst_n,
+    vga_if.out                         out,
     input  logic [11:0]                xpos,
     input  logic [11:0]                ypos,
     input  guess_who_pkg::cursor_mode_t cursor_mode,
-    vga_if.in                          in,
-    vga_if.out                         out
+    vga_if.in                          in
 );
 
 timeunit 1ns;

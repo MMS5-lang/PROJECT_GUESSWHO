@@ -9,44 +9,42 @@
 
 package vga_pkg;
 
-    // Parameters for VGA Display 1024 x 768 @ 60fps using a 65 MHz clock.
-    localparam int HOR_PIXELS = 1024;
-    localparam int VER_PIXELS = 768;
+/* VGA Display 1024 x 768 @ 60 fps using a 65 MHz clock. */
+localparam int HOR_PIXELS = 1024;
+localparam int VER_PIXELS = 768;
 
-    localparam int HOR_TOTAL_TIME  = 1344;
-    localparam int HOR_BLANK_START = 1024;
-    localparam int HOR_BLANK_TIME  = 320;
-    localparam int HOR_SYNC_START  = 1048;
-    localparam int HOR_SYNC_TIME   = 136;
-    localparam bit HOR_SYNC_POLARITY = 1'b0;
+localparam int HOR_TOTAL_TIME  = 1344;
+localparam int HOR_BLANK_START = 1024;
+localparam int HOR_BLANK_TIME  = 320;
+localparam int HOR_SYNC_START  = 1048;
+localparam int HOR_SYNC_TIME   = 136;
+localparam bit HOR_SYNC_POLARITY = 1'b0;
 
-    localparam int VER_TOTAL_TIME  = 806;
-    localparam int VER_BLANK_START = 768;
-    localparam int VER_BLANK_TIME  = 38;
-    localparam int VER_SYNC_START  = 771;
-    localparam int VER_SYNC_TIME   = 6;
-    localparam bit VER_SYNC_POLARITY = 1'b0;
-    // Add VGA timing parameters here and refer to them in other modules.
+localparam int VER_TOTAL_TIME  = 806;
+localparam int VER_BLANK_START = 768;
+localparam int VER_BLANK_TIME  = 38;
+localparam int VER_SYNC_START  = 771;
+localparam int VER_SYNC_TIME   = 6;
+localparam bit VER_SYNC_POLARITY = 1'b0;
 
-    localparam int BOARD_COLS = 6;
-    localparam int BOARD_ROWS = 3;
-    localparam int CELL_W = 140;
-    localparam int CELL_H = 200;
-    localparam int BOARD_X = 15;
-    localparam int BOARD_Y = 83;
-    localparam int BOARD_W = BOARD_COLS * CELL_W;
-    localparam int BOARD_H = BOARD_ROWS * CELL_H;
+localparam int BOARD_COLS = 6;
+localparam int BOARD_ROWS = 3;
+localparam int CELL_W = 140;
+localparam int CELL_H = 200;
+localparam int BOARD_X = 15;
+localparam int BOARD_Y = 83;
+localparam int BOARD_W = BOARD_COLS * CELL_W;
+localparam int BOARD_H = BOARD_ROWS * CELL_H;
 
-    localparam int PANEL_X = 869;
-    localparam int PANEL_Y = 170;
+localparam int PANEL_X = 869;
+localparam int PANEL_Y = 170;
 
-    localparam int BUTTON_W = 100;
-    localparam int BUTTON_H = 50;
-    localparam int START_X = 887;
-    localparam int START_Y = 451;
-    localparam int RESET_X = 887;
-    localparam int RESET_Y = 524;
-    localparam int BUTTON_Y = START_Y;
-
+localparam int BUTTON_W = 100;
+localparam int BUTTON_H = 50;
+localparam int START_X = 887;
+localparam int START_Y = 451;
+localparam int RESET_X = 887;
+localparam int RESET_Y = 524;
+localparam int BUTTON_Y = START_Y;
 
 endpackage

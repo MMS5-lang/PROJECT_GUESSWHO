@@ -8,19 +8,22 @@
  * Now expanded to 12-bit trait vectors.
  */
 
- module face_traits_rom (
-    input  logic [guess_who_pkg::CHAR_ID_W-1:0] char_id,
-    output logic [11:0] traits
+module face_traits_rom
+import guess_who_pkg::*;
+(
+    output logic [11:0] traits,
+    input  logic [CHAR_ID_W-1:0] char_id
 );
 
 timeunit 1ns;
 timeprecision 1ps;
 
-import guess_who_pkg::*;
-
-// Bity: [11]Broda, [10]Czapka_z_daszkiem, [9]Kapelusz, [8]Zwykłe_Okulary, [7]Włosy_2(Długie), [6]Włosy_1(Krótkie)
-//       [5]Kolor_Włosów(1=Blond,0=Brunet), [4]Kolor_Oczu(1=Ziel.,0=Nieb.), [3]Kolor_Skóry(1=Biała,0=Czarna)
-//       [2]Okulary_Przeciwsłoneczne, [1]Kolor_Czapki(1=Czarna,0=Zielona), [0]Pejsy
+/*
+ * Bity: [11]Broda, [10]Czapka_z_daszkiem, [9]Kapelusz,
+ * [8]Zwykle_Okulary, [7]Wlosy_2(Dlugie), [6]Wlosy_1(Krotkie),
+ * [5]Kolor_Wlosow, [4]Kolor_Oczu, [3]Kolor_Skory,
+ * [2]Okulary_Przeciwsłoneczne, [1]Kolor_Czapki, [0]Pejsy.
+ */
 always_comb begin
     case (char_id)
         5'd0:  traits = 12'b0000_0110_1000;

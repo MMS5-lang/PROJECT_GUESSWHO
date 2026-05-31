@@ -7,23 +7,23 @@
  * Synchronizes mouse signals to pixel clock and creates click pulses.
  */
 
-module mouse_adapter (
+module mouse_adapter
+import vga_pkg::*;
+(
     input  logic        clk,
     input  logic        rst_n,
-    input  logic [11:0] mouse_x_raw,
-    input  logic [11:0] mouse_y_raw,
-    input  logic        mouse_left_raw,
-    input  logic        mouse_right_raw,
     output logic [11:0] mouse_x,
     output logic [11:0] mouse_y,
     output logic        left_click_pulse,
-    output logic        right_click_pulse
+    output logic        right_click_pulse,
+    input  logic [11:0] mouse_x_raw,
+    input  logic [11:0] mouse_y_raw,
+    input  logic        mouse_left_raw,
+    input  logic        mouse_right_raw
 );
 
 timeunit 1ns;
 timeprecision 1ps;
-
-import vga_pkg::*;
 
 localparam logic [11:0] MOUSE_MAX_X = HOR_PIXELS - 1;
 localparam logic [11:0] MOUSE_MAX_Y = VER_PIXELS - 1;

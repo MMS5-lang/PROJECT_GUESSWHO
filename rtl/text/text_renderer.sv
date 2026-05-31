@@ -7,19 +7,19 @@
  * Draws simple labels and game messages on top of the VGA image.
  */
 
-module text_renderer (
+module text_renderer
+import vga_pkg::*;
+import guess_who_pkg::*;
+(
     input  logic clk,
     input  logic rst_n,
-    input  guess_who_pkg::game_state_t game_state,
-    vga_if.in    in,
-    vga_if.out   out
+    vga_if.out   out,
+    input  game_state_t game_state,
+    vga_if.in    in
 );
 
 timeunit 1ns;
 timeprecision 1ps;
-
-import vga_pkg::*;
-import guess_who_pkg::*;
 
 localparam logic [11:0] COLOR_BLACK = 12'h0_0_0;
 localparam logic [11:0] COLOR_WHITE = 12'hf_f_f;

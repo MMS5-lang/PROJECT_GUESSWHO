@@ -7,34 +7,16 @@
  * Simple FSM for local Guess Who game flow.
  */
 
-module game_core (
+module game_core
+import guess_who_pkg::*;
+(
     input  logic       clk,
     input  logic       rst_n,
-    input  logic       player_id,
-    input  logic       frame_tick,
-    input  logic       start_click,
-    input  logic       reset_click,
-    input  logic       char_left_click,
-    input  logic       char_right_click,
-    input  logic       link_ready,
-    input  logic [guess_who_pkg::CHAR_ID_W-1:0] char_id,
-    input  logic       opponent_ready,
-    input  logic       opponent_turn_end,
-    input  logic       opponent_guess,
-    input  logic [guess_who_pkg::CHAR_ID_W-1:0] opponent_guess_id,
-    input  logic       opponent_final_check,
-    input  logic [guess_who_pkg::CHAR_ID_W-1:0] opponent_final_check_id,
-    input  logic       opponent_reset_game,
-    input  logic       guess_result_valid,
-    input  logic       guess_result_correct,
-    input  logic       final_result_valid,
-    input  logic       final_result_correct,
-    input  logic       comm_error,
-    output guess_who_pkg::game_state_t game_state,
-    output logic [guess_who_pkg::CHAR_COUNT-1:0] eliminated_mask,
-    output logic [guess_who_pkg::CHAR_ID_W-1:0] selected_id,
-    output logic [guess_who_pkg::CHAR_ID_W-1:0] local_secret_id,
-    output logic [guess_who_pkg::CHAR_ID_W-1:0] last_guess_id,
+    output game_state_t game_state,
+    output logic [CHAR_COUNT-1:0] eliminated_mask,
+    output logic [CHAR_ID_W-1:0] selected_id,
+    output logic [CHAR_ID_W-1:0] local_secret_id,
+    output logic [CHAR_ID_W-1:0] last_guess_id,
     output logic       has_secret,
     output logic       local_ready,
     output logic       remote_ready,
@@ -43,19 +25,37 @@ module game_core (
     output logic       send_ready,
     output logic       send_turn_end,
     output logic       send_guess,
-    output logic [guess_who_pkg::CHAR_ID_W-1:0] send_guess_id,
+    output logic [CHAR_ID_W-1:0] send_guess_id,
     output logic       send_final_check,
-    output logic [guess_who_pkg::CHAR_ID_W-1:0] send_final_check_id,
+    output logic [CHAR_ID_W-1:0] send_final_check_id,
     output logic       send_result,
     output logic       send_result_correct,
-    output logic [guess_who_pkg::CHAR_ID_W-1:0] send_result_id,
-    output logic       send_reset_game
+    output logic [CHAR_ID_W-1:0] send_result_id,
+    output logic       send_reset_game,
+    input  logic       player_id,
+    input  logic       frame_tick,
+    input  logic       start_click,
+    input  logic       reset_click,
+    input  logic       char_left_click,
+    input  logic       char_right_click,
+    input  logic       link_ready,
+    input  logic [CHAR_ID_W-1:0] char_id,
+    input  logic       opponent_ready,
+    input  logic       opponent_turn_end,
+    input  logic       opponent_guess,
+    input  logic [CHAR_ID_W-1:0] opponent_guess_id,
+    input  logic       opponent_final_check,
+    input  logic [CHAR_ID_W-1:0] opponent_final_check_id,
+    input  logic       opponent_reset_game,
+    input  logic       guess_result_valid,
+    input  logic       guess_result_correct,
+    input  logic       final_result_valid,
+    input  logic       final_result_correct,
+    input  logic       comm_error
 );
 
 timeunit 1ns;
 timeprecision 1ps;
-
-import guess_who_pkg::*;
 
 localparam int FEEDBACK_FRAMES = 180;
 localparam int RESULT_TIMEOUT_FRAMES = 600;
