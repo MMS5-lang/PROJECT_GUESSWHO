@@ -40,6 +40,20 @@ logic tx_full;
 logic rx_empty;
 logic [7:0] uart_r_data;
 
+logic rx_sync1;
+logic rx_safe;
+
+always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        rx_sync1 <= 1'b1; 
+        rx_safe  <= 1'b1;
+    end else begin
+        rx_sync1 <= rx;       
+        rx_safe  <= rx_sync1; 
+    end
+end
+
+
 assign reset = !rst_n;
 assign tx_ready = !tx_full;
 assign wr_uart = tx_valid && !tx_full;
@@ -55,7 +69,7 @@ uart #(
     .reset    (reset),
     .rd_uart  (rd_uart),
     .wr_uart  (wr_uart),
-    .rx       (rx),
+    .rx       (rx_safe), 
     .w_data   (tx_data),
     .tx_full  (tx_full),
     .rx_empty (rx_empty),

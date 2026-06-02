@@ -34,6 +34,7 @@ set sv_files {
     ../rtl/render/ui_renderer.sv
     ../rtl/render/face_traits_rom.sv
     ../rtl/render/face_renderer.sv
+      ../rtl/render/mouth_renderer.sv
     ../rtl/render/board_renderer.sv
     ../rtl/text/font_rom.sv
     ../rtl/text/text_renderer.sv
@@ -54,6 +55,8 @@ set mem_files {
     ../rtl/assets/faces/hat.dat
     ../rtl/assets/faces/cap.dat
     ../rtl/assets/faces/payot.dat
+    ../rtl/assets/faces/mouth_sad.dat
+    ../rtl/assets/faces/mouth_happy.dat
     ../rtl/assets/cursors/pointer_b.dat
     ../rtl/assets/cursors/pointer_toon_b.dat
     ../rtl/assets/cursors/busy_hourglass_outline_detail.dat

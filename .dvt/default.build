@@ -36,6 +36,7 @@ rtl/render/draw_bg.sv
 rtl/render/ui_renderer.sv
 rtl/render/face_traits_rom.sv
 rtl/render/face_renderer.sv
+rtl/render/mouth_renderer.sv
 rtl/render/board_renderer.sv
 rtl/text/font_rom.sv
 rtl/text/text_renderer.sv

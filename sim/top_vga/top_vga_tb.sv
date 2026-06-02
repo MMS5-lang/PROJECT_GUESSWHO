@@ -1,30 +1,31 @@
 /**
- * San Jose State University
- * EE178 Lab #4
- * Author: Miłosz M. Karolina M.
- *
- * Based on work by prof. Eric Crabilla.
- *
- * 2025  AGH University of Science and Technology
- * MTM UEC2
- *
- * Description:
- * Testbench for top_vga.
- */
+* San Jose State University
+* EE178 Lab #4
+* Author: Miłosz M. Karolina M.
+*
+* Based on work by prof. Eric Crabilla.
+*
+* 2025  AGH University of Science and Technology
+* MTM UEC2
+*
+* Description:
+* Testbench for top_vga.
+*/
 
 module top_vga_tb;
 
     timeunit 1ns;
     timeprecision 1ps;
-
+   
+    // Importujemy pakiet, aby móc używać nazw stanów zamiast liczb!
+    import guess_who_pkg::*;
+ 
     /**
      * Local parameters
      */
     localparam real CLK_PERIOD = 15.384615;     // 65 MHz
     localparam int CLK_100MHZ_PERIOD = 10;      // 100 MHz
-    localparam int RST_START_TIME = 30;
-    localparam int RST_ACTIVE_TIME = 30;
-
+ 
     /**
      * Local variables and signals
      */
@@ -33,13 +34,16 @@ module top_vga_tb;
     logic rst_n;
     tri1  ps2_clk;
     tri1  ps2_data;
+   
+    // Edytor DVT będzie ostrzegał, że te sygnały nie są czytane - zignoruj to.
+    // W testbenchu to normalne, że podłączamy wyjścia, ale nie zawsze ich używamy.
     wire  vs;
     wire  hs;
     wire [3:0] r;
     wire [3:0] g;
     wire [3:0] b;
     wire pmod_uart_tx;
-
+ 
     /**
      * Clock generation
      */
@@ -49,14 +53,14 @@ module top_vga_tb;
             clk = ~clk;
         end
     end
-
+ 
     initial begin
         clk_100mhz = 1'b0;
         forever #(CLK_100MHZ_PERIOD / 2) begin
             clk_100mhz = ~clk_100mhz;
         end
     end
-
+ 
     /**
      * Submodule instances
      */
@@ -76,7 +80,7 @@ module top_vga_tb;
         .g          (g),
         .b          (b)
     );
-
+ 
     tiff_writer #(
         .XDIM(16'd1344),
         .YDIM(16'd806),
@@ -88,37 +92,61 @@ module top_vga_tb;
         .b({b,b}),
         .go(vs)
     );
-
+ 
     /**
-     * Main test
+     * Main test - SYMULACJA Z LOGIKĄ GRY I WIRTUALNĄ MYSZKĄ
      */
     initial begin
-        rst_n = 1'b1;
-        #(RST_START_TIME);
+        $display("Rozpoczynam test przyciemniania z pelna logika gry...");
+       
+        // 1. Reset układu i wymuszenie startowych wartości myszki
         rst_n = 1'b0;
-        #(RST_ACTIVE_TIME);
+        force dut.mouse_xpos = 12'd0;
+        force dut.mouse_ypos = 12'd0;
+        force dut.left_click_pulse = 1'b0;
+        force dut.right_click_pulse = 1'b0;
+        #200;
         rst_n = 1'b1;
-
-        $display("If simulation ends before the testbench");
-        $display("completes, use the menu option to run all.");
-        $display("Prepare to wait a long time...");
-        $display("Initial HS state: %b", hs);
-        if ($isunknown(pmod_uart_tx)) begin
-            $warning("PMOD UART TX is unknown at %t.", $time);
-        end else begin
-            $display("Initial PMOD UART TX state: %b", pmod_uart_tx);
-        end
-
-        wait (vs == 1'b0);
-        @(negedge vs) begin
-            $display("Info: negedge VS at %t", $time);
-        end
-        @(negedge vs) begin
-            $display("Info: negedge VS at %t", $time);
-        end
-
-        $display("Simulation is over, check the waveforms.");
+        #1000;
+ 
+        // 2. Wskakujemy do stanu "Moja Tura"
+        // Używamy słowa S_MY_TURN z pakietu zamiast liczby, co ucieszy edytor DVT!
+        force dut.u_game_core.state = S_MY_TURN;
+        #20;
+        release dut.u_game_core.state;
+        #1000;
+ 
+        // 3. WIRTUALNY RUCH MYSZKĄ:
+        // Przesuwamy kursor na drugą postać w górnym rzędzie
+        force dut.mouse_xpos = 12'd250;
+        force dut.mouse_ypos = 12'd100;
+        #500;
+ 
+        // 4. SYMULACJA KLIKNIĘCIA PPM (Eliminacja postaci):
+        $display("Klikam prawym przyciskiem myszy...");
+        force dut.left_click_pulse = 1'b1;
+        #50;
+        force dut.left_click_pulse = 1'b0;
+ // Gra wchodzi w stan oczekiwania (S_WAIT_GUESS_RESULT). Czekamy chwilkę:
+        #1000;
+ 
+        // 5. SYMULUJEMY DRUGĄ PŁYTKĘ: Odpowiadamy, że gracz nie zgadł!
+        $display("Symuluje odpowiedz z UART: PUDLO!");
+        force dut.guess_result_valid = 1'b1;    // Przyszła odpowiedź
+        force dut.guess_result_correct = 1'b0;  // 0 = Źle zgadłeś (pudło)
+        #50;
+        force dut.guess_result_valid = 1'b0;    // Opuszczamy flagę
+ 
+        // Gra w tym momencie wchodzi w stan S_WRONG_GUESS_FEEDBACK
+        // Twój board_renderer powinien nałożyć czerwoną ramkę błędu.
+ 
+        // 5. Czekamy na tiff_writer
+        $display("Czekam na narysowanie klatki VGA...");
+        #40_000_000;
+ 
+        $display("Gotowe! Sprawdz folder results/");
         $finish;
     end
-
-endmodule
+ 
+ endmodule
+ 

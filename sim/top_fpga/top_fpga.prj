@@ -23,6 +23,7 @@ sv work ../../rtl/render/draw_bg.sv
 sv work ../../rtl/render/ui_renderer.sv
 sv work ../../rtl/render/face_traits_rom.sv
 sv work ../../rtl/render/face_renderer.sv
+sv work ../../rtl/render/mouth_renderer.sv
 sv work ../../rtl/render/board_renderer.sv
 sv work ../../rtl/text/font_rom.sv
 sv work ../../rtl/text/text_renderer.sv

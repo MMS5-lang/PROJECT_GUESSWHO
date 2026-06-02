@@ -257,6 +257,8 @@ face_renderer u_face_renderer (
     .out        (if_face.out)
 );
 
+
+
 board_renderer u_board_renderer (
     .clk             (clk),
     .rst_n           (rst_n),
