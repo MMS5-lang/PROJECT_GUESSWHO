@@ -185,7 +185,7 @@
         board_in.hblnk = hblnk;
         board_in.vblnk = vblnk;
         board_in.rgb = rgb;
-        repeat (3) begin
+        repeat (4) begin
             wait_clk;
         end
     end
@@ -215,7 +215,7 @@
         face_in.hblnk = hblnk;
         face_in.vblnk = vblnk;
         face_in.rgb = rgb;
-        repeat (4) begin
+        repeat (6) begin
             wait_clk;
         end
     end

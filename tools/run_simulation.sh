@@ -86,6 +86,7 @@ function execute_test {
 function run_all {
     local test
     local err_ctr
+    local failed=0
 
     while IFS= read -r test; do
         err_ctr=0
@@ -95,9 +96,10 @@ function run_all {
             echo -e "\033[1;32m PASSED\033[0;39m"
         else
             echo -e "\033[1;31m FAILED\033[0;39m"
+            failed=1
         fi
     done < <(print_available_tests)
-    exit 0
+    exit "${failed}"
 }
 
 # ------------------------------------------------------------------------------

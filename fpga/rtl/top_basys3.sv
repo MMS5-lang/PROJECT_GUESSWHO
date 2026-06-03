@@ -40,16 +40,17 @@ logic clk_100mhz;
 logic clk_65mhz;
 logic clk_locked;
 logic pclk_mirror;
-logic raw_rst_n;
 logic rst_65mhz_n;
 logic rst_100mhz_n;
+logic clk_locked_65mhz_n;
+logic clk_locked_100mhz_n;
 logic reset_released_db;
+(* ASYNC_REG = "TRUE" *) logic [1:0] reset_released_65mhz_pipe;
 
 /**
  * Signal assignments
  */
 assign JA1   = pclk_mirror;
-assign raw_rst_n = clk_locked && !btnC && reset_released_db;
 
 /**
  * FPGA submodule placement
@@ -73,15 +74,33 @@ debounce #(
 
 reset_sync u_rst_65mhz_sync (
     .clk    (clk_65mhz),
-    .arst_n (raw_rst_n),
-    .rst_n  (rst_65mhz_n)
+    .arst_n (clk_locked),
+    .rst_n  (clk_locked_65mhz_n)
 );
 
 reset_sync u_rst_100mhz_sync (
     .clk    (clk_100mhz),
-    .arst_n (raw_rst_n),
-    .rst_n  (rst_100mhz_n)
+    .arst_n (clk_locked),
+    .rst_n  (clk_locked_100mhz_n)
 );
+
+always_ff @(posedge clk_100mhz or negedge clk_locked_100mhz_n) begin
+    if (!clk_locked_100mhz_n) begin
+        rst_100mhz_n <= 1'b0;
+    end else begin
+        rst_100mhz_n <= reset_released_db;
+    end
+end
+
+always_ff @(posedge clk_65mhz or negedge clk_locked_65mhz_n) begin
+    if (!clk_locked_65mhz_n) begin
+        reset_released_65mhz_pipe <= '0;
+        rst_65mhz_n <= 1'b0;
+    end else begin
+        reset_released_65mhz_pipe <= {reset_released_65mhz_pipe[0], reset_released_db};
+        rst_65mhz_n <= reset_released_65mhz_pipe[1];
+    end
+end
 
 /* Mirror pclk on a pin for use by the testbench. */
 ODDR pclk_oddr (
