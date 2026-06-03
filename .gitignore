@@ -6,6 +6,9 @@
 # List of files and directories not to be tracked by git.
 # They will be removed when cleaning the project directory.
 
+.dvt/
+.vscode/
+
 fpga/build
 fpga/.Xil
 fpga/vivado*
@@ -34,9 +37,6 @@ xsim*
 **/.nfs*
 
 dvt_build.log
-.dvt/*
-!.dvt/default.build
-!.dvt/waivers.xml
 dfx_runtime.txt
 **/dfx_runtime.txt
 
@@ -47,4 +47,8 @@ __pycache__/
 *.py[cod]
 rtl/assets/cursors/*_preview.png
 
-results/
+output/
+
+results/*
+!results/
+!results/*.bit
