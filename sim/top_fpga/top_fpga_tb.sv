@@ -79,6 +79,7 @@ module top_fpga_tb;
         .r({r,r}),
         .g({g,g}),
         .b({b,b}),
+        .pixel_valid(1'b1),
         .go(vs)
     );
 

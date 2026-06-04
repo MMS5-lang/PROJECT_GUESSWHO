@@ -25,6 +25,7 @@ module tiff_writer #(
         input logic [7:0] r,
         input logic [7:0] g,
         input logic [7:0] b,
+        input logic       pixel_valid,
         input logic       go
     );
 
@@ -389,7 +390,7 @@ module tiff_writer #(
     end
 
     always @(negedge clk) begin
-        if (file_open == 1) begin
+        if ((file_open == 1) && pixel_valid) begin
             write_byte(r); // eight bits per sample
             write_byte(g); // eight bits per sample
             write_byte(b); // eight bits per sample

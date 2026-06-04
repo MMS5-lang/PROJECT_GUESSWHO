@@ -19,6 +19,7 @@ module top_vga_tb;
    
     // Importujemy pakiet, aby móc używać nazw stanów zamiast liczb!
     import guess_who_pkg::*;
+    import vga_pkg::*;
  
     /**
      * Local parameters
@@ -43,6 +44,13 @@ module top_vga_tb;
     wire [3:0] g;
     wire [3:0] b;
     wire pmod_uart_tx;
+    logic capture_enabled;
+    wire capture_vs;
+    wire active_pixel;
+
+    assign capture_vs = capture_enabled && vs;
+    assign active_pixel = (dut.if_mouse.hcount < HOR_PIXELS) &&
+                          (dut.if_mouse.vcount < VER_PIXELS);
  
     /**
      * Clock generation
@@ -82,16 +90,26 @@ module top_vga_tb;
     );
  
     tiff_writer #(
-        .XDIM(16'd1344),
-        .YDIM(16'd806),
-        .FILE_DIR("../../results")
+        .XDIM(HOR_PIXELS),
+        .YDIM(VER_PIXELS),
+        .FILE_DIR("../../results"),
+        .MAX_FRAMES(3)
     ) u_tiff_writer (
         .clk(clk),
         .r({r,r}),
         .g({g,g}),
         .b({b,b}),
-        .go(vs)
+        .pixel_valid(active_pixel),
+        .go(capture_vs)
     );
+
+    task automatic wait_until_sync_low;
+    begin
+        @(posedge clk iff rst_n &&
+            (dut.if_tim.vcount == VER_SYNC_START + 1) &&
+            (dut.if_tim.hcount == 11'd0));
+    end
+    endtask
  
     /**
      * Main test - SYMULACJA Z LOGIKĄ GRY I WIRTUALNĄ MYSZKĄ
@@ -101,6 +119,7 @@ module top_vga_tb;
        
         // 1. Reset układu i wymuszenie startowych wartości myszki
         rst_n = 1'b0;
+        capture_enabled = 1'b0;
         force dut.mouse_xpos = 12'd0;
         force dut.mouse_ypos = 12'd0;
         force dut.left_click_pulse = 1'b0;
@@ -123,7 +142,7 @@ module top_vga_tb;
         #500;
  
         // 4. SYMULACJA KLIKNIĘCIA PPM (Eliminacja postaci):
-        $display("Klikam prawym przyciskiem myszy...");
+        $display("Klikam lewym przyciskiem myszy...");
         force dut.left_click_pulse = 1'b1;
         #50;
         force dut.left_click_pulse = 1'b0;
@@ -141,12 +160,16 @@ module top_vga_tb;
         // Twój board_renderer powinien nałożyć czerwoną ramkę błędu.
  
         // 5. Czekamy na tiff_writer
-        $display("Czekam na narysowanie klatki VGA...");
-        #40_000_000;
- 
+        $display("Czekam na trzy pelne klatki VGA...");
+        wait_until_sync_low();
+        capture_enabled = 1'b1;
+        repeat (4) begin
+            @(posedge capture_vs);
+        end
+        capture_enabled = 1'b0;
+
         $display("Gotowe! Sprawdz folder results/");
         $finish;
     end
- 
- endmodule
- 
+
+endmodule

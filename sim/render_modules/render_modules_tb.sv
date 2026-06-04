@@ -45,6 +45,9 @@
     logic board_has_secret;
     
     game_state_t text_state;
+    logic text_local_ready;
+    logic text_remote_ready;
+    logic [CHAR_COUNT-1:0] text_eliminated_mask;
     
     logic [CHAR_ID_W-1:0] face_selected_id;
     logic face_has_secret;
@@ -107,9 +110,12 @@
     text_renderer dut_text_renderer (
         .clk,
         .rst_n,
-        .game_state (text_state),
-        .in         (text_in.in),
-        .out        (text_out.out)
+        .game_state      (text_state),
+        .local_ready     (text_local_ready),
+        .remote_ready    (text_remote_ready),
+        .eliminated_mask (text_eliminated_mask),
+        .in              (text_in.in),
+        .out             (text_out.out)
     );
     
     face_renderer dut_face_renderer (
@@ -308,6 +314,9 @@
         board_last_guess_id = '0;
         board_has_secret = 1'b0;
         text_state = S_SELECT_SECRET;
+        text_local_ready = 1'b0;
+        text_remote_ready = 1'b0;
+        text_eliminated_mask = '0;
         face_selected_id = '0;
         face_has_secret = 1'b0;
         mouse_xpos = 12'd10;
@@ -442,10 +451,42 @@
                            PANEL_Y + CELL_H + 8, 7, COLOR_BLACK, "WYBIERZ");
         expect_text_pixels(S_SELECT_SECRET, PANEL_X + ((CELL_W - 5 * 12) / 2),
                            PANEL_Y + CELL_H + 28, 5, COLOR_BLACK, "SWOJA");
-        expect_text_pixels(S_LOCAL_READY, PANEL_X + ((CELL_W - 8 * 12) / 2),
-                           PANEL_Y + CELL_H + 8, 8, COLOR_BLACK, "POCZEKAJ");
+        text_local_ready = 1'b1;
+        text_remote_ready = 1'b0;
+        expect_text_pixels(S_LOCAL_READY, PANEL_X + ((CELL_W - 9 * 12) / 2),
+                           PANEL_Y + CELL_H + 8, 9, COLOR_BLACK, "TY GOTOWY");
+        expect_text_pixels(S_LOCAL_READY, PANEL_X + ((CELL_W - 11 * 12) / 2),
+                           PANEL_Y + CELL_H + 28, 11, COLOR_BLACK, "RYWAL CZEKA");
+        text_remote_ready = 1'b1;
+        expect_text_pixels(S_LOCAL_READY, PANEL_X + ((CELL_W - 12 * 12) / 2),
+                           PANEL_Y + CELL_H + 28, 12, COLOR_BLACK, "RYWAL GOTOWY");
+        text_local_ready = 1'b0;
+        text_remote_ready = 1'b0;
+        expect_text_pixels(S_MY_TURN, PANEL_X + ((CELL_W - 10 * 12) / 2),
+                           PANEL_Y + CELL_H + 8, 10, COLOR_BLACK, "TWOJA TURA");
+        expect_text_pixels(S_MY_TURN, PANEL_X + ((CELL_W - 5 * 12) / 2),
+                           PANEL_Y + CELL_H + 28, 5, COLOR_BLACK, "ZADAJ");
+        expect_text_pixels(S_MY_TURN, PANEL_X + ((CELL_W - 7 * 12) / 2),
+                           PANEL_Y + CELL_H + 48, 7, COLOR_BLACK, "PYTANIE");
+        expect_text_pixels(S_OPPONENT_TURN, PANEL_X + ((CELL_W - 11 * 12) / 2),
+                           PANEL_Y + CELL_H + 8, 11, COLOR_BLACK, "TURA RYWALA");
+        expect_text_pixels(S_OPPONENT_TURN, PANEL_X + ((CELL_W - 9 * 12) / 2),
+                           PANEL_Y + CELL_H + 28, 9, COLOR_BLACK, "ODPOWIEDZ");
+        expect_text_pixels(S_OPPONENT_TURN, PANEL_X + ((CELL_W - 10 * 12) / 2),
+                           PANEL_Y + CELL_H + 48, 10, COLOR_BLACK, "NA PYTANIE");
+        text_eliminated_mask = '0;
+        text_eliminated_mask[0] = 1'b1;
+        text_eliminated_mask[1] = 1'b1;
+        text_eliminated_mask[2] = 1'b1;
+        expect_text_pixels(S_MY_TURN, BOARD_X, BOARD_Y - 28, 12, COLOR_BLACK, "POZOSTALO 15");
+        expect_text_pixels(S_MY_TURN, PANEL_X, RESET_Y + BUTTON_H + 20, 11, COLOR_BLACK, "LPM ZGADNIJ");
+        expect_text_pixels(S_MY_TURN, PANEL_X, RESET_Y + BUTTON_H + 40, 12, COLOR_BLACK, "PPM ELIMINUJ");
+        expect_text_pixels(S_MY_TURN, PANEL_X, RESET_Y + BUTTON_H + 60, 12, COLOR_BLACK, "START KONIEC");
+        text_eliminated_mask = '0;
         expect_text_pixels(S_WAIT_GUESS_RESULT, PANEL_X + ((CELL_W - 8 * 12) / 2),
                            PANEL_Y + CELL_H + 28, 8, COLOR_BLACK, "NA WYNIK");
+        expect_text_pixels(S_FINAL_CHECK, PANEL_X + ((CELL_W - 9 * 12) / 2),
+                           PANEL_Y + CELL_H + 48, 9, COLOR_BLACK, "SPRAWDZAM");
         expect_text_pixels(S_WRONG_GUESS_FEEDBACK, PANEL_X + ((CELL_W - 11 * 12) / 2),
                            PANEL_Y + CELL_H + 8, 11, COLOR_RED, "NIEPOPRAWNA");
         expect_text_pixels(S_COMM_ERROR, PANEL_X + ((CELL_W - 5 * 12) / 2),

@@ -25,11 +25,14 @@ module fsm_state_frames_tb;
     logic [CHAR_ID_W-1:0] selected_id;
     logic [CHAR_ID_W-1:0] last_guess_id;
     logic has_secret;
+    logic local_ready;
+    logic remote_ready;
     logic [11:0] mouse_xpos;
     logic [11:0] mouse_ypos;
     cursor_mode_t cursor_mode;
     logic capture_enabled;
     logic capture_vs;
+    logic active_pixel;
 
     wire vs;
     wire hs;
@@ -50,6 +53,7 @@ module fsm_state_frames_tb;
     assign hs = if_mouse.hsync;
     assign {r, g, b} = if_mouse.rgb;
     assign capture_vs = capture_enabled && vs;
+    assign active_pixel = (if_mouse.hcount < HOR_PIXELS) && (if_mouse.vcount < VER_PIXELS);
 
     function automatic game_state_t state_by_index(input int idx);
     begin
@@ -100,6 +104,8 @@ module fsm_state_frames_tb;
         selected_id = 5'd4;
         last_guess_id = 5'd7;
         has_secret = 1'b1;
+        local_ready = 1'b0;
+        remote_ready = 1'b0;
         eliminated_mask = '0;
         mouse_xpos = 12'd900;
         mouse_ypos = 12'd650;
@@ -117,15 +123,21 @@ module fsm_state_frames_tb;
 
             S_LOCAL_READY, S_GAME_START: begin
                 selected_id = 5'd2;
+                local_ready = 1'b1;
+                remote_ready = (state == S_GAME_START);
             end
 
             S_MY_TURN: begin
+                local_ready = 1'b1;
+                remote_ready = 1'b1;
                 eliminated_mask[1] = 1'b1;
                 eliminated_mask[6] = 1'b1;
                 eliminated_mask[13] = 1'b1;
             end
 
             S_OPPONENT_TURN: begin
+                local_ready = 1'b1;
+                remote_ready = 1'b1;
                 eliminated_mask[1] = 1'b1;
                 eliminated_mask[6] = 1'b1;
                 eliminated_mask[13] = 1'b1;
@@ -133,21 +145,29 @@ module fsm_state_frames_tb;
             end
 
             S_WAIT_GUESS_RESULT: begin
+                local_ready = 1'b1;
+                remote_ready = 1'b1;
                 last_guess_id = 5'd8;
             end
 
             S_WRONG_GUESS_FEEDBACK: begin
+                local_ready = 1'b1;
+                remote_ready = 1'b1;
                 last_guess_id = 5'd8;
                 eliminated_mask[8] = 1'b1;
             end
 
             S_FINAL_CHECK: begin
+                local_ready = 1'b1;
+                remote_ready = 1'b1;
                 last_guess_id = 5'd15;
                 eliminated_mask = '1;
                 eliminated_mask[15] = 1'b0;
             end
 
             S_WIN, S_LOSE, S_GAME_OVER, S_COMM_ERROR: begin
+                local_ready = 1'b1;
+                remote_ready = 1'b1;
                 eliminated_mask[1] = 1'b1;
                 eliminated_mask[6] = 1'b1;
                 eliminated_mask[13] = 1'b1;
@@ -233,9 +253,12 @@ module fsm_state_frames_tb;
     text_renderer u_text_renderer (
         .clk,
         .rst_n,
-        .game_state (game_state),
-        .in         (if_board.in),
-        .out        (if_text.out)
+        .game_state      (game_state),
+        .local_ready     (local_ready),
+        .remote_ready    (remote_ready),
+        .eliminated_mask (eliminated_mask),
+        .in              (if_board.in),
+        .out             (if_text.out)
     );
 
     draw_mouse u_draw_mouse (
@@ -249,8 +272,8 @@ module fsm_state_frames_tb;
     );
 
     tiff_writer #(
-        .XDIM(HOR_TOTAL_TIME),
-        .YDIM(VER_TOTAL_TIME),
+        .XDIM(HOR_PIXELS),
+        .YDIM(VER_PIXELS),
         .FILE_DIR("../../results"),
         .FILE_PREFIX("fsm_state_"),
         .MAX_FRAMES(NUM_STATES)
@@ -259,6 +282,7 @@ module fsm_state_frames_tb;
         .r({r, r}),
         .g({g, g}),
         .b({b, b}),
+        .pixel_valid(active_pixel),
         .go(capture_vs)
     );
 
