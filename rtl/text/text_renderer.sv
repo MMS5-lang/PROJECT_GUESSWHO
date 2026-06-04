@@ -15,6 +15,9 @@ import guess_who_pkg::*;
     input  logic rst_n,
     vga_if.out   out,
     input  game_state_t game_state,
+    input  logic local_ready,
+    input  logic remote_ready,
+    input  logic [CHAR_COUNT-1:0] eliminated_mask,
     vga_if.in    in
 );
 
@@ -58,11 +61,19 @@ localparam logic [10:0] STATUS_LEN8_X = pos11(PANEL_X + ((CELL_W - 8 * TEXT_PITC
 localparam logic [10:0] STATUS_LEN9_X = pos11(PANEL_X + ((CELL_W - 9 * TEXT_PITCH) / 2));
 localparam logic [10:0] STATUS_LEN10_X = pos11(PANEL_X + ((CELL_W - 10 * TEXT_PITCH) / 2));
 localparam logic [10:0] STATUS_LEN11_X = pos11(PANEL_X + ((CELL_W - 11 * TEXT_PITCH) / 2));
+localparam logic [10:0] STATUS_LEN12_X = pos11(PANEL_X + ((CELL_W - 12 * TEXT_PITCH) / 2));
+localparam logic [10:0] STATUS_LEN13_X = pos11(PANEL_X + ((CELL_W - 13 * TEXT_PITCH) / 2));
 localparam logic [10:0] STATUS_TEXT_Y1 = pos11(PANEL_Y + CELL_H + 8);
 localparam logic [10:0] STATUS_TEXT_Y2 = pos11(PANEL_Y + CELL_H + 28);
 localparam logic [10:0] STATUS_TEXT_Y3 = pos11(PANEL_Y + CELL_H + 48);
+localparam logic [10:0] REMAINING_TEXT_X = pos11(BOARD_X);
+localparam logic [10:0] REMAINING_TEXT_Y = pos11(BOARD_Y - 28);
+localparam logic [10:0] INSTR_TEXT_X = pos11(PANEL_X);
+localparam logic [10:0] INSTR_TEXT_Y1 = pos11(RESET_Y + BUTTON_H + 20);
+localparam logic [10:0] INSTR_TEXT_Y2 = pos11(RESET_Y + BUTTON_H + 40);
+localparam logic [10:0] INSTR_TEXT_Y3 = pos11(RESET_Y + BUTTON_H + 60);
 
-typedef enum logic [4:0] {
+typedef enum logic [5:0] {
     TEXT_NONE,
     TEXT_START,
     TEXT_KONIEC,
@@ -82,12 +93,29 @@ typedef enum logic [4:0] {
     TEXT_NA_WYNIK,
     TEXT_OSTATNIA,
     TEXT_NIEPOPRAWNA,
-    TEXT_ERROR
+    TEXT_ERROR,
+    TEXT_TWOJA_TURA,
+    TEXT_TURA_RYWALA,
+    TEXT_ZADAJ,
+    TEXT_PYTANIE,
+    TEXT_ODPOWIEDZ,
+    TEXT_TY_GOTOWY,
+    TEXT_RYWAL_CZEKA,
+    TEXT_RYWAL_GOTOWY,
+    TEXT_POZOSTALO,
+    TEXT_SPRAWDZAM,
+    TEXT_LPM_ZGADNIJ,
+    TEXT_PPM_ELIMINUJ,
+    TEXT_START_TURA,
+    TEXT_NA_PYTANIE
 } text_id_t;
 
 logic [11:0] rgb_nxt;
 logic        show_start;
 logic        show_end_turn;
+logic        show_remaining;
+logic        show_instructions;
+logic [4:0]  remaining_count_nxt;
 
 logic [10:0] s0_vcount;
 logic        s0_vsync;
@@ -97,6 +125,9 @@ logic        s0_hsync;
 logic        s0_hblnk;
 logic [11:0] s0_rgb;
 game_state_t s0_game_state;
+logic        s0_local_ready;
+logic        s0_remote_ready;
+logic [CHAR_COUNT-1:0] s0_eliminated_mask;
 
 logic        text_active_nxt;
 text_id_t    text_id_nxt;
@@ -118,6 +149,7 @@ logic [10:0] s1_text_x;
 logic [10:0] s1_text_y;
 logic [3:0]  s1_text_len;
 logic [11:0] s1_text_color;
+logic [4:0]  s1_remaining_count;
 
 logic [3:0] char_index_nxt;
 logic [7:0] char_code_nxt;
@@ -181,7 +213,71 @@ begin
 end
 endfunction
 
-function automatic logic [7:0] get_char(input text_id_t id, input logic [3:0] idx);
+function automatic logic [4:0] count_remaining(input logic [CHAR_COUNT-1:0] mask);
+    logic [4:0] count;
+    int i;
+begin
+    count = '0;
+
+    for (i = 0; i < CHAR_COUNT; i++) begin
+        if (!mask[i]) begin
+            count = count + 5'd1;
+        end
+    end
+
+    count_remaining = count;
+end
+endfunction
+
+function automatic logic [7:0] digit_char(input logic [3:0] digit);
+begin
+    case (digit)
+        4'd0: digit_char = "0";
+        4'd1: digit_char = "1";
+        4'd2: digit_char = "2";
+        4'd3: digit_char = "3";
+        4'd4: digit_char = "4";
+        4'd5: digit_char = "5";
+        4'd6: digit_char = "6";
+        4'd7: digit_char = "7";
+        4'd8: digit_char = "8";
+        default: digit_char = "9";
+    endcase
+end
+endfunction
+
+function automatic logic [7:0] remaining_digit_char(input logic [4:0] count, input logic tens);
+    logic [3:0] ones_digit;
+begin
+    if (count >= 5'd10) begin
+        ones_digit = count - 5'd10;
+        remaining_digit_char = tens ? "1" : digit_char(ones_digit);
+    end else begin
+        remaining_digit_char = tens ? "0" : digit_char(count[3:0]);
+    end
+end
+endfunction
+
+function automatic logic state_has_remaining(input game_state_t state);
+begin
+    case (state)
+        S_MY_TURN,
+        S_OPPONENT_TURN,
+        S_WAIT_GUESS_RESULT,
+        S_WRONG_GUESS_FEEDBACK,
+        S_FINAL_CHECK,
+        S_WIN,
+        S_LOSE: begin
+            state_has_remaining = 1'b1;
+        end
+        default: begin
+            state_has_remaining = 1'b0;
+        end
+    endcase
+end
+endfunction
+
+function automatic logic [7:0] get_char(input text_id_t id, input logic [3:0] idx, input logic [4:0] remaining_count);
 begin
     get_char = " ";
 
@@ -407,6 +503,216 @@ begin
                 default: get_char = " ";
             endcase
         end
+        TEXT_TWOJA_TURA: begin
+            case (idx)
+                4'd0: get_char = "T";
+                4'd1: get_char = "W";
+                4'd2: get_char = "O";
+                4'd3: get_char = "J";
+                4'd4: get_char = "A";
+                4'd5: get_char = " ";
+                4'd6: get_char = "T";
+                4'd7: get_char = "U";
+                4'd8: get_char = "R";
+                4'd9: get_char = "A";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_TURA_RYWALA: begin
+            case (idx)
+                4'd0: get_char = "T";
+                4'd1: get_char = "U";
+                4'd2: get_char = "R";
+                4'd3: get_char = "A";
+                4'd4: get_char = " ";
+                4'd5: get_char = "R";
+                4'd6: get_char = "Y";
+                4'd7: get_char = "W";
+                4'd8: get_char = "A";
+                4'd9: get_char = "L";
+                4'd10: get_char = "A";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_ZADAJ: begin
+            case (idx)
+                4'd0: get_char = "Z";
+                4'd1: get_char = "A";
+                4'd2: get_char = "D";
+                4'd3: get_char = "A";
+                4'd4: get_char = "J";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_PYTANIE: begin
+            case (idx)
+                4'd0: get_char = "P";
+                4'd1: get_char = "Y";
+                4'd2: get_char = "T";
+                4'd3: get_char = "A";
+                4'd4: get_char = "N";
+                4'd5: get_char = "I";
+                4'd6: get_char = "E";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_ODPOWIEDZ: begin
+            case (idx)
+                4'd0: get_char = "O";
+                4'd1: get_char = "D";
+                4'd2: get_char = "P";
+                4'd3: get_char = "O";
+                4'd4: get_char = "W";
+                4'd5: get_char = "I";
+                4'd6: get_char = "E";
+                4'd7: get_char = "D";
+                4'd8: get_char = "Z";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_TY_GOTOWY: begin
+            case (idx)
+                4'd0: get_char = "T";
+                4'd1: get_char = "Y";
+                4'd2: get_char = " ";
+                4'd3: get_char = "G";
+                4'd4: get_char = "O";
+                4'd5: get_char = "T";
+                4'd6: get_char = "O";
+                4'd7: get_char = "W";
+                4'd8: get_char = "Y";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_RYWAL_CZEKA: begin
+            case (idx)
+                4'd0: get_char = "R";
+                4'd1: get_char = "Y";
+                4'd2: get_char = "W";
+                4'd3: get_char = "A";
+                4'd4: get_char = "L";
+                4'd5: get_char = " ";
+                4'd6: get_char = "C";
+                4'd7: get_char = "Z";
+                4'd8: get_char = "E";
+                4'd9: get_char = "K";
+                4'd10: get_char = "A";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_RYWAL_GOTOWY: begin
+            case (idx)
+                4'd0: get_char = "R";
+                4'd1: get_char = "Y";
+                4'd2: get_char = "W";
+                4'd3: get_char = "A";
+                4'd4: get_char = "L";
+                4'd5: get_char = " ";
+                4'd6: get_char = "G";
+                4'd7: get_char = "O";
+                4'd8: get_char = "T";
+                4'd9: get_char = "O";
+                4'd10: get_char = "W";
+                4'd11: get_char = "Y";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_POZOSTALO: begin
+            case (idx)
+                4'd0: get_char = "P";
+                4'd1: get_char = "O";
+                4'd2: get_char = "Z";
+                4'd3: get_char = "O";
+                4'd4: get_char = "S";
+                4'd5: get_char = "T";
+                4'd6: get_char = "A";
+                4'd7: get_char = "L";
+                4'd8: get_char = "O";
+                4'd9: get_char = " ";
+                4'd10: get_char = remaining_digit_char(remaining_count, 1'b1);
+                4'd11: get_char = remaining_digit_char(remaining_count, 1'b0);
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_SPRAWDZAM: begin
+            case (idx)
+                4'd0: get_char = "S";
+                4'd1: get_char = "P";
+                4'd2: get_char = "R";
+                4'd3: get_char = "A";
+                4'd4: get_char = "W";
+                4'd5: get_char = "D";
+                4'd6: get_char = "Z";
+                4'd7: get_char = "A";
+                4'd8: get_char = "M";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_LPM_ZGADNIJ: begin
+            case (idx)
+                4'd0: get_char = "L";
+                4'd1: get_char = "P";
+                4'd2: get_char = "M";
+                4'd3: get_char = " ";
+                4'd4: get_char = "Z";
+                4'd5: get_char = "G";
+                4'd6: get_char = "A";
+                4'd7: get_char = "D";
+                4'd8: get_char = "N";
+                4'd9: get_char = "I";
+                4'd10: get_char = "J";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_PPM_ELIMINUJ: begin
+            case (idx)
+                4'd0: get_char = "P";
+                4'd1: get_char = "P";
+                4'd2: get_char = "M";
+                4'd3: get_char = " ";
+                4'd4: get_char = "E";
+                4'd5: get_char = "L";
+                4'd6: get_char = "I";
+                4'd7: get_char = "M";
+                4'd8: get_char = "I";
+                4'd9: get_char = "N";
+                4'd10: get_char = "U";
+                4'd11: get_char = "J";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_START_TURA: begin
+            case (idx)
+                4'd0: get_char = "S";
+                4'd1: get_char = "T";
+                4'd2: get_char = "A";
+                4'd3: get_char = "R";
+                4'd4: get_char = "T";
+                4'd5: get_char = " ";
+                4'd6: get_char = "K";
+                4'd7: get_char = "O";
+                4'd8: get_char = "N";
+                4'd9: get_char = "I";
+                4'd10: get_char = "E";
+                4'd11: get_char = "C";
+                default: get_char = " ";
+            endcase
+        end
+        TEXT_NA_PYTANIE: begin
+            case (idx)
+                4'd0: get_char = "N";
+                4'd1: get_char = "A";
+                4'd2: get_char = " ";
+                4'd3: get_char = "P";
+                4'd4: get_char = "Y";
+                4'd5: get_char = "T";
+                4'd6: get_char = "A";
+                4'd7: get_char = "N";
+                4'd8: get_char = "I";
+                4'd9: get_char = "E";
+                default: get_char = " ";
+            endcase
+        end
         default: begin
             get_char = " ";
         end
@@ -421,8 +727,14 @@ font_rom u_font_rom (
 );
 
 always_comb begin
+    remaining_count_nxt = count_remaining(s0_eliminated_mask);
+end
+
+always_comb begin
     show_start = (s0_game_state == S_SELECT_SECRET);
     show_end_turn = (s0_game_state == S_MY_TURN);
+    show_remaining = state_has_remaining(s0_game_state);
+    show_instructions = (s0_game_state == S_MY_TURN);
 
     text_active_nxt = 1'b0;
     text_id_nxt = TEXT_NONE;
@@ -476,19 +788,69 @@ always_comb begin
         end
 
         S_LOCAL_READY: begin
-            if (inside_text(s0_hcount, s0_vcount, STATUS_LEN8_X, STATUS_TEXT_Y1, 8)) begin
+            if (inside_text(s0_hcount, s0_vcount, s0_local_ready ? STATUS_LEN9_X : STATUS_LEN8_X, STATUS_TEXT_Y1, s0_local_ready ? 9 : 8)) begin
                 text_active_nxt = 1'b1;
-                text_id_nxt = TEXT_POCZEKAJ;
-                text_x_nxt = STATUS_LEN8_X;
+                text_id_nxt = s0_local_ready ? TEXT_TY_GOTOWY : TEXT_POCZEKAJ;
+                text_x_nxt = s0_local_ready ? STATUS_LEN9_X : STATUS_LEN8_X;
                 text_y_nxt = STATUS_TEXT_Y1;
-                text_len_nxt = 4'd8;
+                text_len_nxt = s0_local_ready ? 4'd9 : 4'd8;
+                text_color_nxt = COLOR_BLACK;
+            end else if (inside_text(s0_hcount, s0_vcount, s0_remote_ready ? STATUS_LEN12_X : STATUS_LEN11_X, STATUS_TEXT_Y2, s0_remote_ready ? 12 : 11)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = s0_remote_ready ? TEXT_RYWAL_GOTOWY : TEXT_RYWAL_CZEKA;
+                text_x_nxt = s0_remote_ready ? STATUS_LEN12_X : STATUS_LEN11_X;
+                text_y_nxt = STATUS_TEXT_Y2;
+                text_len_nxt = s0_remote_ready ? 4'd12 : 4'd11;
+                text_color_nxt = COLOR_BLACK;
+            end
+        end
+
+        S_MY_TURN: begin
+            if (inside_text(s0_hcount, s0_vcount, STATUS_LEN10_X, STATUS_TEXT_Y1, 10)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_TWOJA_TURA;
+                text_x_nxt = STATUS_LEN10_X;
+                text_y_nxt = STATUS_TEXT_Y1;
+                text_len_nxt = 4'd10;
+                text_color_nxt = COLOR_BLACK;
+            end else if (inside_text(s0_hcount, s0_vcount, STATUS_LEN5_X, STATUS_TEXT_Y2, 5)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_ZADAJ;
+                text_x_nxt = STATUS_LEN5_X;
+                text_y_nxt = STATUS_TEXT_Y2;
+                text_len_nxt = 4'd5;
+                text_color_nxt = COLOR_BLACK;
+            end else if (inside_text(s0_hcount, s0_vcount, STATUS_LEN7_X, STATUS_TEXT_Y3, 7)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_PYTANIE;
+                text_x_nxt = STATUS_LEN7_X;
+                text_y_nxt = STATUS_TEXT_Y3;
+                text_len_nxt = 4'd7;
+                text_color_nxt = COLOR_BLACK;
+            end
+        end
+
+        S_OPPONENT_TURN: begin
+            if (inside_text(s0_hcount, s0_vcount, STATUS_LEN11_X, STATUS_TEXT_Y1, 11)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_TURA_RYWALA;
+                text_x_nxt = STATUS_LEN11_X;
+                text_y_nxt = STATUS_TEXT_Y1;
+                text_len_nxt = 4'd11;
                 text_color_nxt = COLOR_BLACK;
             end else if (inside_text(s0_hcount, s0_vcount, STATUS_LEN9_X, STATUS_TEXT_Y2, 9)) begin
                 text_active_nxt = 1'b1;
-                text_id_nxt = TEXT_NA_RYWALA;
+                text_id_nxt = TEXT_ODPOWIEDZ;
                 text_x_nxt = STATUS_LEN9_X;
                 text_y_nxt = STATUS_TEXT_Y2;
                 text_len_nxt = 4'd9;
+                text_color_nxt = COLOR_BLACK;
+            end else if (inside_text(s0_hcount, s0_vcount, STATUS_LEN10_X, STATUS_TEXT_Y3, 10)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_NA_PYTANIE;
+                text_x_nxt = STATUS_LEN10_X;
+                text_y_nxt = STATUS_TEXT_Y3;
+                text_len_nxt = 4'd10;
                 text_color_nxt = COLOR_BLACK;
             end
         end
@@ -525,6 +887,13 @@ always_comb begin
                 text_x_nxt = STATUS_LEN6_X;
                 text_y_nxt = STATUS_TEXT_Y2;
                 text_len_nxt = 4'd6;
+                text_color_nxt = COLOR_BLACK;
+            end else if (inside_text(s0_hcount, s0_vcount, STATUS_LEN9_X, STATUS_TEXT_Y3, 9)) begin
+                text_active_nxt = 1'b1;
+                text_id_nxt = TEXT_SPRAWDZAM;
+                text_x_nxt = STATUS_LEN9_X;
+                text_y_nxt = STATUS_TEXT_Y3;
+                text_len_nxt = 4'd9;
                 text_color_nxt = COLOR_BLACK;
             end
         end
@@ -593,7 +962,35 @@ always_comb begin
     endcase
 
     if (!text_active_nxt) begin
-        if (show_start && inside_text(s0_hcount, s0_vcount, START_TEXT_X, START_TEXT_Y, 5)) begin
+        if (show_remaining && inside_text(s0_hcount, s0_vcount, REMAINING_TEXT_X, REMAINING_TEXT_Y, 12)) begin
+            text_active_nxt = 1'b1;
+            text_id_nxt = TEXT_POZOSTALO;
+            text_x_nxt = REMAINING_TEXT_X;
+            text_y_nxt = REMAINING_TEXT_Y;
+            text_len_nxt = 4'd12;
+            text_color_nxt = COLOR_BLACK;
+        end else if (show_instructions && inside_text(s0_hcount, s0_vcount, INSTR_TEXT_X, INSTR_TEXT_Y1, 11)) begin
+            text_active_nxt = 1'b1;
+            text_id_nxt = TEXT_LPM_ZGADNIJ;
+            text_x_nxt = INSTR_TEXT_X;
+            text_y_nxt = INSTR_TEXT_Y1;
+            text_len_nxt = 4'd11;
+            text_color_nxt = COLOR_BLACK;
+        end else if (show_instructions && inside_text(s0_hcount, s0_vcount, INSTR_TEXT_X, INSTR_TEXT_Y2, 12)) begin
+            text_active_nxt = 1'b1;
+            text_id_nxt = TEXT_PPM_ELIMINUJ;
+            text_x_nxt = INSTR_TEXT_X;
+            text_y_nxt = INSTR_TEXT_Y2;
+            text_len_nxt = 4'd12;
+            text_color_nxt = COLOR_BLACK;
+        end else if (show_instructions && inside_text(s0_hcount, s0_vcount, INSTR_TEXT_X, INSTR_TEXT_Y3, 12)) begin
+            text_active_nxt = 1'b1;
+            text_id_nxt = TEXT_START_TURA;
+            text_x_nxt = INSTR_TEXT_X;
+            text_y_nxt = INSTR_TEXT_Y3;
+            text_len_nxt = 4'd12;
+            text_color_nxt = COLOR_BLACK;
+        end else if (show_start && inside_text(s0_hcount, s0_vcount, START_TEXT_X, START_TEXT_Y, 5)) begin
             text_active_nxt = 1'b1;
             text_id_nxt = TEXT_START;
             text_x_nxt = START_TEXT_X;
@@ -674,8 +1071,12 @@ always_comb begin
             char_index_nxt = 4'd8;
         end else if (local_x_nxt < 8'd120) begin
             char_index_nxt = 4'd9;
-        end else begin
+        end else if (local_x_nxt < 8'd132) begin
             char_index_nxt = 4'd10;
+        end else if (local_x_nxt < 8'd144) begin
+            char_index_nxt = 4'd11;
+        end else begin
+            char_index_nxt = 4'd12;
         end
 
         case (char_index_nxt)
@@ -689,12 +1090,14 @@ always_comb begin
             4'd7: char_start_nxt = 8'd84;
             4'd8: char_start_nxt = 8'd96;
             4'd9: char_start_nxt = 8'd108;
-            default: char_start_nxt = 8'd120;
+            4'd10: char_start_nxt = 8'd120;
+            4'd11: char_start_nxt = 8'd132;
+            default: char_start_nxt = 8'd144;
         endcase
 
         char_cell_x_nxt = local_x_nxt - char_start_nxt;
         font_col_nxt = char_cell_x_nxt >> 1;
-        char_code_nxt = get_char(s1_text_id, char_index_nxt);
+        char_code_nxt = get_char(s1_text_id, char_index_nxt, s1_remaining_count);
     end
 end
 
@@ -721,6 +1124,9 @@ always_ff @(posedge clk or negedge rst_n) begin
         s0_hblnk <= '0;
         s0_rgb <= '0;
         s0_game_state <= S_RESET;
+        s0_local_ready <= 1'b0;
+        s0_remote_ready <= 1'b0;
+        s0_eliminated_mask <= '0;
 
         s1_vcount <= '0;
         s1_vsync <= '0;
@@ -735,6 +1141,7 @@ always_ff @(posedge clk or negedge rst_n) begin
         s1_text_y <= '0;
         s1_text_len <= '0;
         s1_text_color <= COLOR_WHITE;
+        s1_remaining_count <= '0;
 
         s2_vcount <= '0;
         s2_vsync <= '0;
@@ -767,6 +1174,9 @@ always_ff @(posedge clk or negedge rst_n) begin
         s0_hblnk <= in.hblnk;
         s0_rgb <= in.rgb;
         s0_game_state <= game_state;
+        s0_local_ready <= local_ready;
+        s0_remote_ready <= remote_ready;
+        s0_eliminated_mask <= eliminated_mask;
 
         s1_vcount <= s0_vcount;
         s1_vsync <= s0_vsync;
@@ -781,6 +1191,7 @@ always_ff @(posedge clk or negedge rst_n) begin
         s1_text_y <= text_y_nxt;
         s1_text_len <= text_len_nxt;
         s1_text_color <= text_color_nxt;
+        s1_remaining_count <= remaining_count_nxt;
 
         s2_vcount <= s1_vcount;
         s2_vsync <= s1_vsync;

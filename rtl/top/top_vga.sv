@@ -49,6 +49,8 @@ logic [CHAR_COUNT-1:0] eliminated_mask;
 logic [CHAR_ID_W-1:0] selected_id;
 logic [CHAR_ID_W-1:0] last_guess_id;
 logic has_secret;
+logic local_ready;
+logic remote_ready;
 logic frame_tick;
 
 logic link_ready;
@@ -220,8 +222,8 @@ game_core u_game_core (
     .local_secret_id     (),
     .last_guess_id       (last_guess_id),
     .has_secret          (has_secret),
-    .local_ready         (),
-    .remote_ready        (),
+    .local_ready         (local_ready),
+    .remote_ready        (remote_ready),
     .my_turn             (),
     .wrong_guess_visible (),
     .send_ready          (send_ready),
@@ -268,11 +270,14 @@ board_renderer u_board_renderer (
 );
 
 text_renderer u_text_renderer (
-    .clk        (clk),
-    .rst_n      (rst_n),
-    .game_state (game_state),
-    .in         (if_board.in),
-    .out        (if_text.out)
+    .clk             (clk),
+    .rst_n           (rst_n),
+    .game_state      (game_state),
+    .local_ready     (local_ready),
+    .remote_ready    (remote_ready),
+    .eliminated_mask (eliminated_mask),
+    .in              (if_board.in),
+    .out             (if_text.out)
 );
 
 draw_mouse u_draw_mouse (

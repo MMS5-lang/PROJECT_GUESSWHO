@@ -56,6 +56,18 @@ always_comb begin
                 default: pixels = 5'b00000;
             endcase
         end
+        "D": begin
+            case (row)
+                3'd0: pixels = 5'b11110;
+                3'd1: pixels = 5'b10001;
+                3'd2: pixels = 5'b10001;
+                3'd3: pixels = 5'b10001;
+                3'd4: pixels = 5'b10001;
+                3'd5: pixels = 5'b10001;
+                3'd6: pixels = 5'b11110;
+                default: pixels = 5'b00000;
+            endcase
+        end
         "E": begin
             case (row)
                 3'd0: pixels = 5'b11111;
@@ -257,6 +269,126 @@ always_comb begin
                 3'd4: pixels = 5'b01000;
                 3'd5: pixels = 5'b10000;
                 3'd6: pixels = 5'b11111;
+                default: pixels = 5'b00000;
+            endcase
+        end
+        "0": begin
+            case (row)
+                3'd0: pixels = 5'b01110;
+                3'd1: pixels = 5'b10001;
+                3'd2: pixels = 5'b10011;
+                3'd3: pixels = 5'b10101;
+                3'd4: pixels = 5'b11001;
+                3'd5: pixels = 5'b10001;
+                3'd6: pixels = 5'b01110;
+                default: pixels = 5'b00000;
+            endcase
+        end
+        "1": begin
+            case (row)
+                3'd0: pixels = 5'b00100;
+                3'd1: pixels = 5'b01100;
+                3'd2: pixels = 5'b00100;
+                3'd3: pixels = 5'b00100;
+                3'd4: pixels = 5'b00100;
+                3'd5: pixels = 5'b00100;
+                3'd6: pixels = 5'b01110;
+                default: pixels = 5'b00000;
+            endcase
+        end
+        "2": begin
+            case (row)
+                3'd0: pixels = 5'b01110;
+                3'd1: pixels = 5'b10001;
+                3'd2: pixels = 5'b00001;
+                3'd3: pixels = 5'b00010;
+                3'd4: pixels = 5'b00100;
+                3'd5: pixels = 5'b01000;
+                3'd6: pixels = 5'b11111;
+                default: pixels = 5'b00000;
+            endcase
+        end
+        "3": begin
+            case (row)
+                3'd0: pixels = 5'b11110;
+                3'd1: pixels = 5'b00001;
+                3'd2: pixels = 5'b00001;
+                3'd3: pixels = 5'b01110;
+                3'd4: pixels = 5'b00001;
+                3'd5: pixels = 5'b00001;
+                3'd6: pixels = 5'b11110;
+                default: pixels = 5'b00000;
+            endcase
+        end
+        "4": begin
+            case (row)
+                3'd0: pixels = 5'b00010;
+                3'd1: pixels = 5'b00110;
+                3'd2: pixels = 5'b01010;
+                3'd3: pixels = 5'b10010;
+                3'd4: pixels = 5'b11111;
+                3'd5: pixels = 5'b00010;
+                3'd6: pixels = 5'b00010;
+                default: pixels = 5'b00000;
+            endcase
+        end
+        "5": begin
+            case (row)
+                3'd0: pixels = 5'b11111;
+                3'd1: pixels = 5'b10000;
+                3'd2: pixels = 5'b10000;
+                3'd3: pixels = 5'b11110;
+                3'd4: pixels = 5'b00001;
+                3'd5: pixels = 5'b00001;
+                3'd6: pixels = 5'b11110;
+                default: pixels = 5'b00000;
+            endcase
+        end
+        "6": begin
+            case (row)
+                3'd0: pixels = 5'b01110;
+                3'd1: pixels = 5'b10000;
+                3'd2: pixels = 5'b10000;
+                3'd3: pixels = 5'b11110;
+                3'd4: pixels = 5'b10001;
+                3'd5: pixels = 5'b10001;
+                3'd6: pixels = 5'b01110;
+                default: pixels = 5'b00000;
+            endcase
+        end
+        "7": begin
+            case (row)
+                3'd0: pixels = 5'b11111;
+                3'd1: pixels = 5'b00001;
+                3'd2: pixels = 5'b00010;
+                3'd3: pixels = 5'b00100;
+                3'd4: pixels = 5'b01000;
+                3'd5: pixels = 5'b01000;
+                3'd6: pixels = 5'b01000;
+                default: pixels = 5'b00000;
+            endcase
+        end
+        "8": begin
+            case (row)
+                3'd0: pixels = 5'b01110;
+                3'd1: pixels = 5'b10001;
+                3'd2: pixels = 5'b10001;
+                3'd3: pixels = 5'b01110;
+                3'd4: pixels = 5'b10001;
+                3'd5: pixels = 5'b10001;
+                3'd6: pixels = 5'b01110;
+                default: pixels = 5'b00000;
+            endcase
+        end
+        "9": begin
+            case (row)
+                3'd0: pixels = 5'b01110;
+                3'd1: pixels = 5'b10001;
+                3'd2: pixels = 5'b10001;
+                3'd3: pixels = 5'b01111;
+                3'd4: pixels = 5'b00001;
+                3'd5: pixels = 5'b00001;
+                3'd6: pixels = 5'b01110;
                 default: pixels = 5'b00000;
             endcase
         end
