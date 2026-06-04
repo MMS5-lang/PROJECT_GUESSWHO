@@ -86,6 +86,7 @@ typedef enum logic [4:0] {
 } text_id_t;
 
 logic [11:0] rgb_nxt;
+logic        show_start;
 logic        show_end_turn;
 
 logic [10:0] s0_vcount;
@@ -420,6 +421,7 @@ font_rom u_font_rom (
 );
 
 always_comb begin
+    show_start = (s0_game_state == S_SELECT_SECRET);
     show_end_turn = (s0_game_state == S_MY_TURN);
 
     text_active_nxt = 1'b0;
@@ -591,7 +593,7 @@ always_comb begin
     endcase
 
     if (!text_active_nxt) begin
-        if (!show_end_turn && inside_text(s0_hcount, s0_vcount, START_TEXT_X, START_TEXT_Y, 5)) begin
+        if (show_start && inside_text(s0_hcount, s0_vcount, START_TEXT_X, START_TEXT_Y, 5)) begin
             text_active_nxt = 1'b1;
             text_id_nxt = TEXT_START;
             text_x_nxt = START_TEXT_X;

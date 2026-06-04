@@ -36,6 +36,16 @@ function print_available_tests {
         -printf '%f\n' | sort
 }
 
+function print_auto_tests {
+    local test
+
+    while IFS= read -r test; do
+        if [[ ! -f "${test}/.manual" ]]; then
+            echo "${test}"
+        fi
+    done < <(print_available_tests)
+}
+
 function list_available_tests {
     print_available_tests
     exit 0
@@ -98,7 +108,7 @@ function run_all {
             echo -e "\033[1;31m FAILED\033[0;39m"
             failed=1
         fi
-    done < <(print_available_tests)
+    done < <(print_auto_tests)
     exit "${failed}"
 }
 

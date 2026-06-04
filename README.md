@@ -65,6 +65,19 @@ Uruchomienie pojedynczego testu:
 run_simulation.sh -t <nazwa_testu>
 ```
 
+Wizualizacja wyglądu ekranu dla kolejnych stanów maszyny stanów gry:
+
+```sh
+run_simulation.sh -t fsm_state_frames
+```
+
+Ten test generuje po jednej klatce `.tif` dla każdego stanu FSM w katalogu
+`results/`, jako pliki `fsm_state_000.tif` ... `fsm_state_013.tif`. Plik
+`results/fsm_state_frames.txt` opisuje, który numer klatki odpowiada któremu
+stanowi. Test jest uruchamiany ręcznie i jest pomijany przez `run_simulation.sh -a`,
+żeby standardowy zestaw symulacji nie generował dużych obrazów przy każdym
+uruchomieniu.
+
 Wyniki, logi i obrazy generowane przez testy VGA trafiają do katalogu
 `results/`.
 

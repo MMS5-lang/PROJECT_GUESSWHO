@@ -17,7 +17,9 @@
 module tiff_writer #(
         parameter XDIM = 16'd1344,
         parameter YDIM = 16'd806,
-        parameter FILE_DIR = "../../results"
+        parameter FILE_DIR = "../../results",
+        parameter FILE_PREFIX = "frame",
+        parameter int MAX_FRAMES = 0
     ) (
         input logic       clk,
         input logic [7:0] r,
@@ -51,7 +53,7 @@ module tiff_writer #(
         input integer number;
         string file_name;
 
-        file_name = $sformatf("%s/frame%03d.tif", FILE_DIR, number);
+        file_name = $sformatf("%s/%s%03d.tif", FILE_DIR, FILE_PREFIX, number);
         file_ptr  = $fopen(file_name, "wb");
         file_open = 1;
     endtask
@@ -395,9 +397,11 @@ module tiff_writer #(
     end
 
     always @(posedge go_delayed) begin
-        open_file(frame_number);
-        write_header(xdim, ydim);
-        $display("Info: tiff_writer started frame %d",frame_number);
+        if ((MAX_FRAMES == 0) || (frame_number < MAX_FRAMES)) begin
+            open_file(frame_number);
+            write_header(xdim, ydim);
+            $display("Info: tiff_writer started frame %d",frame_number);
+        end
     end
 
     always @(posedge go) begin

@@ -37,8 +37,6 @@
     logic [11:0] traits;
     
     game_state_t ui_state;
-    logic ui_local_ready;
-    logic ui_remote_ready;
     
     game_state_t board_state;
     logic [CHAR_COUNT-1:0] board_eliminated_mask;
@@ -90,8 +88,6 @@
         .clk,
         .rst_n,
         .game_state   (ui_state),
-        .local_ready  (ui_local_ready),
-        .remote_ready (ui_remote_ready),
         .in           (ui_in.in),
         .out          (ui_out.out)
     );
@@ -146,6 +142,34 @@
     begin
         @(posedge clk);
         #1;
+    end
+    endtask
+
+    task automatic expect_no_text_pixels(
+        input game_state_t state,
+        input int x0,
+        input int y0,
+        input int len,
+        input logic [11:0] color,
+        input string label
+    );
+        int x;
+        int y;
+        bit found;
+    begin
+        text_state = state;
+        found = 1'b0;
+
+        for (y = 0; y < 14; y += 2) begin
+            for (x = 0; x < len * 12; x += 2) begin
+                drive_text(x0 + x, y0 + y, 12'h1_2_3, 1'b0, 1'b0);
+                if (text_out.rgb == color) begin
+                    found = 1'b1;
+                end
+            end
+        end
+
+        assert (!found) else $error("%s text should not be visible", label);
     end
     endtask
     
@@ -278,8 +302,6 @@
     initial begin
         rst_n = 1'b0;
         ui_state = S_SELECT_SECRET;
-        ui_local_ready = 1'b0;
-        ui_remote_ready = 1'b0;
         board_state = S_SELECT_SECRET;
         board_eliminated_mask = '0;
         board_selected_id = '0;
@@ -356,9 +378,14 @@
         ui_state = S_LOCAL_READY;
         drive_ui(PANEL_X + 10, PANEL_Y + 10, 12'h1_2_3, 1'b0, 1'b0);
         assert (ui_out.rgb == COLOR_WHITE) else $error("Panel should stay white");
+        drive_ui(START_X + 2, START_Y + 2, 12'h1_2_3, 1'b0, 1'b0);
+        assert (ui_out.rgb == 12'h1_2_3) else $error("START button area should be empty after selection");
         ui_state = S_MY_TURN;
         drive_ui(START_X + 2, START_Y + 2, 12'h1_2_3, 1'b0, 1'b0);
         assert (ui_out.rgb == COLOR_BLUE) else $error("End-turn button should be blue");
+        ui_state = S_OPPONENT_TURN;
+        drive_ui(START_X + 2, START_Y + 2, 12'h1_2_3, 1'b0, 1'b0);
+        assert (ui_out.rgb == 12'h1_2_3) else $error("Action button area should be empty during opponent turn");
     
         // ==========================================
         // NOWE TESTY BOARD RENDERER (Pipelined)
@@ -407,6 +434,8 @@
         expect_text_pixels(S_SELECT_SECRET, START_X + 20, START_Y + 18, 5, COLOR_WHITE, "START");
         expect_text_pixels(S_MY_TURN, START_X + 14, START_Y + 8, 6, COLOR_WHITE, "KONIEC");
         expect_text_pixels(S_MY_TURN, START_X + 26, START_Y + 28, 4, COLOR_WHITE, "TURY");
+        expect_no_text_pixels(S_OPPONENT_TURN, START_X + 20, START_Y + 18, 5, COLOR_WHITE, "START during opponent turn");
+        expect_no_text_pixels(S_LOCAL_READY, START_X + 20, START_Y + 18, 5, COLOR_WHITE, "START after selection");
         expect_text_pixels(S_WAIT_LINK, PANEL_X + ((CELL_W - 6 * 12) / 2),
                            PANEL_Y + CELL_H + 8, 6, COLOR_BLACK, "CZEKAM");
         expect_text_pixels(S_SELECT_SECRET, PANEL_X + ((CELL_W - 7 * 12) / 2),

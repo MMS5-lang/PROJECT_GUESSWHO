@@ -4,7 +4,7 @@
  * Author: Miłosz M. Karolina M.
  *
  * Description:
- * Warstwa UI: przyciski START, RESET oraz panel wybranej postaci.
+ * Warstwa UI: przycisk akcji, RESET oraz panel wybranej postaci.
  */
 
 module ui_renderer
@@ -15,8 +15,6 @@ import guess_who_pkg::*;
     input  logic rst_n,
     vga_if.out   out,
     input  game_state_t game_state,
-    input  logic local_ready,
-    input  logic remote_ready,
     vga_if.in    in
 );
 
@@ -28,11 +26,11 @@ localparam logic [11:0] COLOR_GREEN       = 12'h1_b_5;
 localparam logic [11:0] COLOR_BLUE        = 12'h1_4_f;
 localparam logic [11:0] COLOR_RED         = 12'hd_0_0;
 localparam logic [11:0] COLOR_DISABLED    = 12'h6_6_6;
-localparam logic [11:0] COLOR_WAITING     = 12'hd_8_1;
 
 logic [11:0] rgb_nxt;
-logic [11:0] start_btn_color;
-logic is_start_btn;
+logic [11:0] action_btn_color;
+logic show_action_btn;
+logic is_action_btn;
 logic is_reset_btn;
 logic is_panel;
 
@@ -57,42 +55,25 @@ always_ff @(posedge clk or negedge rst_n) begin
 end
 
 always_comb begin
-    start_btn_color = COLOR_DISABLED;
+    action_btn_color = COLOR_DISABLED;
+    show_action_btn = 1'b0;
 
     case (game_state)
-        S_WAIT_LINK: begin
-            start_btn_color = COLOR_GREEN;
-        end
         S_SELECT_SECRET: begin
-            start_btn_color = COLOR_GREEN;
-        end
-        S_LOCAL_READY: begin
-            start_btn_color = (local_ready && remote_ready) ? COLOR_BLUE : COLOR_WAITING;
-        end
-        S_GAME_START: begin
-            start_btn_color = COLOR_BLUE;
+            action_btn_color = COLOR_GREEN;
+            show_action_btn = 1'b1;
         end
         S_MY_TURN: begin
-            start_btn_color = COLOR_BLUE;
-        end
-        S_OPPONENT_TURN: begin
-            start_btn_color = COLOR_DISABLED;
-        end
-        S_WAIT_GUESS_RESULT, S_FINAL_CHECK, S_WRONG_GUESS_FEEDBACK: begin
-            start_btn_color = COLOR_WAITING;
-        end
-        S_WIN: begin
-            start_btn_color = COLOR_BLUE;
-        end
-        S_LOSE: begin
-            start_btn_color = COLOR_DISABLED;
+            action_btn_color = COLOR_BLUE;
+            show_action_btn = 1'b1;
         end
         default: begin
-            start_btn_color = COLOR_DISABLED;
+            action_btn_color = COLOR_DISABLED;
+            show_action_btn = 1'b0;
         end
     endcase
 
-    is_start_btn = (in.hcount >= START_X) &&
+    is_action_btn = (in.hcount >= START_X) &&
                    (in.hcount < START_X + BUTTON_W) &&
                    (in.vcount >= START_Y) &&
                    (in.vcount < START_Y + BUTTON_H);
@@ -109,8 +90,8 @@ always_comb begin
 
     if (in.vblnk || in.hblnk) begin
         rgb_nxt = 12'h0_0_0;
-    end else if (is_start_btn) begin
-        rgb_nxt = start_btn_color;
+    end else if (show_action_btn && is_action_btn) begin
+        rgb_nxt = action_btn_color;
     end else if (is_reset_btn) begin
         rgb_nxt = COLOR_RED;
     end else if (is_panel) begin

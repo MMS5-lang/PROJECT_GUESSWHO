@@ -1,0 +1,21 @@
+# Copyright (C) 2025  AGH University of Science and Technology
+# MTM UEC2
+#
+# Description:
+# Visual frame generation for every game FSM state.
+
+sv work ../../rtl/vga/vga_pkg.sv
+sv work ../../rtl/game/guess_who_pkg.sv
+sv work ../../rtl/vga/vga_if.sv
+sv work ../../rtl/vga/vga_timing.sv
+sv work ../../rtl/render/draw_bg.sv
+sv work ../../rtl/render/ui_renderer.sv
+sv work ../../rtl/render/face_traits_rom.sv
+sv work ../../rtl/render/face_renderer.sv
+sv work ../../rtl/render/mouth_renderer.sv
+sv work ../../rtl/render/board_renderer.sv
+sv work ../../rtl/text/font_rom.sv
+sv work ../../rtl/text/text_renderer.sv
+sv work ../../rtl/mouse/draw_mouse.sv
+sv work ../common/tiff_writer.sv
+sv work fsm_state_frames_tb.sv

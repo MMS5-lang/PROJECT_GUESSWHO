@@ -22,6 +22,7 @@ timeprecision 1ps;
 
 logic mouse_over_board;
 logic mouse_over_start_btn;
+logic mouse_over_action_btn;
 logic mouse_over_reset_btn;
 
 assign mouse_over_board = (mouse_x >= vga_pkg::BOARD_X) &&
@@ -39,7 +40,10 @@ assign mouse_over_reset_btn = (mouse_x >= vga_pkg::RESET_X) &&
                               (mouse_y >= vga_pkg::RESET_Y) &&
                               (mouse_y < vga_pkg::RESET_Y + vga_pkg::BUTTON_H);
 
-assign mouse_over_hitbox = mouse_over_board || mouse_over_start_btn || mouse_over_reset_btn;
+assign mouse_over_action_btn = mouse_over_start_btn &&
+                               ((game_state == S_SELECT_SECRET) || (game_state == S_MY_TURN));
+
+assign mouse_over_hitbox = mouse_over_board || mouse_over_action_btn || mouse_over_reset_btn;
 
 always_comb begin
     cursor_mode = CURSOR_POINTER;
