@@ -85,8 +85,10 @@
     logic [10:0] cell_x_s0, cell_y_s0;
     logic [2:0] col_s0;
     logic [1:0] row_s0;
+    logic in_board_s0, in_panel_s0;
     logic [CHAR_ID_W-1:0] char_idx_s0;
-    logic valid_char_s0;
+    logic valid_board_char_s0;
+    logic draw_mouth_s0;
     logic in_mouth_area_s0;
     logic [8:0] mouth_addr_s0;
 
@@ -98,20 +100,28 @@
         col_s0 = 3'd0;
         row_s0 = 2'd0;
         char_idx_s0 = '0;
+        in_board_s0 = (s0_hcount >= BOARD_X) && (s0_hcount < BOARD_X + BOARD_W) &&
+                      (s0_vcount >= BOARD_Y) && (s0_vcount < BOARD_Y + BOARD_H);
+        in_panel_s0 = (s0_hcount >= PANEL_X) && (s0_hcount < PANEL_X + CELL_W) &&
+                      (s0_vcount >= PANEL_Y) && (s0_vcount < PANEL_Y + CELL_H);
 
-        if ((s0_hcount >= BOARD_X) && (s0_hcount < BOARD_X + BOARD_W) &&
-            (s0_vcount >= BOARD_Y) && (s0_vcount < BOARD_Y + BOARD_H)) begin
+        if (in_board_s0) begin
             col_s0 = board_col(off_x_s0);
             row_s0 = board_row(off_y_s0);
             cell_x_s0 = board_cell_x(off_x_s0, col_s0);
             cell_y_s0 = board_cell_y(off_y_s0, row_s0);
             char_idx_s0 = board_char_idx(row_s0, col_s0);
+        end else if (in_panel_s0 && s0_has_secret && (s0_selected_id < CHAR_COUNT)) begin
+            cell_x_s0 = s0_hcount - PANEL_X;
+            cell_y_s0 = s0_vcount - PANEL_Y;
+            char_idx_s0 = s0_selected_id;
         end
 
-        valid_char_s0 = ((s0_hcount >= BOARD_X) && (s0_hcount < BOARD_X + BOARD_W) &&
-                         (s0_vcount >= BOARD_Y) && (s0_vcount < BOARD_Y + BOARD_H)) && (char_idx_s0 < CHAR_COUNT);
+        valid_board_char_s0 = in_board_s0 && (char_idx_s0 < CHAR_COUNT);
+        draw_mouth_s0 = valid_board_char_s0 ||
+                        (in_panel_s0 && s0_has_secret && (s0_selected_id < CHAR_COUNT));
 
-        in_mouth_area_s0 = valid_char_s0 && (cell_x_s0 >= MOUTH_X) && (cell_x_s0 < MOUTH_X + MOUTH_W) &&
+        in_mouth_area_s0 = draw_mouth_s0 && (cell_x_s0 >= MOUTH_X) && (cell_x_s0 < MOUTH_X + MOUTH_W) &&
                                              (cell_y_s0 >= MOUTH_Y) && (cell_y_s0 < MOUTH_Y + MOUTH_H);
 
         mouth_addr_s0 = ((cell_y_s0 - MOUTH_Y) << 4) + ((cell_y_s0 - MOUTH_Y) << 3) + ((cell_y_s0 - MOUTH_Y) << 1) + (cell_x_s0 - MOUTH_X);
@@ -128,7 +138,8 @@
     logic s1_has_secret;
     logic [10:0] s1_cell_x, s1_cell_y;
     logic [CHAR_ID_W-1:0] s1_char_idx;
-    logic s1_valid_char;
+    logic s1_valid_board_char;
+    logic s1_draw_mouth;
     logic s1_in_mouth_area;
     logic [8:0] s1_mouth_addr;
 
@@ -137,16 +148,16 @@
             s1_hcount <= '0; s1_vcount <= '0; s1_vsync <= '0; s1_vblnk <= '0;
             s1_hsync <= '0; s1_hblnk <= '0; s1_rgb <= '0; s1_game_state <= S_SELECT_SECRET;
             s1_eliminated_mask <= '0; s1_selected_id <= '0; s1_last_guess_id <= '0; s1_has_secret <= '0;
-            s1_cell_x <= '0; s1_cell_y <= '0; s1_char_idx <= '0; s1_valid_char <= '0;
-            s1_in_mouth_area <= '0; s1_mouth_addr <= '0;
+            s1_cell_x <= '0; s1_cell_y <= '0; s1_char_idx <= '0; s1_valid_board_char <= '0;
+            s1_draw_mouth <= '0; s1_in_mouth_area <= '0; s1_mouth_addr <= '0;
         end else begin
             s1_hcount <= s0_hcount; s1_vcount <= s0_vcount; s1_vsync <= s0_vsync; s1_vblnk <= s0_vblnk;
             s1_hsync <= s0_hsync; s1_hblnk <= s0_hblnk; s1_rgb <= s0_rgb; s1_game_state <= s0_game_state;
             s1_eliminated_mask <= s0_eliminated_mask; s1_selected_id <= s0_selected_id;
             s1_last_guess_id <= s0_last_guess_id; s1_has_secret <= s0_has_secret;
             s1_cell_x <= cell_x_s0; s1_cell_y <= cell_y_s0; s1_char_idx <= char_idx_s0;
-            s1_valid_char <= valid_char_s0; s1_in_mouth_area <= in_mouth_area_s0;
-            s1_mouth_addr <= mouth_addr_s0;
+            s1_valid_board_char <= valid_board_char_s0; s1_draw_mouth <= draw_mouth_s0;
+            s1_in_mouth_area <= in_mouth_area_s0; s1_mouth_addr <= mouth_addr_s0;
         end
     end
 
@@ -171,17 +182,21 @@
         in_panel_s1 = (s1_hcount >= PANEL_X) && (s1_hcount < PANEL_X + CELL_W) &&
                       (s1_vcount >= PANEL_Y) && (s1_vcount < PANEL_Y + CELL_H);
 
-        is_cell_border_s1 = s1_valid_char && ((s1_cell_x < 5) || (s1_cell_x >= CELL_W - 5) || (s1_cell_y < 5) || (s1_cell_y >= CELL_H - 5));
+        is_cell_border_s1 = s1_valid_board_char && ((s1_cell_x < 5) || (s1_cell_x >= CELL_W - 5) ||
+                                                    (s1_cell_y < 5) || (s1_cell_y >= CELL_H - 5));
         is_panel_border_s1 = in_panel_s1 && ((s1_hcount < PANEL_X + 5) || (s1_hcount >= PANEL_X + CELL_W - 5) ||
                                              (s1_vcount < PANEL_Y + 5) || (s1_vcount >= PANEL_Y + CELL_H - 5));
 
-        is_elimination_mark_s1 = s1_valid_char && s1_eliminated_mask[s1_char_idx] &&
+        is_elimination_mark_s1 = s1_valid_board_char && s1_eliminated_mask[s1_char_idx] &&
             !(s1_game_state == S_WRONG_GUESS_FEEDBACK && s1_char_idx == s1_last_guess_id) &&
             (s1_cell_x >= 1) && (s1_cell_x < CELL_W) && (s1_cell_y >= 3) && (s1_cell_y < CELL_H);
 
-        is_selected_mark_s1 = s1_valid_char && s1_has_secret && (s1_game_state == S_SELECT_SECRET) && (s1_char_idx == s1_selected_id) && is_cell_border_s1;
-        is_last_guess_mark_s1 = s1_valid_char && (s1_char_idx == s1_last_guess_id) && (s1_game_state == S_WRONG_GUESS_FEEDBACK) && is_cell_border_s1;
-        is_wrong_guess_bg_s1 = s1_valid_char && (s1_char_idx == s1_last_guess_id) && (s1_game_state == S_WRONG_GUESS_FEEDBACK) && !is_cell_border_s1;
+        is_selected_mark_s1 = s1_valid_board_char && s1_has_secret && (s1_game_state == S_SELECT_SECRET) &&
+            (s1_char_idx == s1_selected_id) && is_cell_border_s1;
+        is_last_guess_mark_s1 = s1_valid_board_char && (s1_char_idx == s1_last_guess_id) &&
+            (s1_game_state == S_WRONG_GUESS_FEEDBACK) && is_cell_border_s1;
+        is_wrong_guess_bg_s1 = s1_valid_board_char && (s1_char_idx == s1_last_guess_id) &&
+            (s1_game_state == S_WRONG_GUESS_FEEDBACK) && !is_cell_border_s1;
 
         in_q_mark_area_s1 = is_elimination_mark_s1 && (s1_cell_x >= 40) && (s1_cell_x < 104) && (s1_cell_y >= 52) && (s1_cell_y < 148);
 
@@ -193,7 +208,8 @@
             q_x_s1 = '0; q_y_s1 = '0; q_pixel_on_s1 = 1'b0;
         end
 
-        char_is_sad_s1 = s1_valid_char && (s1_eliminated_mask[s1_char_idx] || (s1_game_state == S_WRONG_GUESS_FEEDBACK && s1_char_idx == s1_last_guess_id));
+        char_is_sad_s1 = s1_draw_mouth && (s1_eliminated_mask[s1_char_idx] ||
+            (s1_game_state == S_WRONG_GUESS_FEEDBACK && s1_char_idx == s1_last_guess_id));
     end
 
     // Stage 2 Pipeline Registers
@@ -203,7 +219,7 @@
     game_state_t s2_game_state;
     logic s2_is_panel_border, s2_is_elimination_mark;
     logic s2_is_selected_mark, s2_is_last_guess_mark, s2_is_wrong_guess_bg;
-    logic s2_q_pixel_on, s2_has_secret, s2_in_mouth_area, s2_char_is_sad;
+    logic s2_q_pixel_on, s2_has_secret, s2_draw_mouth, s2_in_mouth_area, s2_char_is_sad;
 
     always_ff @(posedge clk) begin
         if (!rst_n) begin
@@ -212,7 +228,7 @@
             s2_game_state <= S_SELECT_SECRET; s2_is_panel_border <= '0;
             s2_is_elimination_mark <= '0; s2_is_selected_mark <= '0; s2_is_last_guess_mark <= '0;
             s2_is_wrong_guess_bg <= '0; s2_q_pixel_on <= '0; s2_has_secret <= '0;
-            s2_in_mouth_area <= '0; s2_char_is_sad <= '0;
+            s2_draw_mouth <= '0; s2_in_mouth_area <= '0; s2_char_is_sad <= '0;
         end else begin
             s2_hcount <= s1_hcount; s2_vcount <= s1_vcount;
             s2_vsync <= s1_vsync; s2_vblnk <= s1_vblnk; s2_hsync <= s1_hsync; s2_hblnk <= s1_hblnk; s2_rgb <= s1_rgb;
@@ -224,6 +240,7 @@
             s2_is_wrong_guess_bg <= is_wrong_guess_bg_s1;
             s2_q_pixel_on <= q_pixel_on_s1;
             s2_has_secret <= s1_has_secret;
+            s2_draw_mouth <= s1_draw_mouth;
             s2_in_mouth_area <= s1_in_mouth_area;
             s2_char_is_sad <= char_is_sad_s1;
         end
@@ -238,13 +255,15 @@
         base_rgb = s2_rgb;
         active_mouth_color = s2_char_is_sad ? mouth_rgb_sad : mouth_rgb_happy;
 
-        if (s2_in_mouth_area && active_mouth_color != COLOR_TRANSPARENT) begin
+        if (s2_draw_mouth && s2_in_mouth_area && active_mouth_color != COLOR_TRANSPARENT) begin
             base_rgb = active_mouth_color;
         end
         if (s2_vblnk || s2_hblnk) begin
             rgb_nxt = COLOR_BLACK;
         end else if (s2_is_last_guess_mark) begin
             rgb_nxt = COLOR_RED;
+        // end else if (s2_draw_mouth && s2_in_mouth_area && active_mouth_color != COLOR_TRANSPARENT) begin
+            // rgb_nxt = active_mouth_color;
         end else if (s2_is_wrong_guess_bg) begin
             rgb_nxt = {1'b1, base_rgb[11:9], 1'b0, base_rgb[7:5], 1'b0, base_rgb[3:1]};
         end else if (s2_is_elimination_mark) begin

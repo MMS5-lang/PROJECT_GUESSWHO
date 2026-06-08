@@ -60,6 +60,7 @@ set mem_files {
     ../rtl/assets/cursors/pointer_b.dat
     ../rtl/assets/cursors/pointer_toon_b.dat
     ../rtl/assets/cursors/busy_hourglass_outline_detail.dat
+    ../rtl/assets/bg/Q_mark.dat
 }
 
 set verilog_files {

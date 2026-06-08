@@ -6,7 +6,7 @@
  * Visual testbench that writes one TIFF frame for every game FSM state.
  */
 
-module fsm_state_frames_tb;
+ module fsm_state_frames_tb;
 
     timeunit 1ns;
     timeprecision 1ps;
@@ -48,7 +48,6 @@ module fsm_state_frames_tb;
     vga_if if_text ();
     vga_if if_mouse ();
 
-    assign if_tim.rgb = 12'h9_a_b;
     assign vs = if_mouse.vsync;
     assign hs = if_mouse.hsync;
     assign {r, g, b} = if_mouse.rgb;
@@ -217,6 +216,7 @@ module fsm_state_frames_tb;
     draw_bg u_draw_bg (
         .clk,
         .rst_n,
+        .sw0 (1'b0),
         .in  (if_tim.in),
         .out (if_bg.out)
     );

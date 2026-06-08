@@ -77,7 +77,7 @@ module top_vga_tb;
         .clk_100mhz (clk_100mhz),
         .rst_n      (rst_n),
         .rst_100mhz_n (rst_n),
-        .player_id  (1'b0),
+        .player_id      (1'b0),
         .pmod_uart_rx (1'b1),
         .ps2_clk    (ps2_clk),
         .ps2_data   (ps2_data),
@@ -115,51 +115,35 @@ module top_vga_tb;
      * Main test - SYMULACJA Z LOGIKĄ GRY I WIRTUALNĄ MYSZKĄ
      */
     initial begin
-        $display("Rozpoczynam test przyciemniania z pelna logika gry...");
+        $display("Rozpoczynam test z pelna logika gry...");
        
-        // 1. Reset układu i wymuszenie startowych wartości myszki
         rst_n = 1'b0;
         capture_enabled = 1'b0;
         force dut.mouse_xpos = 12'd0;
         force dut.mouse_ypos = 12'd0;
         force dut.left_click_pulse = 1'b0;
         force dut.right_click_pulse = 1'b0;
+
+        //force dut.u_draw_bg.sw0 = 1'b1;
         #200;
         rst_n = 1'b1;
         #1000;
  
-        // 2. Wskakujemy do stanu "Moja Tura"
-        // Używamy słowa S_MY_TURN z pakietu zamiast liczby, co ucieszy edytor DVT!
         force dut.u_game_core.state = S_MY_TURN;
         #20;
         release dut.u_game_core.state;
         #1000;
  
-        // 3. WIRTUALNY RUCH MYSZKĄ:
-        // Przesuwamy kursor na drugą postać w górnym rzędzie
         force dut.mouse_xpos = 12'd250;
         force dut.mouse_ypos = 12'd100;
         #500;
  
-        // 4. SYMULACJA KLIKNIĘCIA PPM (Eliminacja postaci):
         $display("Klikam lewym przyciskiem myszy...");
-        force dut.left_click_pulse = 1'b1;
+        force dut.right_click_pulse = 1'b1;
         #50;
-        force dut.left_click_pulse = 1'b0;
- // Gra wchodzi w stan oczekiwania (S_WAIT_GUESS_RESULT). Czekamy chwilkę:
+        force dut.right_click_pulse = 1'b0;
+ 
         #1000;
- 
-        // 5. SYMULUJEMY DRUGĄ PŁYTKĘ: Odpowiadamy, że gracz nie zgadł!
-        $display("Symuluje odpowiedz z UART: PUDLO!");
-        force dut.guess_result_valid = 1'b1;    // Przyszła odpowiedź
-        force dut.guess_result_correct = 1'b0;  // 0 = Źle zgadłeś (pudło)
-        #50;
-        force dut.guess_result_valid = 1'b0;    // Opuszczamy flagę
- 
-        // Gra w tym momencie wchodzi w stan S_WRONG_GUESS_FEEDBACK
-        // Twój board_renderer powinien nałożyć czerwoną ramkę błędu.
- 
-        // 5. Czekamy na tiff_writer
         $display("Czekam na trzy pelne klatki VGA...");
         wait_until_sync_low();
         capture_enabled = 1'b1;

@@ -12,7 +12,7 @@
  * Testbench for top_fpga.
  */
 
-module top_fpga_tb;
+ module top_fpga_tb;
 
     timeunit 1ns;
     timeprecision 1ps;

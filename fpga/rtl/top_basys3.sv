@@ -12,7 +12,7 @@
  * Top level synthesizable module including the project top and all the FPGA-referred modules.
  */
 
-module top_basys3 #(
+ module top_basys3 #(
     parameter int RESET_DEBOUNCE_COUNTER_BITS = 21
 ) (
     input  wire clk,
@@ -121,7 +121,7 @@ top_vga u_top_vga (
     .clk_100mhz (clk_100mhz),
     .rst_n      (rst_65mhz_n),
     .rst_100mhz_n (rst_100mhz_n),
-    .player_id  (sw[0]),
+    .player_id      (sw[0]),
     .pmod_uart_rx (JA3),
     .ps2_clk    (PS2Clk),
     .ps2_data   (PS2Data),

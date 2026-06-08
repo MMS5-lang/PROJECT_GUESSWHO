@@ -4,8 +4,8 @@ module mouth_rom (
     output logic [11:0] rgb_happy,
     output logic [11:0] rgb_sad
 );
-    logic [11:0] rom_happy [0:259];
-    logic [11:0] rom_sad [0:259];
+    (* rom_style = "block" *) logic [11:0] rom_happy [0:259];
+    (* rom_style = "block" *) logic [11:0] rom_sad [0:259];
 
     initial begin
         $readmemh("../../rtl/assets/faces/mouth_happy.dat", rom_happy);
