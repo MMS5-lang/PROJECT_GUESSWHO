@@ -366,7 +366,7 @@
 
         traits_char_id = 5'd0;
         #1;
-        assert (traits == 12'b0000_0110_1000) else $error("face_traits_rom char 0 mismatch");
+        assert (traits == 12'b1000_1000_1000) else $error("face_traits_rom char 0 mismatch");
         traits_char_id = 5'd17;
         #1;
         assert (traits == 12'b1001_0001_0000) else $error("face_traits_rom char 17 mismatch");

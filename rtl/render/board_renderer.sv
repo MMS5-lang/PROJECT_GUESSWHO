@@ -6,7 +6,7 @@
  * Description:
  * Pipelined Overlay renderer for selection, elimination, guess feedback,
  * and dynamic mouth expressions.
- * Heavily pipelined to completely isolate constant dividers from inter-module paths.
+ * Pipelined to completely isolate constant dividers from inter-module paths.
  */
 
  module board_renderer
@@ -262,8 +262,6 @@
             rgb_nxt = COLOR_BLACK;
         end else if (s2_is_last_guess_mark) begin
             rgb_nxt = COLOR_RED;
-        // end else if (s2_draw_mouth && s2_in_mouth_area && active_mouth_color != COLOR_TRANSPARENT) begin
-            // rgb_nxt = active_mouth_color;
         end else if (s2_is_wrong_guess_bg) begin
             rgb_nxt = {1'b1, base_rgb[11:9], 1'b0, base_rgb[7:5], 1'b0, base_rgb[3:1]};
         end else if (s2_is_elimination_mark) begin

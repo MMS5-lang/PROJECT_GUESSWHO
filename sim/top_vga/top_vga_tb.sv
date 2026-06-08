@@ -36,8 +36,6 @@ module top_vga_tb;
     tri1  ps2_clk;
     tri1  ps2_data;
    
-    // Edytor DVT będzie ostrzegał, że te sygnały nie są czytane - zignoruj to.
-    // W testbenchu to normalne, że podłączamy wyjścia, ale nie zawsze ich używamy.
     wire  vs;
     wire  hs;
     wire [3:0] r;
@@ -111,49 +109,96 @@ module top_vga_tb;
     end
     endtask
  
-    /**
-     * Main test - SYMULACJA Z LOGIKĄ GRY I WIRTUALNĄ MYSZKĄ
+/**
+     * Main test - TESTOWANIE WIZUALNE POJEDYNCZYCH STANÓW FSM
      */
     initial begin
-        $display("Rozpoczynam test z pelna logika gry...");
+        $display("Rozpoczynam test renderowania stanow...");
        
+        // 1. Inicjalizacja i Reset
         rst_n = 1'b0;
         capture_enabled = 1'b0;
-        force dut.mouse_xpos = 12'd0;
-        force dut.mouse_ypos = 12'd0;
+        force dut.mouse_xpos = 12'd400; 
+        force dut.mouse_ypos = 12'd300;
         force dut.left_click_pulse = 1'b0;
         force dut.right_click_pulse = 1'b0;
+        
 
-        //force dut.u_draw_bg.sw0 = 1'b1;
+        //force dut.u_draw_bg.sw0 = 1'b1; 
+        
         #200;
         rst_n = 1'b1;
         #1000;
  
+        // =============================================================
+        // MIEJSCE NA TESTOWANY STAN 
+        // =============================================================
+        
+        // Opcja A: Ekran WYGRANEJ (Zwycięstwo)
+        //force dut.u_game_core.state = S_WIN;
+
+        // Opcja B: Ekran PRZEGRANEJ (Porażka)
+        //force dut.u_game_core.state = S_LOSE;
+
+        // Opcja C: Ruch Przeciwnika (Oczekiwanie)
+        //force dut.u_game_core.state = S_OPPONENT_TURN;
+
+        // Opcja D: Błąd połączenia UART
+        //force dut.u_game_core.state = S_COMM_ERROR;
+
+        // Opcja E: Ekran oczekiwania na przeciwnika przed startem
+        //force dut.u_game_core.state = S_LOCAL_READY;
+
+        // Opcja F: Własna tura (Możliwość strzelania)
+         force dut.u_game_core.state = S_MY_TURN;
+    
+        /*
+        // --- SCENARIUSZ 1: Wybrana postać w okienku UI ---
+        // Symulujemy środek gry (nasza tura), postać o ID = 4.
+    
         force dut.u_game_core.state = S_MY_TURN;
-        #20;
-        release dut.u_game_core.state;
-        #1000;
- 
-        force dut.mouse_xpos = 12'd250;
-        force dut.mouse_ypos = 12'd100;
-        #500;
- 
-        $display("Klikam lewym przyciskiem myszy...");
-        force dut.right_click_pulse = 1'b1;
-        #50;
-        force dut.right_click_pulse = 1'b0;
- 
-        #1000;
-        $display("Czekam na trzy pelne klatki VGA...");
+        force dut.u_game_core.local_secret_id = 5'd4; 
+        force dut.u_game_core.selected_id = 5'd4;
+        force dut.u_game_core.has_secret = 1'b1;
+        */
+
+
+       /*
+        // --- SCENARIUSZ 2: Wyeliminowana połowa planszy (Niebieskie maski) ---
+        // Ustawiamy maskę eliminacji. Każda '1' to wyeliminowana postać (przyciemniona).
+        force dut.u_game_core.state = S_MY_TURN;
+        force dut.u_game_core.local_secret_id = 5'd10; // Jakaś nasza postać
+        force dut.u_game_core.has_secret = 1'b1;
+        force dut.u_game_core.eliminated_mask = 18'b11_0000_0000_0000_1111; 
+       */
+      /*
+        // --- SCENARIUSZ 3: Najechanie myszką na postać (Obrys/Hover) ---
+        // Ustawiamy naszą turę i teleportujemy myszkę nad pierwszą kartę na planszy 
+        force dut.u_game_core.state = S_MY_TURN;
+        
+        // Zmień te współrzędne X i Y, aby trafić w środek jakiejś karty na planszy
+        // (zakładam, że pierwsza karta jest gdzieś w okolicach X=100, Y=150)
+        force dut.mouse_xpos = 12'd100; 
+        force dut.mouse_ypos = 12'd150; 
+        */
+
+
+        // --- SCENARIUSZ 4: Zaznaczony ostatni strzał (Czerwona maska) ---
+        // Pokazujemy stan "WRONG_GUESS_FEEDBACK", czyli gracz strzelał i nie trafił.
+        // Karta o ID = 7 powinna zaświecić się na czerwono.
+        force dut.u_game_core.state = S_WRONG_GUESS_FEEDBACK;
+        force dut.u_game_core.last_guess_id = 5'd7; 
+     
+        $display("Czekam na pelne klatki VGA...");
         wait_until_sync_low();
         capture_enabled = 1'b1;
-        repeat (4) begin
+        
+        repeat (2) begin
             @(posedge capture_vs);
         end
         capture_enabled = 1'b0;
 
-        $display("Gotowe! Sprawdz folder results/");
+        $display("Gotowe! Sprawdz folder results/ (pliki .tif)");
         $finish;
     end
-
 endmodule

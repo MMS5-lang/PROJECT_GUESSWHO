@@ -64,7 +64,7 @@
     localparam int BEARD_W = 70;
     localparam int BEARD_H = 54;
     localparam int BEARD_X_OFF = 33;
-    localparam int BEARD_Y_OFF = 134;
+    localparam int BEARD_Y_OFF = 132;
     localparam int BEARD_PIXELS = BEARD_W * BEARD_H;
     localparam int BEARD_ADDR_W = $clog2(BEARD_PIXELS);
 
