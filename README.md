@@ -23,7 +23,7 @@ Celem projektu jest sprzętowa implementacja rozgrywki dwuosobowej:
 | `fpga/` | Pliki specyficzne dla Basys 3, constraints i konfiguracja projektu Vivado |
 | `sim/` | Testbenche SystemVerilog i pliki `.prj` dla symulacji |
 | `tools/` | Skrypty uruchamiania symulacji, bitstreamu, programowania FPGA i raportów |
-| `assets/` | Dane ROM używane przez renderery, między innymi kursory i elementy postaci |
+| `rtl/assets/` | Dane ROM używane przez renderery, między innymi kursory i elementy postaci |
 | `results/` | Wyniki generowane przez symulacje, raporty i skrypty pomocnicze |
 
 ## Najważniejsze dokumenty
@@ -124,4 +124,4 @@ clean.sh
 ```
 
 Nie należy usuwać ręcznie plików źródłowych z `rtl/`, `fpga/`, `sim/`,
-`assets/` ani dokumentacji projektu.
+`rtl/assets/` ani dokumentacji projektu.

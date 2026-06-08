@@ -194,13 +194,14 @@ na której kolejne warstwy rysują postacie, zaznaczenia i tekst.
 
 `ui_renderer` rysuje podstawowe elementy panelu bocznego:
 
-- prostokąt panelu "TWOJA POSTAĆ",
+- prostokąt panelu "TWOJA POSTAC",
 - przycisk START albo KONIEC TURY,
 - przycisk RESET GRY.
 
-Kolor przycisku START/KONIEC TURY zależy od aktualnego stanu gry. Na przykład w
-fazie wyboru postaci przycisk może być zielony, w turze gracza niebieski, a w
-stanach oczekiwania może mieć kolor informujący, że gracz czeka na dalszy etap.
+Przycisk START/KONIEC TURY jest widoczny tylko w fazie wyboru postaci i podczas
+tury lokalnego gracza. W fazie wyboru jest zielony, w turze gracza niebieski, a
+w pozostałych stanach nie jest rysowany. Przycisk RESET GRY jest rysowany
+niezależnie od stanu gry.
 
 Ten moduł odpowiada za tło elementów UI, ale nie rysuje tekstu. Napisy są
 nakładane później przez `text_renderer.sv`.
@@ -241,7 +242,7 @@ Moduł nakłada na pole postaci kolejne elementy:
 - pejsy.
 
 Ten sam renderer rysuje twarze zarówno na planszy 6 x 3, jak i w panelu
-"TWOJA POSTAĆ", jeżeli gracz wybrał już swoją tajną postać. Wewnątrz modułu
+"TWOJA POSTAC", jeżeli gracz wybrał już swoją tajną postać. Wewnątrz modułu
 istnieje potok, ponieważ bitmapy są czytane z pamięci ROM. Moduł musi więc
 opóźnić współrzędne i sygnały VGA tak, aby kolor z ROM-u pasował do właściwego
 piksela.
@@ -298,11 +299,12 @@ spełnia wymagania czasowe dla zegara pikselowego 65 MHz.
 Moduł rysuje między innymi:
 
 - napisy na przyciskach: `START`, `KONIEC TURY`, `RESET GRY`,
-- napis nad panelem: `TWOJA POSTAĆ`,
-- komunikaty wyboru: `WYBIERZ SWOJĄ POSTAĆ`,
+- napis nad panelem: `TWOJA POSTAC`,
+- komunikaty wyboru: `WYBIERZ SWOJA POSTAC`,
 - komunikat oczekiwania: `POCZEKAJ NA RYWALA`,
 - komunikaty linku i wyniku: `CZEKAM NA LINK`, `CZEKAM NA WYNIK`,
-- komunikaty końcowe: `WYGRAŁEŚ`, `PRZEGRAŁEŚ`,
+- komunikat tury przeciwnika: `TURA RYWALA / ODPOWIEDZ / NA PYTANIE`,
+- komunikaty końcowe: `WYGRALES`, `PRZEGRALES`,
 - komunikat błędu komunikacji: `ERROR NA LINK`.
 
 Ten moduł zamienia stan gry na czytelny komunikat dla użytkownika. Informacja o

@@ -274,6 +274,7 @@ Stan `S_OPPONENT_TURN` oznacza, że lokalny gracz czeka na ruch drugiej płytki.
 W tym stanie:
 
 - kliknięcia eliminacji i zgadywania nie zmieniają lokalnej gry,
+- na ekranie widoczny jest komunikat `TURA RYWALA / ODPOWIEDZ / NA PYTANIE`,
 - kursor zmienia się w klepsydrę,
 - lokalna płytka może odebrać `GUESS`, `FINAL_CHECK`, `TURN_END` albo
   `RESET_GAME`.
@@ -554,6 +555,7 @@ Przykłady komunikatów ekranowych:
 | `S_WAIT_LINK` | `CZEKAM / NA LINK` |
 | `S_SELECT_SECRET` | `WYBIERZ / SWOJA / POSTAC` |
 | `S_LOCAL_READY` | `POCZEKAJ / NA RYWALA` |
+| `S_OPPONENT_TURN` | `TURA RYWALA / ODPOWIEDZ / NA PYTANIE` |
 | `S_WAIT_GUESS_RESULT` | `CZEKAM / NA WYNIK` |
 | `S_FINAL_CHECK` | `OSTATNIA / POSTAC` |
 | `S_WRONG_GUESS_FEEDBACK` | `NIEPOPRAWNA / POSTAC` |
@@ -561,8 +563,8 @@ Przykłady komunikatów ekranowych:
 | `S_LOSE` | `PRZEGRALES` |
 | `S_COMM_ERROR` | `ERROR / NA LINK` |
 
-Tura przeciwnika nie jest opisywana dodatkowym tekstem, ponieważ w obecnym
-projekcie jest sygnalizowana klepsydrą (`CURSOR_BUSY`).
+Tura przeciwnika jest sygnalizowana zarówno tekstem ekranowym, jak i klepsydrą
+(`CURSOR_BUSY`).
 
 ## 13. Tabela zdarzeń do raportu
 
