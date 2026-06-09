@@ -138,7 +138,8 @@ przechodzi do stanu `S_COMM_ERROR`.
 5. Wybrana postać pojawia się w panelu po prawej stronie.
 6. Podczas tej fazy gracz może zmieniać wybór dowolną liczbę razy, klikając inną
    postać.
-7. W tej fazie wybrana postać na planszy jest wyróżniana niebieską ramką.
+7. W tej fazie wybrana postać na planszy jest wyróżniana magentową ramką, żeby
+   zaznaczenie było dobrze widoczne na tle planszy i postaci.
 
 W kodzie etap ten odpowiada stanowi `S_SELECT_SECRET`.
 
@@ -189,6 +190,10 @@ Dostępne akcje:
 Przycisk START wizualnie pełni wtedy funkcję `KONIEC TURY`. Jest rysowany jako
 niebieski przycisk z białym napisem.
 
+Pod panelem wyświetlane są krótkie podpowiedzi sterowania: `LPM ZGADNIJ` oraz
+`PPM ELIMINUJ`. Nie ma już dodatkowej linii `START KONIEC`, bo znaczenie
+przycisku wynika z napisu na samym przycisku.
+
 ### 5.6. Lokalna eliminacja postaci
 
 Podczas własnej tury gracz może kliknąć prawym przyciskiem myszy na dowolną
@@ -205,6 +210,10 @@ Oznacza to, że:
 
 Eliminacje są lokalne. Nie są wysyłane do drugiej płytki, ponieważ każdy gracz
 prowadzi własną dedukcję na podstawie rozmowy.
+
+Wyeliminowana postać jest przygaszana żółtawą nakładką i ma na środku żółty znak
+zapytania. Efekt jest tylko wizualny; sama informacja o eliminacji dalej jest
+przechowywana jako bit w `eliminated_mask`.
 
 Po każdej eliminacji logika sprawdza, ile postaci pozostało aktywnych. Jeżeli
 zostaje dokładnie jedna niewyeliminowana postać, projekt automatycznie wykonuje
@@ -478,12 +487,17 @@ Rola warstw:
 | Moduł | Rola |
 | --- | --- |
 | `vga_timing.sv` | Generuje liczniki, synchronizację i blanking VGA |
-| `draw_bg.sv` | Rysuje tło, planszę i siatkę |
+| `draw_bg.sv` | Rysuje tło ekranu, planszę, siatkę i dekoracyjne znaki zapytania |
 | `ui_renderer.sv` | Rysuje panel oraz przyciski |
 | `face_renderer.sv` | Rysuje twarze na planszy i w panelu |
-| `board_renderer.sv` | Nakłada eliminacje, zaznaczenia i ramki stanu |
+| `board_renderer.sv` | Dodaje tło pól postaci oraz nakłada eliminacje, zaznaczenia i ramki stanu |
 | `text_renderer.sv` | Nakłada napisy ekranowe; moduł jest potokowany, aby zamknąć timing toru VGA |
 | `draw_mouse.sv` | Nakłada kursor jako ostatnią warstwę |
+
+Pola postaci nie są już jednolicie białe. `board_renderer.sv` używa ROM-u
+`rtl/assets/cards/card_room_bg.dat`, żeby na białym wnętrzu karty narysować
+delikatne tło pokoju. Tło jest dokładane tylko tam, gdzie poprzednia warstwa
+zostawiła biały piksel, więc nie zasłania twarzy ani elementów postaci.
 
 `text_renderer.sv` działa w kilku etapach zegarowych: najpierw rejestruje piksel
 wejściowy i stan gry, następnie wybiera aktywny napis, potem wyznacza znak oraz
@@ -614,11 +628,11 @@ Tura przeciwnika jest sygnalizowana zarówno tekstem ekranowym, jak i klepsydrą
 | `game_core.sv` | Główna FSM gry |
 | `pmod_comm_controller.sv` | Pakiety UART, ACK/retry, timeout, zdarzenia przeciwnika |
 | `uart_byte_link.sv` | Adapter bajtowy do rdzenia UART |
-| `draw_bg.sv` | Tło i siatka planszy |
+| `draw_bg.sv` | Tło ekranu, dekoracje i siatka planszy |
 | `ui_renderer.sv` | Panel i przyciski |
 | `face_traits_rom.sv` | Cechy postaci |
 | `face_renderer.sv` | Rysowanie twarzy |
-| `board_renderer.sv` | Eliminacje, zaznaczenia i ramki |
+| `board_renderer.sv` | Tło pól postaci, eliminacje, zaznaczenia i ramki |
 | `text_renderer.sv`, `font_rom.sv` | Napisy ekranowe |
 | `cursor_mode_controller.sv` | Wybór trybu kursora |
 | `draw_mouse.sv` | Rysowanie kursora |

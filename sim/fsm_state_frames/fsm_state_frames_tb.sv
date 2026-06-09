@@ -51,6 +51,7 @@
     assign vs = if_mouse.vsync;
     assign hs = if_mouse.hsync;
     assign {r, g, b} = if_mouse.rgb;
+    assign if_tim.rgb = '0;
     assign capture_vs = capture_enabled && vs;
     assign active_pixel = (if_mouse.hcount < HOR_PIXELS) && (if_mouse.vcount < VER_PIXELS);
 

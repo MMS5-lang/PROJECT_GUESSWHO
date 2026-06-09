@@ -71,7 +71,6 @@ localparam logic [10:0] REMAINING_TEXT_Y = pos11(BOARD_Y - 28);
 localparam logic [10:0] INSTR_TEXT_X = pos11(PANEL_X);
 localparam logic [10:0] INSTR_TEXT_Y1 = pos11(RESET_Y + BUTTON_H + 20);
 localparam logic [10:0] INSTR_TEXT_Y2 = pos11(RESET_Y + BUTTON_H + 40);
-localparam logic [10:0] INSTR_TEXT_Y3 = pos11(RESET_Y + BUTTON_H + 60);
 
 typedef enum logic [5:0] {
     TEXT_NONE,
@@ -106,7 +105,6 @@ typedef enum logic [5:0] {
     TEXT_SPRAWDZAM,
     TEXT_LPM_ZGADNIJ,
     TEXT_PPM_ELIMINUJ,
-    TEXT_START_TURA,
     TEXT_NA_PYTANIE
 } text_id_t;
 
@@ -681,23 +679,6 @@ begin
                 default: get_char = " ";
             endcase
         end
-        TEXT_START_TURA: begin
-            case (idx)
-                4'd0: get_char = "S";
-                4'd1: get_char = "T";
-                4'd2: get_char = "A";
-                4'd3: get_char = "R";
-                4'd4: get_char = "T";
-                4'd5: get_char = " ";
-                4'd6: get_char = "K";
-                4'd7: get_char = "O";
-                4'd8: get_char = "N";
-                4'd9: get_char = "I";
-                4'd10: get_char = "E";
-                4'd11: get_char = "C";
-                default: get_char = " ";
-            endcase
-        end
         TEXT_NA_PYTANIE: begin
             case (idx)
                 4'd0: get_char = "N";
@@ -981,13 +962,6 @@ always_comb begin
             text_id_nxt = TEXT_PPM_ELIMINUJ;
             text_x_nxt = INSTR_TEXT_X;
             text_y_nxt = INSTR_TEXT_Y2;
-            text_len_nxt = 4'd12;
-            text_color_nxt = COLOR_BLACK;
-        end else if (show_instructions && inside_text(s0_hcount, s0_vcount, INSTR_TEXT_X, INSTR_TEXT_Y3, 12)) begin
-            text_active_nxt = 1'b1;
-            text_id_nxt = TEXT_START_TURA;
-            text_x_nxt = INSTR_TEXT_X;
-            text_y_nxt = INSTR_TEXT_Y3;
             text_len_nxt = 4'd12;
             text_color_nxt = COLOR_BLACK;
         end else if (show_start && inside_text(s0_hcount, s0_vcount, START_TEXT_X, START_TEXT_Y, 5)) begin

@@ -23,11 +23,14 @@
     localparam logic [11:0] COLOR_ELIM = 12'h7_7_7;
     localparam logic [11:0] COLOR_BLUE = 12'h1_4_f;
     localparam logic [11:0] COLOR_GREEN = 12'h0_b_0;
+    localparam logic [11:0] COLOR_MAGENTA = 12'hf_0_f;
     localparam logic [11:0] COLOR_ORANGE = 12'hf_9_0;
     localparam logic [11:0] COLOR_RED = 12'hf_0_0;
+    localparam logic [11:0] COLOR_YELLOW = 12'hf_f_0;
     localparam logic [11:0] COLOR_SKY_BLUE = 12'h2_8_d;
     localparam logic [11:0] COLOR_DARK_SKIN = 12'h8_5_2;
     localparam logic [11:0] COLOR_GREEN_BG = 12'h5_9_2;
+    localparam logic [11:0] COLOR_CARD_WALL = 12'hf_f_e;
   
 
     logic clk;
@@ -420,7 +423,11 @@
         board_has_secret = 1'b1;
         board_selected_id = 5'd0;
         drive_board(BOARD_X + 1, BOARD_Y + 1, 12'h1_2_3, 1'b0, 1'b0);
-        assert (board_out.rgb == COLOR_BLUE) else $error("Selected character border should be blue");
+        assert (board_out.rgb == COLOR_MAGENTA) else $error("Selected character border should be magenta");
+        drive_board(BOARD_X + 10, BOARD_Y + 10, COLOR_WHITE, 1'b0, 1'b0);
+        assert (board_out.rgb == COLOR_CARD_WALL) else $error("White card interior should use room background");
+        drive_board(BOARD_X + 10, BOARD_Y + 10, COLOR_DARK_SKIN, 1'b0, 1'b0);
+        assert (board_out.rgb == COLOR_DARK_SKIN) else $error("Card background should not overwrite character pixels");
 
         board_state = S_MY_TURN;
         board_eliminated_mask = '0;
@@ -429,11 +436,11 @@
         // 1. Test: Niebieska poświata eliminacji (Poza znakiem zapytania, kolor wejściowy = 4_4_4)
         drive_board(BOARD_X + 5 * CELL_W + 10, BOARD_Y + 10, 12'h4_4_4, 1'b0, 1'b0);
         // Bity wejściowe: 4_4_4 -> R: 0010(2), G: 0010(2), B: 1010(A)
-        assert (board_out.rgb == 12'h2_2_a) else $error("Eliminated character overlay should be blue tinted");
+        assert (board_out.rgb == 12'ha_a_2) else $error("Eliminated character overlay should be yellow tinted");
 
         // 2. Test: Znak zapytania w czasie eliminacji (Obszar środkowy twarzy)
         drive_board(BOARD_X + 5 * CELL_W + 60, BOARD_Y + 52, 12'h4_4_4, 1'b0, 1'b0);
-        assert (board_out.rgb == COLOR_BLUE) else $error("Eliminated character Q-Mark should be blue");
+        assert (board_out.rgb == COLOR_YELLOW) else $error("Eliminated character Q-Mark should be yellow");
 
         board_eliminated_mask = '0;
         board_state = S_WRONG_GUESS_FEEDBACK;
@@ -498,7 +505,7 @@
         expect_text_pixels(S_MY_TURN, BOARD_X, BOARD_Y - 28, 12, COLOR_BLACK, "POZOSTALO 15");
         expect_text_pixels(S_MY_TURN, PANEL_X, RESET_Y + BUTTON_H + 20, 11, COLOR_BLACK, "LPM ZGADNIJ");
         expect_text_pixels(S_MY_TURN, PANEL_X, RESET_Y + BUTTON_H + 40, 12, COLOR_BLACK, "PPM ELIMINUJ");
-        expect_text_pixels(S_MY_TURN, PANEL_X, RESET_Y + BUTTON_H + 60, 12, COLOR_BLACK, "START KONIEC");
+        expect_no_text_pixels(S_MY_TURN, PANEL_X, RESET_Y + BUTTON_H + 60, 12, COLOR_BLACK, "START KONIEC");
         text_eliminated_mask = '0;
         expect_text_pixels(S_WAIT_GUESS_RESULT, PANEL_X + ((CELL_W - 8 * 12) / 2),
                            PANEL_Y + CELL_H + 28, 8, COLOR_BLACK, "NA WYNIK");

@@ -23,8 +23,8 @@ Celem projektu jest sprzętowa implementacja rozgrywki dwuosobowej:
 | `fpga/` | Pliki specyficzne dla Basys 3, constraints i konfiguracja projektu Vivado |
 | `sim/` | Testbenche SystemVerilog i pliki `.prj` dla symulacji |
 | `tools/` | Skrypty uruchamiania symulacji, bitstreamu, programowania FPGA i raportów |
-| `rtl/assets/` | Dane ROM używane przez renderery, między innymi kursory i elementy postaci |
-| `results/` | Wyniki generowane przez symulacje, raporty i skrypty pomocnicze |
+| `rtl/assets/` | Dane ROM używane przez renderery, między innymi kursory, elementy postaci i tło kart |
+| `results/` | Bitstream oraz pomocnicze wyniki generowane przez symulacje i skrypty |
 
 ## Najważniejsze dokumenty
 
@@ -74,9 +74,10 @@ run_simulation.sh -t fsm_state_frames
 Ten test generuje po jednej klatce `.tif` dla każdego stanu FSM w katalogu
 `results/`, jako pliki `fsm_state_000.tif` ... `fsm_state_013.tif`. Plik
 `results/fsm_state_frames.txt` opisuje, który numer klatki odpowiada któremu
-stanowi. Test jest uruchamiany ręcznie i jest pomijany przez `run_simulation.sh -a`,
-żeby standardowy zestaw symulacji nie generował dużych obrazów przy każdym
-uruchomieniu.
+stanowi. Klatki przechodzą przez pełny tor renderowania, więc widać na nich tło,
+ramki, postacie, teksty i kursor. Test jest uruchamiany ręcznie i jest pomijany
+przez `run_simulation.sh -a`, żeby standardowy zestaw symulacji nie generował
+dużych obrazów przy każdym uruchomieniu.
 
 Wyniki, logi i obrazy generowane przez testy VGA trafiają do katalogu
 `results/`.
@@ -89,8 +90,9 @@ Bitstream dla Basys 3 generuje skrypt:
 generate_bitstream.sh
 ```
 
-Po zakończeniu należy sprawdzić logi w `results/`, szczególnie raport ostrzeżeń,
-timing oraz raporty syntezy i implementacji.
+Po zakończeniu skrypt kopiuje aktualny bitstream do `results/` i zapisuje
+skrót ostrzeżeń w `results/warning_summary.log`. Pełne raporty syntezy,
+implementacji, timingu, DRC i routingu zostają w katalogu `fpga/build/...`.
 
 ## Programowanie FPGA
 

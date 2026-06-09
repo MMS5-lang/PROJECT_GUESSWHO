@@ -27,16 +27,28 @@
     timeprecision 1ps;
 
     localparam logic [11:0] COLOR_BLACK  = 12'h0_0_0;
+    localparam logic [11:0] COLOR_WHITE  = 12'hf_f_f;
     localparam logic [11:0] COLOR_BLUE   = 12'h1_4_f;
     localparam logic [11:0] COLOR_GREEN  = 12'h0_b_0;
+    localparam logic [11:0] COLOR_MAGENTA = 12'hf_0_f;
     localparam logic [11:0] COLOR_ORANGE = 12'hf_9_0;
     localparam logic [11:0] COLOR_RED    = 12'hf_0_0;
+    localparam logic [11:0] COLOR_YELLOW = 12'hf_f_0;
     localparam logic [11:0] COLOR_TRANSPARENT = 12'hf_0_f;
+    localparam int CARD_BG_W = 70;
+    localparam int CARD_BG_H = 100;
+    localparam int CARD_BG_PIXELS = CARD_BG_W * CARD_BG_H;
+    localparam int CARD_BG_ADDR_W = $clog2(CARD_BG_PIXELS);
     localparam int MOUTH_W = 26;
     localparam int MOUTH_H = 10;
     localparam int MOUTH_X = 54;
     localparam int MOUTH_Y = 154;
 
+    (* rom_style = "block" *) logic [11:0] card_bg_rom [0:CARD_BG_PIXELS-1];
+
+    initial begin
+        $readmemh("../../rtl/assets/cards/card_room_bg.dat", card_bg_rom);
+    end
 
     localparam logic [0:15] Q_MARK [0:23] = '{
         16'b0000011111100000, 16'b0000111111110000, 16'b0001110000111000, 16'b0011100000011100,
@@ -164,11 +176,16 @@
     // --- STAGE 2: Area Flags, Logic Checks & Synchronous Block ROM Call ---
     logic is_cell_border_s1, is_panel_border_s1, is_elimination_mark_s1;
     logic is_selected_mark_s1, is_last_guess_mark_s1, is_wrong_guess_bg_s1;
+    logic use_card_bg_s1;
     logic in_q_mark_area_s1, q_pixel_on_s1, char_is_sad_s1;
     logic [3:0] q_x_s1;
     logic [4:0] q_y_s1;
     logic in_panel_s1;
     logic [11:0] mouth_rgb_happy, mouth_rgb_sad;
+    logic [CARD_BG_ADDR_W-1:0] card_bg_addr_s1;
+    logic [CARD_BG_ADDR_W-1:0] card_bg_y_ext_s1;
+    logic [CARD_BG_ADDR_W-1:0] card_bg_x_ext_s1;
+    logic [11:0] card_bg_rgb;
 
     // mouth_rom receives s1_mouth_addr, output will be ready in Stage 2 (Cycle 2)
     mouth_rom u_mouth_rom (
@@ -186,6 +203,15 @@
                                                     (s1_cell_y < 5) || (s1_cell_y >= CELL_H - 5));
         is_panel_border_s1 = in_panel_s1 && ((s1_hcount < PANEL_X + 5) || (s1_hcount >= PANEL_X + CELL_W - 5) ||
                                              (s1_vcount < PANEL_Y + 5) || (s1_vcount >= PANEL_Y + CELL_H - 5));
+
+        use_card_bg_s1 = s1_draw_mouth && (s1_rgb == COLOR_WHITE) &&
+            !is_cell_border_s1 && !is_panel_border_s1;
+        card_bg_y_ext_s1 = {{(CARD_BG_ADDR_W-10){1'b0}}, s1_cell_y[10:1]};
+        card_bg_x_ext_s1 = {{(CARD_BG_ADDR_W-10){1'b0}}, s1_cell_x[10:1]};
+        card_bg_addr_s1 = (card_bg_y_ext_s1 << 6) +
+                          (card_bg_y_ext_s1 << 2) +
+                          (card_bg_y_ext_s1 << 1) +
+                          card_bg_x_ext_s1;
 
         is_elimination_mark_s1 = s1_valid_board_char && s1_eliminated_mask[s1_char_idx] &&
             !(s1_game_state == S_WRONG_GUESS_FEEDBACK && s1_char_idx == s1_last_guess_id) &&
@@ -219,6 +245,7 @@
     game_state_t s2_game_state;
     logic s2_is_panel_border, s2_is_elimination_mark;
     logic s2_is_selected_mark, s2_is_last_guess_mark, s2_is_wrong_guess_bg;
+    logic s2_use_card_bg;
     logic s2_q_pixel_on, s2_has_secret, s2_draw_mouth, s2_in_mouth_area, s2_char_is_sad;
 
     always_ff @(posedge clk) begin
@@ -228,6 +255,7 @@
             s2_game_state <= S_SELECT_SECRET; s2_is_panel_border <= '0;
             s2_is_elimination_mark <= '0; s2_is_selected_mark <= '0; s2_is_last_guess_mark <= '0;
             s2_is_wrong_guess_bg <= '0; s2_q_pixel_on <= '0; s2_has_secret <= '0;
+            s2_use_card_bg <= '0;
             s2_draw_mouth <= '0; s2_in_mouth_area <= '0; s2_char_is_sad <= '0;
         end else begin
             s2_hcount <= s1_hcount; s2_vcount <= s1_vcount;
@@ -240,10 +268,15 @@
             s2_is_wrong_guess_bg <= is_wrong_guess_bg_s1;
             s2_q_pixel_on <= q_pixel_on_s1;
             s2_has_secret <= s1_has_secret;
+            s2_use_card_bg <= use_card_bg_s1;
             s2_draw_mouth <= s1_draw_mouth;
             s2_in_mouth_area <= s1_in_mouth_area;
             s2_char_is_sad <= char_is_sad_s1;
         end
+    end
+
+    always_ff @(posedge clk) begin
+        card_bg_rgb <= card_bg_rom[card_bg_addr_s1];
     end
 
     // --- STAGE 3: Color Mixing Multiplexer & Final Latch ---
@@ -255,6 +288,9 @@
         base_rgb = s2_rgb;
         active_mouth_color = s2_char_is_sad ? mouth_rgb_sad : mouth_rgb_happy;
 
+        if (s2_use_card_bg) begin
+            base_rgb = card_bg_rgb;
+        end
         if (s2_draw_mouth && s2_in_mouth_area && active_mouth_color != COLOR_TRANSPARENT) begin
             base_rgb = active_mouth_color;
         end
@@ -266,12 +302,12 @@
             rgb_nxt = {1'b1, base_rgb[11:9], 1'b0, base_rgb[7:5], 1'b0, base_rgb[3:1]};
         end else if (s2_is_elimination_mark) begin
             if (s2_q_pixel_on) begin
-                rgb_nxt = COLOR_BLUE;
+                rgb_nxt = COLOR_YELLOW;
             end else begin
-                rgb_nxt = {1'b0, base_rgb[11:9], 1'b0, base_rgb[7:5], 1'b1, base_rgb[3:1]};
+                rgb_nxt = {1'b1, base_rgb[11:9], 1'b1, base_rgb[7:5], 1'b0, base_rgb[3:1]};
             end
         end else if (s2_is_selected_mark) begin
-            rgb_nxt = COLOR_BLUE;
+            rgb_nxt = COLOR_MAGENTA;
         end else if (s2_is_panel_border && s2_game_state == S_WIN) begin
             rgb_nxt = COLOR_GREEN;
         end else if (s2_is_panel_border && s2_game_state == S_LOSE) begin
@@ -281,7 +317,7 @@
         end else if (s2_is_panel_border && s2_game_state == S_MY_TURN) begin
             rgb_nxt = COLOR_GREEN;
         end else if (s2_is_panel_border && s2_has_secret) begin
-            rgb_nxt = COLOR_BLUE;
+            rgb_nxt = COLOR_MAGENTA;
         end else begin
             rgb_nxt = base_rgb;
         end

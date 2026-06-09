@@ -57,6 +57,7 @@ set mem_files {
     ../rtl/assets/faces/payot.dat
     ../rtl/assets/faces/mouth_sad.dat
     ../rtl/assets/faces/mouth_happy.dat
+    ../rtl/assets/cards/card_room_bg.dat
     ../rtl/assets/cursors/pointer_b.dat
     ../rtl/assets/cursors/pointer_toon_b.dat
     ../rtl/assets/cursors/busy_hourglass_outline_detail.dat

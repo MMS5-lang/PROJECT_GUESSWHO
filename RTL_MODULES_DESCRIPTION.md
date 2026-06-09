@@ -40,7 +40,7 @@ najważniejszy jest następujący przepływ:
 6. `pmod_comm_controller.sv` zamienia zdarzenia gry na pakiety UART i odbiera
    pakiety z drugiej płytki.
 7. Moduły renderujące tworzą kolejne warstwy obrazu VGA: tło, UI, twarze,
-   zaznaczenia, tekst i kursor.
+   delikatne tło pól postaci, zaznaczenia, tekst i kursor.
 
 Obraz VGA jest tworzony jako łańcuch kolejnych warstw. Każdy renderer dostaje
 aktualny piksel z poprzedniego modułu i może zostawić go bez zmian albo nadpisać
@@ -184,7 +184,8 @@ Moduł rysuje:
 - tło poza planszą,
 - białe pola planszy,
 - czarną zewnętrzną ramkę planszy,
-- linie siatki oddzielające 18 pól postaci.
+- linie siatki oddzielające 18 pól postaci,
+- dekoracyjne znaki zapytania w tle ekranu.
 
 Jest to moduł czysto renderujący. Nie zna zasad gry, nie wie, która postać jest
 wybrana ani wyeliminowana. Jego zadaniem jest przygotowanie statycznej podstawy,
@@ -257,14 +258,20 @@ warstwa logiczno-wizualna, która pokazuje decyzje gracza na ekranie.
 
 Moduł odpowiada za:
 
-- zaznaczenie wybranej tajnej postaci podczas wyboru,
-- oznaczanie wyeliminowanych postaci,
+- dodanie subtelnego tła pokoju w polach postaci na podstawie
+  `rtl/assets/cards/card_room_bg.dat`,
+- zaznaczenie wybranej tajnej postaci podczas wyboru magentową ramką,
+- oznaczanie wyeliminowanych postaci żółtawą nakładką i żółtym znakiem zapytania,
 - zaznaczenie ostatnio błędnie zgadniętej postaci,
 - kolorowanie ramki panelu wybranej postaci zależnie od stanu gry.
 
 Ten moduł nie decyduje, które postacie są wyeliminowane. Otrzymuje gotową maskę
 `eliminated_mask` z `game_core.sv` i tylko przekłada ją na obraz. Dzięki temu
 logika gry i logika rysowania pozostają rozdzielone.
+
+Tło pokoju jest rysowane tylko w miejscach, gdzie wcześniejsze warstwy zostawiły
+biały piksel karty. Dzięki temu tło nie przykrywa twarzy, włosów, czapek, brody
+ani innych elementów postaci.
 
 ## Teksty i komunikaty ekranowe
 
@@ -300,6 +307,7 @@ Moduł rysuje między innymi:
 
 - napisy na przyciskach: `START`, `KONIEC TURY`, `RESET GRY`,
 - napis nad panelem: `TWOJA POSTAC`,
+- instrukcje tury gracza: `LPM ZGADNIJ` i `PPM ELIMINUJ`,
 - komunikaty wyboru: `WYBIERZ SWOJA POSTAC`,
 - komunikat oczekiwania: `POCZEKAJ NA RYWALA`,
 - komunikaty linku i wyniku: `CZEKAM NA LINK`, `CZEKAM NA WYNIK`,
@@ -594,11 +602,11 @@ czasowo kilka sygnałów w potoku.
 - Lista stanów gry i typów pakietów: `rtl/game/guess_who_pkg.sv`
 - Rozdzielczość, pozycja planszy, przyciski i panel: `rtl/vga/vga_pkg.sv`
 - Generacja liczników VGA: `rtl/vga/vga_timing.sv`
-- Tło i siatka planszy: `rtl/render/draw_bg.sv`
+- Tło ekranu, dekoracje i siatka planszy: `rtl/render/draw_bg.sv`
 - Kolory przycisków i panelu: `rtl/render/ui_renderer.sv`
 - Rysowanie postaci: `rtl/render/face_renderer.sv`
 - Cechy postaci: `rtl/render/face_traits_rom.sv`
-- Eliminacje, zaznaczenia i ramki: `rtl/render/board_renderer.sv`
+- Tło pól postaci, eliminacje, zaznaczenia i ramki: `rtl/render/board_renderer.sv`
 - Napisy i komunikaty ekranowe: `rtl/text/text_renderer.sv`
 - Font znaków: `rtl/text/font_rom.sv`
 - Obsługa fizycznej myszy PS/2: `rtl/mouse/MouseCtl.vhd`
