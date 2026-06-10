@@ -15,13 +15,10 @@ import guess_who_pkg::*;
     output game_state_t game_state,
     output logic [CHAR_COUNT-1:0] eliminated_mask,
     output logic [CHAR_ID_W-1:0] selected_id,
-    output logic [CHAR_ID_W-1:0] local_secret_id,
     output logic [CHAR_ID_W-1:0] last_guess_id,
     output logic       has_secret,
     output logic       local_ready,
     output logic       remote_ready,
-    output logic       my_turn,
-    output logic       wrong_guess_visible,
     output logic       send_ready,
     output logic       send_turn_end,
     output logic       send_guess,
@@ -65,6 +62,7 @@ game_state_t state_nxt;
 
 logic [CHAR_COUNT-1:0] eliminated_mask_nxt;
 logic [CHAR_ID_W-1:0] selected_id_nxt;
+logic [CHAR_ID_W-1:0] local_secret_id;
 logic [CHAR_ID_W-1:0] local_secret_id_nxt;
 logic [CHAR_ID_W-1:0] last_guess_id_nxt;
 logic has_secret_nxt;
@@ -85,8 +83,6 @@ logic valid_opponent_char;
 logic valid_opponent_final_char;
 
 assign game_state = state;
-assign my_turn = (state == S_MY_TURN);
-assign wrong_guess_visible = (state == S_WRONG_GUESS_FEEDBACK);
 
 function automatic logic [4:0] count_active(input logic [CHAR_COUNT-1:0] mask);
     logic [4:0] count;
@@ -332,10 +328,6 @@ always_comb begin
 
             S_LOSE: begin
                 state_nxt = S_LOSE;
-            end
-
-            S_GAME_OVER: begin
-                state_nxt = S_GAME_OVER;
             end
 
             S_COMM_ERROR: begin

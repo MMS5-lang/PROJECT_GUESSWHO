@@ -5,7 +5,6 @@
 # Description:
 # List of files defining the modules used by the common primitive tests.
 
-sv work ../../rtl/common/delay.sv
 sv work ../../rtl/common/reset_sync.sv
 verilog work ../../rtl/common/debounce.v
 verilog work ../../rtl/comm/uart/mod_m_counter.v

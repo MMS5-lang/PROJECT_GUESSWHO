@@ -41,13 +41,10 @@ logic comm_error = 1'b0;
 game_state_t game_state;
 logic [CHAR_COUNT-1:0] eliminated_mask;
 logic [CHAR_ID_W-1:0] selected_id;
-logic [CHAR_ID_W-1:0] local_secret_id;
 logic [CHAR_ID_W-1:0] last_guess_id;
 logic has_secret;
 logic local_ready;
 logic remote_ready;
-logic my_turn;
-logic wrong_guess_visible;
 logic send_ready;
 logic send_turn_end;
 logic send_guess;
@@ -85,13 +82,10 @@ game_core dut (
     .game_state              (game_state),
     .eliminated_mask         (eliminated_mask),
     .selected_id             (selected_id),
-    .local_secret_id         (local_secret_id),
     .last_guess_id           (last_guess_id),
     .has_secret              (has_secret),
     .local_ready             (local_ready),
     .remote_ready            (remote_ready),
-    .my_turn                 (my_turn),
-    .wrong_guess_visible     (wrong_guess_visible),
     .send_ready              (send_ready),
     .send_turn_end           (send_turn_end),
     .send_guess              (send_guess),
@@ -262,7 +256,7 @@ begin
     opponent_guess_id = id;
     opponent_guess = 1'b1;
     #1;
-    assert (send_result && (send_result_correct == (id == local_secret_id)))
+    assert (send_result && (send_result_correct == (id == dut.local_secret_id)))
         else $error("Opponent guess result pulse is wrong");
     assert (send_result_id == id) else $error("Opponent guess result id is wrong");
     wait_clk;
@@ -276,7 +270,7 @@ begin
     opponent_final_check_id = id;
     opponent_final_check = 1'b1;
     #1;
-    assert (send_result && (send_result_correct == (id == local_secret_id)))
+    assert (send_result && (send_result_correct == (id == dut.local_secret_id)))
         else $error("Opponent final-check result pulse is wrong");
     assert (send_result_id == id) else $error("Opponent final-check result id is wrong");
     wait_clk;
@@ -336,15 +330,15 @@ initial begin
     pulse_start_expect_ready;
     assert (game_state == S_LOCAL_READY) else $error("START should wait for remote READY");
     assert (local_ready) else $error("Local READY should be latched");
-    assert (local_secret_id == 5'd8) else $error("Secret was not locked on start");
+    assert (dut.local_secret_id == 5'd8) else $error("Secret was not locked on start");
 
     pulse_left_char(5'd4);
-    assert (local_secret_id == 5'd8) else $error("Secret should not change after START");
+    assert (dut.local_secret_id == 5'd8) else $error("Secret should not change after START");
 
     pulse_opponent_ready;
     assert (game_state == S_MY_TURN) else $error("Player 0 should start with own turn");
     assert (remote_ready) else $error("Remote READY should be latched");
-    assert (my_turn) else $error("my_turn output should be high");
+    assert (game_state == S_MY_TURN) else $error("Own turn state should be active");
 
     pulse_right_char(5'd5);
     assert (eliminated_mask[5]) else $error("Right click should eliminate character");
@@ -358,7 +352,7 @@ initial begin
 
     pulse_guess_result(1'b0);
     assert (game_state == S_WRONG_GUESS_FEEDBACK) else $error("Wrong result should enter feedback");
-    assert (wrong_guess_visible) else $error("Wrong guess flag should be visible");
+    assert (game_state == S_WRONG_GUESS_FEEDBACK) else $error("Wrong guess feedback should be visible");
     assert (eliminated_mask[4]) else $error("Wrong guessed character should be eliminated");
     assert (last_guess_id == 5'd4) else $error("Last guess id not stored");
 
@@ -439,10 +433,10 @@ initial begin
 
     pulse_opponent_guess(5'd1);
     assert (game_state == S_OPPONENT_TURN) else $error("Wrong opponent guess should wait for remote TURN_END");
-    assert (!my_turn) else $error("my_turn should stay low until remote feedback finishes");
+    assert (game_state != S_MY_TURN) else $error("Own turn should stay inactive until remote feedback finishes");
     pulse_opponent_turn_end;
     assert (game_state == S_MY_TURN) else $error("TURN_END after wrong opponent guess should give the local player the turn");
-    assert (my_turn) else $error("my_turn should be high after remote TURN_END");
+    assert (game_state == S_MY_TURN) else $error("Own turn state should be active after remote TURN_END");
 
     pulse_start;
     assert (game_state == S_OPPONENT_TURN) else $error("End turn should return to opponent turn");
@@ -458,11 +452,11 @@ initial begin
     pulse_opponent_final(5'd1);
     assert (game_state == S_WIN) else $error("Wrong opponent final check should win locally");
 
-    $display("Final game_core status snapshot: local_ready=%0b remote_ready=%0b my_turn=%0b wrong_guess_visible=%0b send_ready=%0b",
+    $display("Final game_core status snapshot: local_ready=%0b remote_ready=%0b own_turn_state=%0b wrong_guess_state=%0b send_ready=%0b",
              local_ready,
              remote_ready,
-             my_turn,
-             wrong_guess_visible,
+             game_state == S_MY_TURN,
+             game_state == S_WRONG_GUESS_FEEDBACK,
              send_ready);
 
     $finish;

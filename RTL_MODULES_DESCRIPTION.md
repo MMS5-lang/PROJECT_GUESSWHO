@@ -1,10 +1,7 @@
 # Opis modułów RTL projektu Guess Who
 
-Ten dokument opisuje strukturę części RTL projektu Guess Who przygotowanego na
-platformę Basys 3. Opis wskazuje, za co odpowiadają poszczególne moduły, jak są
-ze sobą połączone i gdzie należy szukać konkretnych fragmentów
-funkcjonalności. Dokument nie jest opisem każdej pojedynczej linii kodu, tylko
-technicznym przewodnikiem po architekturze projektu.
+Ten dokument opisuje moduły RTL i miejsca, w których znajduje się dana
+funkcjonalność.
 
 Projekt można podzielić na kilka głównych obszarów:
 
@@ -13,7 +10,7 @@ Projekt można podzielić na kilka głównych obszarów:
 - logika gry Guess Who,
 - obsługa myszy PS/2 i kursora,
 - komunikacja UART między dwiema płytkami,
-- małe moduły pomocnicze, takie jak synchronizacja resetu, debounce i FIFO.
+- moduły pomocnicze: synchronizacja resetu, debounce i FIFO.
 
 Najważniejsze pliki startowe to:
 
@@ -40,7 +37,7 @@ najważniejszy jest następujący przepływ:
 6. `pmod_comm_controller.sv` zamienia zdarzenia gry na pakiety UART i odbiera
    pakiety z drugiej płytki.
 7. Moduły renderujące tworzą kolejne warstwy obrazu VGA: tło, UI, twarze,
-   delikatne tło pól postaci, zaznaczenia, tekst i kursor.
+   delikatne tło pól postaci, usta, zaznaczenia, tekst i kursor.
 
 Obraz VGA jest tworzony jako łańcuch kolejnych warstw. Każdy renderer dostaje
 aktualny piksel z poprzedniego modułu i może zostawić go bez zmian albo nadpisać
@@ -62,8 +59,7 @@ Najważniejsze zadania modułu:
 - odbiera UART RX z `JA3`,
 - przekazuje linie PS/2 do kontrolera myszy,
 - generuje zegary 100 MHz i 65 MHz przez `clk_wiz_0`,
-- stabilizuje zwolnienie resetu przez `debounce`,
-- synchronizuje reset osobno dla domen 65 MHz i 100 MHz,
+- obsługuje lokalny reset przez `btnC`, `debounce` i `reset_sync`,
 - instancjonuje główny moduł gry `top_vga`.
 
 Ten plik jest istotny przy uruchamianiu projektu na sprzęcie. Jeżeli na płytce
@@ -185,7 +181,8 @@ Moduł rysuje:
 - białe pola planszy,
 - czarną zewnętrzną ramkę planszy,
 - linie siatki oddzielające 18 pól postaci,
-- dekoracyjne znaki zapytania w tle ekranu.
+- 14 dekoracyjnych znaków zapytania w tle ekranu, wszystkie w aktywnym obszarze
+  1024 x 768.
 
 Jest to moduł czysto renderujący. Nie zna zasad gry, nie wie, która postać jest
 wybrana ani wyeliminowana. Jego zadaniem jest przygotowanie statycznej podstawy,
@@ -260,6 +257,7 @@ Moduł odpowiada za:
 
 - dodanie subtelnego tła pokoju w polach postaci na podstawie
   `rtl/assets/cards/card_room_bg.dat`,
+- nałożenie ust z ROM-u `mouth_rom`,
 - zaznaczenie wybranej tajnej postaci podczas wyboru magentową ramką,
 - oznaczanie wyeliminowanych postaci żółtawą nakładką i żółtym znakiem zapytania,
 - zaznaczenie ostatnio błędnie zgadniętej postaci,
@@ -272,6 +270,19 @@ logika gry i logika rysowania pozostają rozdzielone.
 Tło pokoju jest rysowane tylko w miejscach, gdzie wcześniejsze warstwy zostawiły
 biały piksel karty. Dzięki temu tło nie przykrywa twarzy, włosów, czapek, brody
 ani innych elementów postaci.
+
+### `rtl/render/mouth_renderer.sv`
+
+Plik zawiera moduł `mouth_rom`. Jest to mały, synchroniczny ROM z dwoma
+wariantami ust:
+
+- `rtl/assets/faces/mouth_happy.dat`,
+- `rtl/assets/faces/mouth_sad.dat`.
+
+`board_renderer.sv` korzysta z tego ROM-u przy rysowaniu postaci. Normalna
+postać dostaje wariant szczęśliwy, a postać wyeliminowana albo ostatnio błędnie
+zgadnięta dostaje wariant smutny. Ten moduł nie zna zasad gry; dostaje tylko
+adres piksela ust i zwraca kolor dla obu wariantów.
 
 ## Teksty i komunikaty ekranowe
 
@@ -303,17 +314,8 @@ Takie rozwiązanie jest istotne dla implementacji na FPGA. Wcześniejsza wersja
 zbyt długą ścieżkę kombinacyjną. Po dodaniu potoku ścieżka renderowania tekstu
 spełnia wymagania czasowe dla zegara pikselowego 65 MHz.
 
-Moduł rysuje między innymi:
-
-- napisy na przyciskach: `START`, `KONIEC TURY`, `RESET GRY`,
-- napis nad panelem: `TWOJA POSTAC`,
-- instrukcje tury gracza: `LPM ZGADNIJ` i `PPM ELIMINUJ`,
-- komunikaty wyboru: `WYBIERZ SWOJA POSTAC`,
-- komunikat oczekiwania: `POCZEKAJ NA RYWALA`,
-- komunikaty linku i wyniku: `CZEKAM NA LINK`, `CZEKAM NA WYNIK`,
-- komunikat tury przeciwnika: `TURA RYWALA / ODPOWIEDZ / NA PYTANIE`,
-- komunikaty końcowe: `WYGRALES`, `PRZEGRALES`,
-- komunikat błędu komunikacji: `ERROR NA LINK`.
+Moduł rysuje teksty przycisków, panelu, instrukcji tury i komunikatów stanu gry.
+Pełna lista komunikatów jest w `PROJECT_SPEC_GUESS_WHO_BASYS3.md`.
 
 Ten moduł zamienia stan gry na czytelny komunikat dla użytkownika. Informacja o
 turze przeciwnika jest dodatkowo sygnalizowana w `cursor_mode_controller.sv`
@@ -329,29 +331,24 @@ stanu rozgrywki i generowanie zdarzeń dla innych modułów.
 
 Moduł obsługuje:
 
-- oczekiwanie na połączenie z drugą płytką,
-- wybór tajnej postaci,
-- zatwierdzenie gotowości lokalnego gracza,
-- zapamiętanie gotowości przeciwnika,
-- rozpoczęcie gry i wybór pierwszej tury na podstawie `player_id`,
-- turę lokalnego gracza,
-- turę przeciwnika,
-- eliminowanie postaci prawym kliknięciem,
-- zgadywanie postaci lewym kliknięciem,
-- finalne sprawdzenie ostatniej pozostałej postaci,
-- odpowiedzi na zgadywanie przeciwnika,
-- trzysekundowy komunikat po błędnym własnym strzale,
-- wysłanie `TURN_END` dopiero po zakończeniu komunikatu błędnego strzału,
-- timeout oczekiwania na wynik `GUESS` albo `FINAL_CHECK`,
-- stan wygranej i przegranej,
-- reset gry,
-- przejście do stanu `S_COMM_ERROR` przy błędzie komunikacji.
+- wybór tajnej postaci i gotowość graczy,
+- tury graczy,
+- eliminacje, zgadywanie i finalne sprawdzenie,
+- reakcje na zdarzenia od przeciwnika,
+- timeouty oczekiwania na wynik,
+- wygraną, przegraną, reset gry i błąd komunikacji.
 
 Ważną cechą tego modułu jest to, że nie wysyła samodzielnie pakietów UART. Zamiast
 tego wystawia impulsy takie jak `send_ready`, `send_guess`, `send_turn_end` albo
 `send_result`. Dopiero `pmod_comm_controller.sv` zamienia te impulsy na ramki
 UART. Takie rozdzielenie powoduje, że zasady gry są oddzielone od szczegółów
 komunikacji.
+
+Zatwierdzona tajna postać jest trzymana wewnętrznie jako `local_secret_id`.
+Sygnał nie jest już wyprowadzony jako osobny port top-level; na zewnątrz modułu
+wychodzą tylko dane potrzebne rendererom, komunikacji i testom integracyjnym:
+stan gry, maska eliminacji, aktualny wybór, ostatni strzał, flagi gotowości oraz
+impulsy `send_*`.
 
 Jeżeli trzeba zmienić reguły rozgrywki, kolejność stanów, reakcję na kliknięcia
 albo zachowanie po wyniku zgadywania, to najważniejszym plikiem jest
@@ -466,33 +463,13 @@ Moduł odpowiada za:
 
 - tworzenie pakietów na podstawie sygnałów `send_*` z `game_core.sv`,
 - odbiór pakietów z drugiej płytki,
-- sprawdzanie bajtu startowego,
-- sprawdzanie typu pakietu,
-- sprawdzanie identyfikatora gracza,
-- sprawdzanie sumy kontrolnej,
-- sprawdzanie poprawności payloadu,
-- odrzucanie pakietów wysłanych przez tego samego gracza,
+- walidację pakietów,
 - wystawianie zdarzeń `opponent_*` dla `game_core.sv`,
-- obsługę wyników zgadywania i finalnego sprawdzenia,
-- okresowe pakiety HELLO,
-- potwierdzenia ACK,
-- retransmisję ważnych pakietów,
-- timeout komunikacji i sygnał `comm_error`,
+- obsługę ACK, retransmisji i timeoutu komunikacji,
 - czyszczenie stanu komunikacji po lokalnym albo odebranym `RESET_GAME`.
 
-Pakiet gry składa się z sześciu bajtów:
-
-- bajt startowy,
-- typ pakietu,
-- identyfikator gracza,
-- payload,
-- numer sekwencyjny,
-- suma kontrolna.
-
-Ten moduł jest kluczowy dla gry na dwóch płytkach. Jeżeli komunikacja między
-Basysami nie działa, trzeba sprawdzić zarówno ten plik, jak i fizyczne
-połączenie PMOD: TX jednej płytki musi być podłączony do RX drugiej płytki oraz
-obie płytki muszą mieć wspólną masę.
+Format pakietów, typy pakietów i parametry timeoutów są opisane w
+`PROJECT_SPEC_GUESS_WHO_BASYS3.md`.
 
 `pmod_comm_controller` nie decyduje już sam o zmianie tury po błędnym strzale.
 Jego rola kończy się na wysłaniu albo odebraniu pakietu z wynikiem. Decyzję, co
@@ -587,34 +564,3 @@ Moduł wystawia:
   wysoki.
 
 W projekcie moduł jest używany przy obsłudze fizycznego resetu `btnC`.
-
-### `rtl/common/delay.sv`
-
-`delay` jest parametrycznym modułem opóźniającym sygnał o zadaną liczbę cykli.
-Szerokość danych i liczba cykli opóźnienia są ustawiane parametrami.
-
-Jest to moduł pomocniczy, który można wykorzystać tam, gdzie trzeba wyrównać
-czasowo kilka sygnałów w potoku.
-
-## Gdzie szukać konkretnych funkcji
-
-- Zasady gry i przejścia między stanami: `rtl/game/game_core.sv`
-- Lista stanów gry i typów pakietów: `rtl/game/guess_who_pkg.sv`
-- Rozdzielczość, pozycja planszy, przyciski i panel: `rtl/vga/vga_pkg.sv`
-- Generacja liczników VGA: `rtl/vga/vga_timing.sv`
-- Tło ekranu, dekoracje i siatka planszy: `rtl/render/draw_bg.sv`
-- Kolory przycisków i panelu: `rtl/render/ui_renderer.sv`
-- Rysowanie postaci: `rtl/render/face_renderer.sv`
-- Cechy postaci: `rtl/render/face_traits_rom.sv`
-- Tło pól postaci, eliminacje, zaznaczenia i ramki: `rtl/render/board_renderer.sv`
-- Napisy i komunikaty ekranowe: `rtl/text/text_renderer.sv`
-- Font znaków: `rtl/text/font_rom.sv`
-- Obsługa fizycznej myszy PS/2: `rtl/mouse/MouseCtl.vhd`
-- Synchronizacja myszy i impulsy kliknięć: `rtl/mouse/mouse_adapter.sv`
-- Hitboxy planszy i przycisków: `rtl/ui/hitbox_decoder.sv`
-- Tryb kursora: `rtl/mouse/cursor_mode_controller.sv`
-- Rysowanie kursora: `rtl/mouse/draw_mouse.sv`
-- Komunikacja między płytkami: `rtl/comm/pmod_comm_controller.sv`
-- Bajtowy interfejs UART: `rtl/comm/uart_byte_link.sv`
-- Rdzeń UART: `rtl/comm/uart/uart.v`
-- Reset i domeny zegarowe Basys 3: `fpga/rtl/top_basys3.sv`

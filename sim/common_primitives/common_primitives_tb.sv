@@ -20,9 +20,6 @@ logic reset;
 logic async_rst_n;
 logic sync_rst_n;
 
-logic [7:0] delay_din;
-logic [7:0] delay_dout;
-
 logic deb_sw;
 logic deb_level;
 logic deb_tick;
@@ -39,16 +36,6 @@ logic fifo_full;
 logic [7:0] fifo_r_data;
 
 assign reset = !rst_n;
-
-delay #(
-    .WIDTH   (8),
-    .CLK_DEL (3)
-) dut_delay (
-    .clk,
-    .rst_n,
-    .din  (delay_din),
-    .dout (delay_dout)
-);
 
 reset_sync #(
     .STAGES (2)
@@ -115,7 +102,6 @@ endtask
 task automatic reset_dut;
 begin
     rst_n = 1'b0;
-    delay_din = '0;
     deb_sw = 1'b0;
     fifo_rd = 1'b0;
     fifo_wr = 1'b0;
@@ -127,7 +113,6 @@ begin
         wait_clk;
     end
 
-    assert (delay_dout == 8'h00) else $error("delay reset failed");
     assert (deb_level == 1'b0) else $error("debounce reset level failed");
     assert (mod_q == 3'd0 && mod_tick == 1'b0) else $error("mod_m_counter reset failed");
     assert (fifo_empty && !fifo_full) else $error("fifo reset flags failed");
@@ -188,20 +173,6 @@ initial begin
     test_reset_sync();
     reset_dut();
 
-    delay_din = 8'h11;
-    wait_clk;
-    assert (delay_dout == 8'h00) else $error("delay stage 1 mismatch");
-    delay_din = 8'h22;
-    wait_clk;
-    assert (delay_dout == 8'h00) else $error("delay stage 2 mismatch");
-    delay_din = 8'h33;
-    wait_clk;
-    assert (delay_dout == 8'h11) else $error("delay output for first word mismatch");
-    delay_din = 8'h44;
-    wait_clk;
-    assert (delay_dout == 8'h22) else $error("delay output for second word mismatch");
-
-    reset_dut();
     repeat (3) begin
         wait_clk;
     end

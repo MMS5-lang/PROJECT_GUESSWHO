@@ -4,16 +4,15 @@ Repozytorium zawiera implementację gry Guess Who dla dwóch płytek Digilent
 Basys 3. Każda płytka obsługuje własny ekran VGA, mysz PS/2 i komunikuje się z
 drugą płytką przez UART wyprowadzony na złącze PMOD.
 
-## Cel projektu
+## Zakres
 
-Celem projektu jest sprzętowa implementacja rozgrywki dwuosobowej:
+Projekt implementuje:
 
-- wybór tajnej postaci przez każdego gracza,
-- prowadzenie tur,
-- lokalna eliminacja postaci,
-- zgadywanie postaci przeciwnika,
-- wymiana zdarzeń między płytkami przez UART,
-- wyświetlanie planszy, panelu gracza, przycisków, komunikatów i kursora na VGA.
+- grę Guess Who na dwóch płytkach Basys 3,
+- obraz VGA 1024 x 768,
+- sterowanie myszą PS/2,
+- komunikację UART przez PMOD,
+- symulacje XSim i generowanie bitstreamu Vivado.
 
 ## Struktura katalogów
 
@@ -23,7 +22,7 @@ Celem projektu jest sprzętowa implementacja rozgrywki dwuosobowej:
 | `fpga/` | Pliki specyficzne dla Basys 3, constraints i konfiguracja projektu Vivado |
 | `sim/` | Testbenche SystemVerilog i pliki `.prj` dla symulacji |
 | `tools/` | Skrypty uruchamiania symulacji, bitstreamu, programowania FPGA i raportów |
-| `rtl/assets/` | Dane ROM używane przez renderery, między innymi kursory, elementy postaci i tło kart |
+| `rtl/assets/` | Dane ROM `.dat` używane przez renderery: kursory, elementy postaci, usta, tło kart i dekoracje |
 | `results/` | Bitstream oraz pomocnicze wyniki generowane przez symulacje i skrypty |
 
 ## Najważniejsze dokumenty
@@ -71,13 +70,9 @@ Wizualizacja wyglądu ekranu dla kolejnych stanów maszyny stanów gry:
 run_simulation.sh -t fsm_state_frames
 ```
 
-Ten test generuje po jednej klatce `.tif` dla każdego stanu FSM w katalogu
-`results/`, jako pliki `fsm_state_000.tif` ... `fsm_state_013.tif`. Plik
-`results/fsm_state_frames.txt` opisuje, który numer klatki odpowiada któremu
-stanowi. Klatki przechodzą przez pełny tor renderowania, więc widać na nich tło,
-ramki, postacie, teksty i kursor. Test jest uruchamiany ręcznie i jest pomijany
-przez `run_simulation.sh -a`, żeby standardowy zestaw symulacji nie generował
-dużych obrazów przy każdym uruchomieniu.
+Test generuje pliki `results/fsm_state_000.tif` ... `fsm_state_012.tif` oraz
+indeks `results/fsm_state_frames.txt`. Jest pomijany przez `run_simulation.sh -a`,
+bo tworzy obrazy.
 
 Wyniki, logi i obrazy generowane przez testy VGA trafiają do katalogu
 `results/`.
@@ -107,15 +102,8 @@ aktualnej wersji projektu.
 
 ## Sprzęt
 
-Minimalny zestaw uruchomieniowy:
-
-- dwie płytki Basys 3,
-- dwa monitory VGA albo jeden monitor używany naprzemiennie,
-- dwie myszy PS/2,
-- przewody do połączenia UART między PMOD-ami,
-- wspólna masa między płytkami.
-
-Szczegółowe przypisanie linii znajduje się w `HARDWARE_SETUP.md`.
+Podłączenie płytek, PMOD, VGA, PS/2, `SW[0]` i resetu jest opisane w
+`HARDWARE_SETUP.md`.
 
 ## Czyszczenie wyników
 

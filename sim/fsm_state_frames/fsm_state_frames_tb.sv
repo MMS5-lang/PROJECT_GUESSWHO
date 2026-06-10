@@ -15,7 +15,7 @@
     import guess_who_pkg::*;
 
     localparam real CLK_PERIOD = 15.384615;
-    localparam int NUM_STATES = 14;
+    localparam int NUM_STATES = 13;
 
     logic clk;
     logic rst_n;
@@ -70,7 +70,6 @@
             9: state_by_index = S_FINAL_CHECK;
             10: state_by_index = S_WIN;
             11: state_by_index = S_LOSE;
-            12: state_by_index = S_GAME_OVER;
             default: state_by_index = S_COMM_ERROR;
         endcase
     end
@@ -91,7 +90,6 @@
             S_FINAL_CHECK: state_name = "S_FINAL_CHECK";
             S_WIN: state_name = "S_WIN";
             S_LOSE: state_name = "S_LOSE";
-            S_GAME_OVER: state_name = "S_GAME_OVER";
             S_COMM_ERROR: state_name = "S_COMM_ERROR";
             default: state_name = "UNKNOWN";
         endcase
@@ -165,7 +163,7 @@
                 eliminated_mask[15] = 1'b0;
             end
 
-            S_WIN, S_LOSE, S_GAME_OVER, S_COMM_ERROR: begin
+            S_WIN, S_LOSE, S_COMM_ERROR: begin
                 local_ready = 1'b1;
                 remote_ready = 1'b1;
                 eliminated_mask[1] = 1'b1;

@@ -6,9 +6,8 @@ Celem projektu jest wykonanie sprzętowej wersji gry Guess Who na dwóch płytka
 Basys 3. Każdy gracz korzysta z osobnej płytki, osobnego monitora VGA oraz myszy
 PS/2. Płytki komunikują się ze sobą przez UART wyprowadzony na złącze PMOD.
 
-Dokument opisuje aktualny stan implementacji RTL: planszę 6 x 3, komunikację
-UART między płytkami, stany maszyny gry, obsługę myszy PS/2, renderowanie VGA
-1024 x 768 oraz sposób kodowania postaci.
+Dokument opisuje działanie gry: planszę, stany FSM, akcje gracza, pakiety UART
+i kodowanie postaci.
 
 FPGA nie analizuje rozmowy między graczami. Gracze zadają pytania słownie, tak
 jak w klasycznej grze. Układ FPGA odpowiada za:
@@ -37,18 +36,11 @@ tylko wynik: poprawny albo błędny.
 | Wyświetlanie | VGA 1024 x 768, zegar pikselowy 65 MHz |
 | Sterowanie | Mysz PS/2 |
 | Komunikacja | UART przez PMOD JA |
-| Reset | Wewnętrznie aktywny niskim stanem, asynchroniczna asercja i synchroniczne zwolnienie |
 | Identyfikator gracza | `SW[0]`, jedna płytka ma 0, druga 1 |
 | Top sprzętowy | `fpga/rtl/top_basys3.sv` |
 | Top funkcjonalny gry | `rtl/top/top_vga.sv` |
 
-Połączenie UART między płytkami:
-
-- `JA2` jednej płytki należy połączyć z `JA3` drugiej płytki,
-- `JA3` jednej płytki należy połączyć z `JA2` drugiej płytki,
-- obie płytki muszą mieć wspólną masę GND,
-- `JA1` jest używany jako wyjście pomocnicze z lustrem zegara pikselowego, a
-  nie jako linia komunikacji gry.
+Podłączenie płytek i pinów PMOD jest opisane w `HARDWARE_SETUP.md`.
 
 ## 3. Układ ekranu
 
@@ -86,7 +78,8 @@ znajduje się panel `TWOJA POSTAC`, w którym po wyborze wyświetlana jest lokal
 tajna postać gracza. Pod panelem znajdują się przyciski ekranowe:
 
 - `START`, który po rozpoczęciu gry zmienia znaczenie na `KONIEC TURY`,
-- `RESET GRY`, który działa z każdego stanu gry.
+- `RESET GRY`, który działa z każdego stanu gry i przez UART prosi drugą płytkę
+  o reset logiki gry.
 
 ## 4. Identyfikatory pól i postaci
 
@@ -114,16 +107,13 @@ Ta sekcja opisuje przebieg działania projektu z punktu widzenia użytkownika.
 
 ### 5.1. Reset i oczekiwanie na link
 
-1. Po zaprogramowaniu obu płytek należy ustawić różne wartości `SW[0]`:
-   - gracz A: `SW[0] = 0`,
-   - gracz B: `SW[0] = 1`.
-2. Po resecie wewnętrzna maszyna gry startuje od `S_RESET`.
-3. Następnie gra przechodzi do `S_WAIT_LINK`, jeżeli link z drugą płytką nie
+1. Po resecie wewnętrzna maszyna gry startuje od `S_RESET`.
+2. Następnie gra przechodzi do `S_WAIT_LINK`, jeżeli link z drugą płytką nie
    został jeszcze potwierdzony.
-4. Kontroler komunikacji cyklicznie wysyła pakiety `HELLO`.
-5. Gdy zostanie odebrany poprawny pakiet od drugiej płytki, ustawiane jest
+3. Kontroler komunikacji cyklicznie wysyła pakiety `HELLO`.
+4. Gdy zostanie odebrany poprawny pakiet od drugiej płytki, ustawiane jest
    `link_ready`.
-6. Po zestawieniu linku gra przechodzi do wyboru tajnej postaci.
+5. Po zestawieniu linku gra przechodzi do wyboru tajnej postaci.
 
 Jeżeli link zostanie utracony na dłużej albo pakiety wymagające potwierdzenia
 nie zostaną potwierdzone po retransmisjach, ustawiany jest `comm_error`, a gra
@@ -185,7 +175,7 @@ Dostępne akcje:
 - prawy przycisk myszy na postaci: lokalna eliminacja albo cofnięcie eliminacji,
 - lewy przycisk myszy na postaci: zgadywanie tajnej postaci przeciwnika,
 - kliknięcie `KONIEC TURY`: oddanie tury przeciwnikowi,
-- kliknięcie `RESET GRY`: reset rozgrywki na obu płytkach.
+- kliknięcie `RESET GRY`: reset lokalny i wysłanie `RESET_GAME` do przeciwnika.
 
 Przycisk START wizualnie pełni wtedy funkcję `KONIEC TURY`. Jest rysowany jako
 niebieski przycisk z białym napisem.
@@ -295,26 +285,14 @@ nadal zostaje w `S_OPPONENT_TURN`, aby przeciwnik zdążył wyświetlić komunik
 
 ### 5.10. Reset gry
 
-Przycisk `RESET GRY` działa z dowolnego stanu.
+Ekranowy `RESET GRY` działa z każdego stanu. Lokalnie czyści stan gry i stan
+komunikacji, a do drugiej płytki wysyła `RESET_GAME`.
 
-Kliknięcie resetu:
+Odebrany `RESET_GAME` czyści stan gry i komunikacji po stronie odbiornika.
+Pakiet jest idempotentny, więc retransmisja resetu może ponownie wyczyścić stan.
 
-- wysyła `RESET_GAME` do drugiej płytki,
-- czyści `eliminated_mask`,
-- czyści `selected_id`,
-- czyści `local_secret_id`,
-- czyści `last_guess_id`,
-- zeruje `has_secret`,
-- zeruje `local_ready` i `remote_ready`,
-- usuwa komunikaty wygranej/przegranej,
-- czyści błąd komunikacji, liczniki ACK/retry, timeout i oczekujący pakiet,
-- wraca do oczekiwania na link i wyboru postaci.
-
-Odebrany pakiet `RESET_GAME` wykonuje analogiczny reset po stronie drugiej
-płytki. Pakiet resetu jest traktowany idempotentnie, więc może wyczyścić
-`comm_error` także wtedy, gdy wygląda jak retransmisja pakietu z tym samym
-numerem sekwencyjnym. Jest to reset logiki gry i komunikacji, a nie pełny reset
-układu FPGA ani clock wizarda.
+`BTNC` jest lokalnym resetem sprzętowym. Nie wysyła `RESET_GAME`. Szczegóły
+użycia `BTNC` są w `HARDWARE_SETUP.md`.
 
 ### 5.11. Błąd komunikacji
 
@@ -329,6 +307,11 @@ się komunikat `ERROR NA LINK`. Kliknięcie ekranowego `RESET GRY` wysyła
 `RESET_GAME`, czyści lokalny stan komunikacji i wraca do ponownego szukania
 linku.
 
+Jeżeli płytki nie są fizycznie połączone przez UART, link nie zostanie
+zestawiony i gra zostanie w `S_WAIT_LINK`. Jeżeli link był już zestawiony, a
+połączenie zostanie przerwane, kontroler po czasie bez poprawnych pakietów
+ustawi `comm_error`.
+
 ## 6. Sterowanie myszą i kursory
 
 Projekt używa myszy PS/2 jako głównego interfejsu użytkownika.
@@ -340,7 +323,7 @@ Projekt używa myszy PS/2 jako głównego interfejsu użytkownika.
 | PPM na postaci w `S_MY_TURN` | Przełączenie eliminacji lokalnej |
 | LPM na `START` | Zatwierdzenie tajnej postaci |
 | LPM na `KONIEC TURY` | Oddanie tury przeciwnikowi |
-| LPM na `RESET GRY` | Reset gry na obu płytkach |
+| LPM na `RESET GRY` | Reset lokalny i wysłanie `RESET_GAME` do drugiej płytki |
 
 Kursory:
 
@@ -349,8 +332,6 @@ Kursory:
 | `CURSOR_POINTER` | Kursor poza aktywnymi hitboxami |
 | `CURSOR_POINTER_HOVER` | Kursor nad planszą lub przyciskami |
 | `CURSOR_BUSY` | Tura przeciwnika, czyli `S_OPPONENT_TURN` |
-
-Bitmapy kursorów znajdują się w `rtl/assets/cursors`.
 
 ## 7. Stany maszyny gry
 
@@ -371,8 +352,7 @@ Aktualna maszyna stanów jest zdefiniowana w `rtl/game/guess_who_pkg.sv` jako
 | `S_FINAL_CHECK` | 9 | Po pozostawieniu jednej postaci oczekiwany jest wynik finalnego sprawdzenia |
 | `S_WIN` | 10 | Lokalny gracz wygrał |
 | `S_LOSE` | 11 | Lokalny gracz przegrał |
-| `S_GAME_OVER` | 12 | Stan końcowy zdefiniowany w typie; obecnie normalna ścieżka gry używa `S_WIN` i `S_LOSE` |
-| `S_COMM_ERROR` | 13 | Błąd komunikacji albo utrata linku |
+| `S_COMM_ERROR` | 12 | Błąd komunikacji albo utrata linku |
 
 Najważniejsze przejścia:
 
@@ -397,7 +377,7 @@ Najważniejsze przejścia:
 | `S_FINAL_CHECK` | brak wyniku przez 600 ramek | `S_COMM_ERROR` |
 | `S_OPPONENT_TURN` | błędny `GUESS` przeciwnika | `S_OPPONENT_TURN` |
 | `S_OPPONENT_TURN` | `TURN_END` od przeciwnika | `S_MY_TURN` |
-| dowolny stan | `RESET_GRY` lub `RESET_GAME` | `S_WAIT_LINK` |
+| dowolny stan | kliknięcie `RESET GRY` albo odebranie `RESET_GAME` | `S_WAIT_LINK` |
 | dowolny stan | `comm_error` | `S_COMM_ERROR` |
 
 ## 8. Dane przechowywane przez logikę gry
@@ -439,25 +419,26 @@ Pakiet jest akceptowany tylko wtedy, gdy:
 
 - bajt startowy jest poprawny,
 - checksum jest poprawny,
+- górne 4 bity bajtu typu są równe 0,
 - typ pakietu jest wspierany,
+- górne 7 bitów bajtu `player_id` jest równe 0,
 - `player_id` nie jest równy lokalnemu `player_id`,
-- payload jest poprawny dla danego typu pakietu.
+- payload jest poprawny dla danego typu pakietu,
+- `PKT_ACK` potwierdza istniejący typ pakietu.
 
 Typy pakietów:
 
 | Typ | Kod | Payload | Znaczenie |
 | --- | ---: | --- | --- |
 | `PKT_HELLO` | 0 | 0 | Okresowe potwierdzenie obecności drugiej płytki |
-| `PKT_STATUS` | 1 | zależnie od użycia | Typ zarezerwowany; parser go akceptuje, ale FSM gry go nie używa |
 | `PKT_READY` | 2 | 0 | Gracz zatwierdził swoją postać |
 | `PKT_TURN_END` | 3 | 0 | Aktywny gracz kończy turę |
 | `PKT_GUESS` | 4 | `character_id` | Gracz zgaduje postać przeciwnika |
 | `PKT_FINAL_CHECK` | 5 | `character_id` | Sprawdzenie jedynej pozostałej postaci |
 | `PKT_RESULT_CORRECT` | 6 | `character_id` | Wynik poprawny |
 | `PKT_RESULT_WRONG` | 7 | `character_id` | Wynik błędny |
-| `PKT_RESET_GAME` | 8 | 0 | Reset gry na obu płytkach |
+| `PKT_RESET_GAME` | 8 | 0 | Żądanie resetu gry po stronie odbiornika |
 | `PKT_ACK` | 9 | typ potwierdzanego pakietu | Potwierdzenie pakietu wymagającego ACK |
-| `PKT_ERROR` | 10 | 0 | Typ zarezerwowany; parser go akceptuje, ale FSM gry go nie używa |
 
 Pakiety `READY`, `TURN_END`, `GUESS`, `FINAL_CHECK`, `RESULT_CORRECT`,
 `RESULT_WRONG` i `RESET_GAME` wymagają potwierdzenia ACK. Jeżeli ACK nie wróci w
@@ -467,45 +448,22 @@ gry. Wyjątkiem jest `RESET_GAME`, który jest idempotentny i może ponownie
 wyczyścić stan gry oraz komunikacji, jeśli przychodzi jako retransmisja po
 błędzie linku.
 
-## 10. Renderowanie obrazu
+Aktualne parametry ochrony komunikacji:
 
-Tor obrazu jest zbudowany warstwowo:
+| Parametr | Wartość w RTL | Znaczenie |
+| --- | ---: | --- |
+| `BAUD_RATE` | 115200 | Prędkość UART |
+| `HELLO_INTERVAL_CYCLES` | 1 000 000 | Okres wysyłania `HELLO`, około 15,4 ms przy 65 MHz |
+| `ACK_TIMEOUT_CYCLES` | `CLK_FREQ_HZ / 4` | Oczekiwanie na ACK, około 250 ms |
+| `MAX_RETRIES` | 3 | Maksymalna liczba ponowień pakietu wymagającego ACK |
+| `COMM_TIMEOUT_CYCLES` | `CLK_FREQ_HZ * 5` | Timeout braku poprawnych pakietów po zestawieniu linku, około 5 s |
 
-```text
-vga_timing
-  -> draw_bg
-  -> ui_renderer
-  -> face_renderer
-  -> board_renderer
-  -> text_renderer
-  -> draw_mouse
-  -> wyjście VGA
-```
+Kontroler ignoruje pakiety z niepoprawnym ID postaci, z własnym `player_id`,
+nieznanym typem, błędnym checksumem albo złym bajtem startowym. Wyniki
+`RESULT_CORRECT` i `RESULT_WRONG` są przyjmowane tylko wtedy, gdy payload zgadza
+się z aktualnie oczekiwanym ID po wysłaniu `GUESS` albo `FINAL_CHECK`.
 
-Rola warstw:
-
-| Moduł | Rola |
-| --- | --- |
-| `vga_timing.sv` | Generuje liczniki, synchronizację i blanking VGA |
-| `draw_bg.sv` | Rysuje tło ekranu, planszę, siatkę i dekoracyjne znaki zapytania |
-| `ui_renderer.sv` | Rysuje panel oraz przyciski |
-| `face_renderer.sv` | Rysuje twarze na planszy i w panelu |
-| `board_renderer.sv` | Dodaje tło pól postaci oraz nakłada eliminacje, zaznaczenia i ramki stanu |
-| `text_renderer.sv` | Nakłada napisy ekranowe; moduł jest potokowany, aby zamknąć timing toru VGA |
-| `draw_mouse.sv` | Nakłada kursor jako ostatnią warstwę |
-
-Pola postaci nie są już jednolicie białe. `board_renderer.sv` używa ROM-u
-`rtl/assets/cards/card_room_bg.dat`, żeby na białym wnętrzu karty narysować
-delikatne tło pokoju. Tło jest dokładane tylko tam, gdzie poprzednia warstwa
-zostawiła biały piksel, więc nie zasłania twarzy ani elementów postaci.
-
-`text_renderer.sv` działa w kilku etapach zegarowych: najpierw rejestruje piksel
-wejściowy i stan gry, następnie wybiera aktywny napis, potem wyznacza znak oraz
-pozycję w fontcie, a na końcu składa wynikowy kolor RGB. Ten potok usuwa długą
-ścieżkę kombinacyjną między `board_renderer` i wyjściowym rejestrem RGB tekstu.
-Po tej zmianie implementacja Vivado spełnia timing dla zegara 65 MHz.
-
-## 11. Pomysł na kodowanie postaci
+## 10. Kodowanie postaci
 
 Postacie nie są przechowywane jako 18 pełnych, niezależnych obrazów. Projekt
 używa podejścia cechowego: każda postać ma 12-bitowy wektor cech w
@@ -533,29 +491,29 @@ Aktualne wpisy ROM dla postaci:
 
 | ID | `traits[11:0]` |
 | ---: | --- |
-| 0 | `0000_0110_1000` |
-| 1 | `0100_0101_1000` |
+| 0 | `1000_1000_1000` |
+| 1 | `0100_0101_1100` |
 | 2 | `0010_1000_0000` |
 | 3 | `1011_1000_0001` |
 | 4 | `0000_1011_1100` |
-| 5 | `0000_0100_0001` |
-| 6 | `1000_0010_1010` |
-| 7 | `0011_0101_1000` |
+| 5 | `0001_1010_0000` |
+| 6 | `1100_0011_0010` |
+| 7 | `1010_0101_1100` |
 | 8 | `0000_1000_0000` |
-| 9 | `1000_0111_1001` |
-| 10 | `0100_1000_1100` |
-| 11 | `0010_0011_0000` |
-| 12 | `0001_1010_1000` |
+| 9 | `0000_0110_1000` |
+| 10 | `0100_1000_0000` |
+| 11 | `0001_0100_1010` |
+| 12 | `1011_1011_1001` |
 | 13 | `1000_0101_0000` |
-| 14 | `0100_0110_1011` |
+| 14 | `0100_1000_1111` |
 | 15 | `0000_1001_1000` |
-| 16 | `0010_0110_0100` |
+| 16 | `0000_0110_0100` |
 | 17 | `1001_0001_0000` |
 
 Taki sposób kodowania oszczędza pamięć i pozwala tworzyć wiele postaci przez
 kombinowanie tych samych elementów graficznych.
 
-## 12. Stany ekranowe i informacja dla gracza
+## 11. Stany ekranowe i informacja dla gracza
 
 Projekt informuje gracza o stanie gry na dwa sposoby:
 
@@ -568,10 +526,11 @@ Przykłady komunikatów ekranowych:
 | --- | --- |
 | `S_WAIT_LINK` | `CZEKAM / NA LINK` |
 | `S_SELECT_SECRET` | `WYBIERZ / SWOJA / POSTAC` |
-| `S_LOCAL_READY` | `POCZEKAJ / NA RYWALA` |
+| `S_LOCAL_READY` | `TY GOTOWY` albo `POCZEKAJ` oraz `RYWAL CZEKA` albo `RYWAL GOTOWY` |
+| `S_MY_TURN` | `TWOJA TURA / ZADAJ / PYTANIE` |
 | `S_OPPONENT_TURN` | `TURA RYWALA / ODPOWIEDZ / NA PYTANIE` |
 | `S_WAIT_GUESS_RESULT` | `CZEKAM / NA WYNIK` |
-| `S_FINAL_CHECK` | `OSTATNIA / POSTAC` |
+| `S_FINAL_CHECK` | `OSTATNIA / POSTAC / SPRAWDZAM` |
 | `S_WRONG_GUESS_FEEDBACK` | `NIEPOPRAWNA / POSTAC` |
 | `S_WIN` | `WYGRALES` |
 | `S_LOSE` | `PRZEGRALES` |
@@ -579,79 +538,3 @@ Przykłady komunikatów ekranowych:
 
 Tura przeciwnika jest sygnalizowana zarówno tekstem ekranowym, jak i klepsydrą
 (`CURSOR_BUSY`).
-
-## 13. Tabela zdarzeń do raportu
-
-| Zdarzenie | Stan/kategoria | Reakcja systemu w obecnym projekcie |
-| --- | --- | --- |
-| Poprawny pakiet od drugiej płytki | `S_WAIT_LINK` | Ustawia `link_ready` i pozwala przejść do wyboru postaci |
-| LPM na postaci przed START | `S_SELECT_SECRET` | Ustawia `selected_id`, ustawia `has_secret`, pokazuje postać w panelu |
-| LPM na innej postaci przed START | `S_SELECT_SECRET` | Zmienia `selected_id`; poprzedni wybór przestaje być aktywny |
-| Kliknięcie START bez wybranej postaci | `S_SELECT_SECRET` | Nie zatwierdza gry, bo `has_secret == 0` |
-| Kliknięcie START po wyborze postaci | `S_SELECT_SECRET` | Zapisuje `local_secret_id`, ustawia `local_ready`, wysyła `READY` |
-| Odebrano `READY` | Przed startem gry | Ustawia `remote_ready` |
-| `local_ready && remote_ready` | `S_LOCAL_READY` | Przejście do `S_GAME_START` |
-| `player_id == 0` | `S_GAME_START` | Lokalna płytka zaczyna turę |
-| `player_id == 1` | `S_GAME_START` | Lokalna płytka czeka na przeciwnika |
-| PPM na postaci | `S_MY_TURN` | Przełącza bit `eliminated_mask[id]` |
-| PPM na ostatniej aktywnej postaci | `S_MY_TURN` | Kliknięcie jest ignorowane, aby nie zostawić planszy bez żadnej postaci |
-| Po eliminacji zostaje jedna postać | `S_MY_TURN` | Wysyła `FINAL_CHECK(remaining_id)` |
-| LPM na postaci po starcie | `S_MY_TURN` | Wysyła `GUESS(id)` i przechodzi do oczekiwania na wynik |
-| Kliknięcie KONIEC TURY | `S_MY_TURN` | Wysyła `TURN_END` i przechodzi do tury przeciwnika |
-| Odebrano `TURN_END` | `S_OPPONENT_TURN` | Przejście do `S_MY_TURN` |
-| Odebrano `GUESS(id)` | `S_OPPONENT_TURN` | Porównuje `id` z `local_secret_id` i odsyła wynik |
-| Odebrano `FINAL_CHECK(id)` | `S_OPPONENT_TURN` | Porównuje `id` z `local_secret_id` i odsyła wynik |
-| Odebrano `RESULT_CORRECT` po `GUESS` | `S_WAIT_GUESS_RESULT` | Przejście do `S_WIN` |
-| Odebrano `RESULT_WRONG` po `GUESS` | `S_WAIT_GUESS_RESULT` | Przejście do `S_WRONG_GUESS_FEEDBACK` |
-| Koniec feedbacku błędnego strzału | `S_WRONG_GUESS_FEEDBACK` | Wysyła `TURN_END` i przechodzi do `S_OPPONENT_TURN` |
-| Brak wyniku po `GUESS` | `S_WAIT_GUESS_RESULT` | Po 600 ramkach przechodzi do `S_COMM_ERROR` |
-| Odebrano poprawny wynik po `FINAL_CHECK` | `S_FINAL_CHECK` | Przejście do `S_WIN` |
-| Odebrano błędny wynik po `FINAL_CHECK` | `S_FINAL_CHECK` | Przejście do `S_LOSE` |
-| Brak wyniku po `FINAL_CHECK` | `S_FINAL_CHECK` | Po 600 ramkach przechodzi do `S_COMM_ERROR` |
-| Kliknięcie RESET GRY | Dowolny stan | Wysyła `RESET_GAME`, czyści lokalny stan gry i stan komunikacji |
-| Odebrano `RESET_GAME` | Dowolny stan | Czyści lokalny stan gry i stan komunikacji |
-| Brak ACK po retransmisjach | Komunikacja | Ustawia `comm_error`, gra przechodzi do `S_COMM_ERROR` |
-| Długi brak poprawnych pakietów | Komunikacja | Ustawia `comm_error`, gra przechodzi do `S_COMM_ERROR` |
-
-## 14. Moduły projektu
-
-| Moduł | Rola w projekcie |
-| --- | --- |
-| `top_basys3.sv` | Top sprzętowy dla Basys 3: piny, zegary, reset, PMOD, VGA, PS/2 |
-| `top_vga.sv` | Główny top funkcjonalny gry |
-| `guess_who_pkg.sv` | Stany gry, typy pakietów, liczba postaci, tryby kursora |
-| `vga_pkg.sv` | Timing VGA i geometria UI |
-| `vga_timing.sv` | Generacja liczników i synchronizacji VGA |
-| `MouseCtl.vhd`, `Ps2Interface.vhd` | Obsługa myszy PS/2 |
-| `mouse_adapter.sv` | Synchronizacja myszy i impulsy kliknięć |
-| `hitbox_decoder.sv` | Mapowanie kliknięć na planszę i przyciski |
-| `game_core.sv` | Główna FSM gry |
-| `pmod_comm_controller.sv` | Pakiety UART, ACK/retry, timeout, zdarzenia przeciwnika |
-| `uart_byte_link.sv` | Adapter bajtowy do rdzenia UART |
-| `draw_bg.sv` | Tło ekranu, dekoracje i siatka planszy |
-| `ui_renderer.sv` | Panel i przyciski |
-| `face_traits_rom.sv` | Cechy postaci |
-| `face_renderer.sv` | Rysowanie twarzy |
-| `board_renderer.sv` | Tło pól postaci, eliminacje, zaznaczenia i ramki |
-| `text_renderer.sv`, `font_rom.sv` | Napisy ekranowe |
-| `cursor_mode_controller.sv` | Wybór trybu kursora |
-| `draw_mouse.sv` | Rysowanie kursora |
-
-## 15. Minimalna procedura uruchomienia
-
-1. Zaprogramować obie płytki tym samym bitstreamem.
-2. Ustawić `SW[0] = 0` na pierwszej płytce i `SW[0] = 1` na drugiej.
-3. Połączyć UART: `JA2` pierwszej płytki z `JA3` drugiej, `JA3` pierwszej z
-   `JA2` drugiej oraz wspólne GND.
-4. Podłączyć osobne monitory VGA albo testować płytki po kolei na jednym
-   monitorze.
-5. Podłączyć myszy PS/2.
-6. Zresetować układ przyciskiem `BTNC`, jeśli obraz lub stan gry nie startuje od
-   początku.
-7. Poczekać na link.
-8. Na obu płytkach wybrać tajną postać LPM.
-9. Na obu płytkach kliknąć START.
-10. Gracz z `SW[0] = 0` wykonuje pierwszy ruch.
-11. Sprawdzić eliminację PPM, zakończenie tury, zgadywanie LPM oraz reakcję drugiej
-    płytki.
-12. Sprawdzić reset gry przyciskiem `RESET GRY`.

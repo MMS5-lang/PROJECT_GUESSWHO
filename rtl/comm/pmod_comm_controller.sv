@@ -196,7 +196,6 @@ function automatic logic packet_type_supported(input logic [3:0] packet_type_nib
 begin
     case (packet_type_nibble)
         PKT_HELLO,
-        PKT_STATUS,
         PKT_READY,
         PKT_TURN_END,
         PKT_GUESS,
@@ -204,8 +203,7 @@ begin
         PKT_RESULT_CORRECT,
         PKT_RESULT_WRONG,
         PKT_RESET_GAME,
-        PKT_ACK,
-        PKT_ERROR: begin
+        PKT_ACK: begin
             packet_type_supported = 1'b1;
         end
         default: begin

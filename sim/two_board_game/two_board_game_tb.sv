@@ -37,12 +37,10 @@ logic [CHAR_ID_W-1:0] char_id_a;
 game_state_t game_state_a;
 logic [CHAR_COUNT-1:0] eliminated_mask_a;
 logic [CHAR_ID_W-1:0] selected_id_a;
-logic [CHAR_ID_W-1:0] local_secret_id_a;
 logic [CHAR_ID_W-1:0] last_guess_id_a;
 logic has_secret_a;
 logic local_ready_a;
 logic remote_ready_a;
-logic wrong_guess_visible_a;
 logic send_ready_a;
 logic send_turn_end_a;
 logic send_guess_a;
@@ -75,12 +73,10 @@ logic [CHAR_ID_W-1:0] char_id_b;
 game_state_t game_state_b;
 logic [CHAR_COUNT-1:0] eliminated_mask_b;
 logic [CHAR_ID_W-1:0] selected_id_b;
-logic [CHAR_ID_W-1:0] local_secret_id_b;
 logic [CHAR_ID_W-1:0] last_guess_id_b;
 logic has_secret_b;
 logic local_ready_b;
 logic remote_ready_b;
-logic wrong_guess_visible_b;
 logic send_ready_b;
 logic send_turn_end_b;
 logic send_guess_b;
@@ -200,13 +196,10 @@ game_core game_a (
     .game_state              (game_state_a),
     .eliminated_mask         (eliminated_mask_a),
     .selected_id             (selected_id_a),
-    .local_secret_id         (local_secret_id_a),
     .last_guess_id           (last_guess_id_a),
     .has_secret              (has_secret_a),
     .local_ready             (local_ready_a),
     .remote_ready            (remote_ready_a),
-    .my_turn                 (),
-    .wrong_guess_visible     (wrong_guess_visible_a),
     .send_ready              (send_ready_a),
     .send_turn_end           (send_turn_end_a),
     .send_guess              (send_guess_a),
@@ -245,13 +238,10 @@ game_core game_b (
     .game_state              (game_state_b),
     .eliminated_mask         (eliminated_mask_b),
     .selected_id             (selected_id_b),
-    .local_secret_id         (local_secret_id_b),
     .last_guess_id           (last_guess_id_b),
     .has_secret              (has_secret_b),
     .local_ready             (local_ready_b),
     .remote_ready            (remote_ready_b),
-    .my_turn                 (),
-    .wrong_guess_visible     (wrong_guess_visible_b),
     .send_ready              (send_ready_b),
     .send_turn_end           (send_turn_end_b),
     .send_guess              (send_guess_b),
@@ -399,7 +389,7 @@ initial begin
 
     wait_state_a(S_MY_TURN);
     wait_state_b(S_OPPONENT_TURN);
-    assert (local_secret_id_a == 5'd3 && local_secret_id_b == 5'd8)
+    assert (game_a.local_secret_id == 5'd3 && game_b.local_secret_id == 5'd8)
         else $error("Local secrets were not locked");
     assert (local_ready_a && remote_ready_a && local_ready_b && remote_ready_b)
         else $error("READY handshakes did not settle on both boards");
@@ -409,8 +399,8 @@ initial begin
     wait_state_b(S_OPPONENT_TURN);
     assert (last_guess_id_a == 5'd4 && eliminated_mask_a[4])
         else $error("Wrong guess did not mark local elimination on board A");
-    assert (wrong_guess_visible_a) else $error("Wrong guess feedback is not visible");
-    assert (!wrong_guess_visible_b) else $error("Wrong guess feedback should be local to board A");
+    assert (game_state_a == S_WRONG_GUESS_FEEDBACK) else $error("Wrong guess feedback is not visible");
+    assert (game_state_b != S_WRONG_GUESS_FEEDBACK) else $error("Wrong guess feedback should be local to board A");
 
     for (i = 0; i < 180; i++) begin
         pulse_frame_both;
@@ -429,7 +419,7 @@ initial begin
     assert (!has_secret_a && !has_secret_b) else $error("RESET_GAME did not clear secrets");
     assert (eliminated_mask_a == '0 && eliminated_mask_b == '0)
         else $error("RESET_GAME did not clear eliminated masks");
-    assert (!wrong_guess_visible_a && !wrong_guess_visible_b)
+    assert (game_state_a != S_WRONG_GUESS_FEEDBACK && game_state_b != S_WRONG_GUESS_FEEDBACK)
         else $error("RESET_GAME did not clear wrong-guess feedback");
 
     $finish;

@@ -51,6 +51,11 @@ Połączenia między płytkami należy wykonać krzyżowo:
 Wspólna masa jest wymagana. Bez połączenia GND odbiór UART może być niestabilny
 albo całkowicie błędny, nawet jeśli linie TX i RX są połączone poprawnie.
 
+Jeżeli Basysy nie są połączone liniami UART albo mają błędnie skrzyżowane TX/RX,
+gra nie przejdzie dalej niż oczekiwanie na link. Po zestawieniu linku jego utrata
+jest wykrywana przez timeout komunikacji i kończy się stanem błędu linku.
+Szczegóły formatu pakietów i ACK są w `PROJECT_SPEC_GUESS_WHO_BASYS3.md`.
+
 ## Podłączenie VGA
 
 Każda płytka generuje własny obraz VGA 1024 x 768.
@@ -61,36 +66,31 @@ Zalecane podłączenie:
 - płytka B do drugiego monitora VGA.
 
 Jeżeli dostępny jest tylko jeden monitor, można sprawdzać płytki kolejno. Wtedy
-należy pamiętać, że każda płytka pokazuje własny lokalny stan gry, w tym własną
-sekretną postać i własne lokalne eliminacje.
+należy pamiętać, że każda płytka pokazuje własny lokalny stan gry.
 
 ## Podłączenie myszy PS/2
 
 Do każdej płytki należy podłączyć osobną mysz PS/2 przez złącze PS/2 dostępne na
 Basys 3.
 
-Mysz służy do:
-
-- wyboru tajnej postaci,
-- kliknięcia `START`,
-- lokalnej eliminacji postaci prawym przyciskiem,
-- zgadywania postaci przeciwnika lewym przyciskiem,
-- kliknięcia `KONIEC TURY`,
-- kliknięcia `RESET GRY`.
-
 ## Reset
 
 Fizyczny przycisk `BTNC` służy jako reset sprzętowy projektu.
 
-Wewnętrzna logika projektu używa resetu aktywnego niskim stanem. Zwolnienie
-resetu jest stabilizowane przez debounce i synchronizowane osobno dla domen
-zegarowych 65 MHz oraz 100 MHz.
+`BTNC` działa tylko lokalnie. Naciśnięcie go na jednej płytce nie wysyła żadnego
+pakietu do drugiej płytki i nie resetuje automatycznie drugiego Basysa. Jeżeli
+jedna płytka zostanie zresetowana sprzętowo w trakcie gry, druga może pozostać w
+poprzednim stanie aż do timeoutu linku albo do ręcznego resetu.
+
+Do zwykłego rozpoczęcia gry od nowa służy ekranowy przycisk `RESET GRY`. Ten
+przycisk resetuje lokalną logikę gry i wysyła przez UART pakiet `RESET_GAME`,
+dzięki czemu druga płytka też czyści stan, o ile link działa.
 
 Reset warto nacisnąć:
 
 - po zaprogramowaniu obu płytek,
 - po zmianie ustawienia `SW[0]`,
-- gdy jedna z płytek pozostaje w starym stanie gry,
+- na obu płytkach, gdy jedna z nich pozostaje w starym stanie gry,
 - po ponownym podłączeniu przewodów PMOD.
 
 ## Kolejność uruchomienia
@@ -117,7 +117,7 @@ Jeżeli gra nie przechodzi dalej niż oczekiwanie na link, należy sprawdzić:
 - czy płytki mają wspólną masę,
 - czy obie płytki są zaprogramowane aktualnym bitstreamem,
 - czy `SW[0]` ma różne wartości na obu płytkach,
-- czy po zmianie przewodów wykonano reset `BTNC`.
+- czy po zmianie przewodów wykonano reset `BTNC` na obu płytkach.
 
 Jeżeli obraz VGA działa, ale mysz nie reaguje, należy sprawdzić:
 
@@ -127,4 +127,3 @@ Jeżeli obraz VGA działa, ale mysz nie reaguje, należy sprawdzić:
 
 Jeżeli obie płytki działają osobno, ale rozgrywka nie synchronizuje tur, w
 pierwszej kolejności należy sprawdzić połączenie UART i ustawienia `SW[0]`.
-

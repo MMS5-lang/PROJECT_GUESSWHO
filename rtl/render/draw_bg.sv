@@ -28,17 +28,17 @@
     localparam int DECOR_H = 32;
     localparam int DECOR_PIXELS = DECOR_W * DECOR_H;
     localparam int DECOR_ADDR_W = $clog2(DECOR_PIXELS);
-    localparam int DECOR_CNT = 15;
+    localparam int DECOR_CNT = 14;
     
     localparam logic [10:0] DECOR_X [0:DECOR_CNT-1] = '{
         11'd5,  11'd150, 11'd295, 11'd440, 11'd590,
         11'd20,  11'd190, 11'd380, 11'd550, 11'd720,
-        11'd900, 11'd890, 11'd900, 11'd730, 11'd980
+        11'd900, 11'd900, 11'd730, 11'd980
     };
     localparam logic [10:0] DECOR_Y [0:DECOR_CNT-1] = '{
         11'd8,   11'd4,   11'd12,  11'd8,   11'd10,
         11'd700, 11'd720, 11'd708, 11'd695, 11'd715,
-        11'd60, 11'd850, 11'd640, 11'd10, 11'd500
+        11'd60, 11'd640, 11'd10, 11'd500
     };
     
     (* rom_style = "distributed" *) logic [11:0] q_mark_rom [0:DECOR_PIXELS-1];

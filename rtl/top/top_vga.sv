@@ -220,13 +220,10 @@
         .game_state          (game_state),
         .eliminated_mask     (eliminated_mask),
         .selected_id         (selected_id),
-        .local_secret_id     (),
         .last_guess_id       (last_guess_id),
         .has_secret          (has_secret),
         .local_ready         (local_ready),
         .remote_ready        (remote_ready),
-        .my_turn             (),
-        .wrong_guess_visible (),
         .send_ready          (send_ready),
         .send_turn_end       (send_turn_end),
         .send_guess          (send_guess),
@@ -292,4 +289,3 @@
     );
     
     endmodule
-    
