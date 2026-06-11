@@ -205,9 +205,15 @@ Wyeliminowana postać jest przygaszana żółtawą nakładką i ma na środku ż
 zapytania. Efekt jest tylko wizualny; sama informacja o eliminacji dalej jest
 przechowywana jako bit w `eliminated_mask`.
 
-Po każdej eliminacji logika sprawdza, ile postaci pozostało aktywnych. Jeżeli
-zostaje dokładnie jedna niewyeliminowana postać, projekt automatycznie wykonuje
-finalne sprawdzenie tej postaci przez pakiet `FINAL_CHECK`.
+Po każdej eliminacji logika sprawdza, czy na planszy został co najmniej jeden
+aktywny kandydat. Próba wykreślenia ostatniej niewyeliminowanej postaci jest
+ignorowana, żeby gracz nie mógł przypadkowo doprowadzić maski eliminacji do
+stanu pustej planszy.
+
+Wykreślenie 17 postaci nie wykonuje już automatycznego strzału w ostatnią
+postać. Lokalna gra zostaje w `S_MY_TURN`; gracz może ręcznie kliknąć LPM na
+ostatniej postaci, żeby wysłać zwykły `GUESS`, albo kliknąć `KONIEC TURY`, żeby
+oddać ruch przeciwnikowi.
 
 ### 5.7. Zgadywanie postaci przeciwnika
 
@@ -248,23 +254,24 @@ FEEDBACK_FRAMES = 180;
 
 Przy 60 klatkach na sekundę odpowiada to około 3 sekundom.
 
-### 5.8. Finalne sprawdzenie ostatniej postaci
+### 5.8. Ostatnia niewyeliminowana postać
 
 Jeżeli po lokalnych eliminacjach zostaje dokładnie jedna aktywna postać,
-`game_core` traktuje ją jako ostateczny wybór gracza.
+`game_core` nie traktuje jej już jako automatycznego strzału.
 
 Przebieg:
 
 1. Aktywny gracz eliminuje postacie PPM.
-2. Po eliminacji logika sprawdza liczbę niewyeliminowanych postaci.
-3. Jeżeli została jedna postać, zostaje wyznaczone `remaining_id`.
-4. Płytka wysyła `FINAL_CHECK(remaining_id)`.
-5. Przeciwnik porównuje `remaining_id` ze swoim `local_secret_id`.
-6. Poprawny wynik powoduje `S_WIN` u aktywnego gracza.
-7. Błędny wynik powoduje `S_LOSE` u aktywnego gracza.
+2. Po eliminacji logika aktualizuje `eliminated_mask`, o ile zostaje co najmniej
+   jedna aktywna postać.
+3. Jeżeli została jedna postać, gra pozostaje w `S_MY_TURN`.
+4. Płytka nie wysyła `FINAL_CHECK` i nie zmienia `last_guess_id`.
+5. Gracz może kliknąć LPM na dowolnej postaci, w tym na ostatniej aktywnej, żeby
+   wysłać zwykły `GUESS(character_id)`.
+6. Gracz może też kliknąć `KONIEC TURY`, aby oddać ruch przeciwnikowi.
 
-To zachowanie odpowiada sytuacji, w której gracz przez eliminacje doszedł do
-jednej możliwej odpowiedzi.
+Dzięki temu samo wykreślenie 17 postaci nie kończy gry i nie odbiera drugiemu
+graczowi możliwości wykonania jeszcze jednego ruchu.
 
 ### 5.9. Tura przeciwnika
 
@@ -349,7 +356,7 @@ Aktualna maszyna stanów jest zdefiniowana w `rtl/game/guess_who_pkg.sv` jako
 | `S_OPPONENT_TURN` | 6 | Lokalny gracz czeka na ruch przeciwnika |
 | `S_WAIT_GUESS_RESULT` | 7 | Po wysłaniu `GUESS` oczekiwany jest wynik od przeciwnika |
 | `S_WRONG_GUESS_FEEDBACK` | 8 | Błędny strzał jest pokazywany przez około 3 sekundy |
-| `S_FINAL_CHECK` | 9 | Po pozostawieniu jednej postaci oczekiwany jest wynik finalnego sprawdzenia |
+| `S_FINAL_CHECK` | 9 | Oczekiwanie na wynik `FINAL_CHECK`; lokalna eliminacja PPM nie wchodzi już do tego stanu |
 | `S_WIN` | 10 | Lokalny gracz wygrał |
 | `S_LOSE` | 11 | Lokalny gracz przegrał |
 | `S_COMM_ERROR` | 12 | Błąd komunikacji albo utrata linku |
@@ -366,7 +373,7 @@ Najważniejsze przejścia:
 | `S_GAME_START` | `player_id == 0` | `S_MY_TURN` |
 | `S_GAME_START` | `player_id == 1` | `S_OPPONENT_TURN` |
 | `S_MY_TURN` | LPM na postaci | `S_WAIT_GUESS_RESULT` |
-| `S_MY_TURN` | PPM zostawia jedną aktywną postać | `S_FINAL_CHECK` |
+| `S_MY_TURN` | PPM na postaci i co najmniej jedna aktywna postać zostaje | `S_MY_TURN` |
 | `S_MY_TURN` | `KONIEC TURY` | `S_OPPONENT_TURN` |
 | `S_WAIT_GUESS_RESULT` | wynik poprawny | `S_WIN` |
 | `S_WAIT_GUESS_RESULT` | wynik błędny | `S_WRONG_GUESS_FEEDBACK` |
@@ -390,7 +397,7 @@ Najważniejsze rejestry i sygnały stanu w `game_core.sv`:
 | `eliminated_mask[17:0]` | Lokalna maska eliminacji; 1 oznacza postać wyeliminowaną |
 | `selected_id[4:0]` | Aktualnie kliknięta postać przed zatwierdzeniem START |
 | `local_secret_id[4:0]` | Zatwierdzona tajna postać lokalnego gracza |
-| `last_guess_id[4:0]` | Ostatnio zgadywana albo finalnie sprawdzana postać |
+| `last_guess_id[4:0]` | Ostatnio zgadywana postać |
 | `has_secret` | Informacja, że lokalny gracz wybrał postać |
 | `local_ready` | Lokalny gracz zatwierdził wybór |
 | `remote_ready` | Przeciwnik zatwierdził wybór |

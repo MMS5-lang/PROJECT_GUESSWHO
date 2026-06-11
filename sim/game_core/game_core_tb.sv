@@ -290,6 +290,8 @@ endtask
 
 initial begin
     int i;
+    logic [CHAR_ID_W-1:0] last_guess_before;
+    logic [CHAR_COUNT-1:0] one_remaining_mask;
 
     rst_n = 1'b0;
     player_id = 1'b0;
@@ -398,31 +400,31 @@ initial begin
     pulse_opponent_ready;
     assert (game_state == S_MY_TURN) else $error("FSM should restart after result timeout reset");
 
+    last_guess_before = last_guess_id;
+    one_remaining_mask = '1;
+    one_remaining_mask[7] = 1'b0;
+
     for (i = 0; i < CHAR_COUNT; i++) begin
         if (i != 7) begin
             pulse_right_char(i[CHAR_ID_W-1:0]);
         end
     end
-    assert (game_state == S_FINAL_CHECK) else $error("One active character should start final check");
-    assert (last_guess_id == 5'd7) else $error("Final check should remember remaining id");
-    assert (send_final_check_id == 5'd7) else $error("Final check id should be remaining id");
+    assert (game_state == S_MY_TURN) else $error("One active character should stay in own turn");
+    assert (eliminated_mask == one_remaining_mask) else $error("Seventeen eliminated characters should be stored locally");
+    assert (last_guess_id == last_guess_before) else $error("Right-click elimination should not auto-select remaining id");
+    assert (!send_final_check) else $error("Right-click elimination should not send final check");
 
-    pulse_frames(600);
-    assert (game_state == S_COMM_ERROR) else $error("Missing final-check result should enter communication error");
-
-    pulse_reset_button;
-    pulse_left_char(5'd2);
     pulse_start;
-    pulse_opponent_ready;
-    for (i = 0; i < CHAR_COUNT; i++) begin
-        if (i != 7) begin
-            pulse_right_char(i[CHAR_ID_W-1:0]);
-        end
-    end
-    assert (game_state == S_FINAL_CHECK) else $error("One active character should start final check after timeout reset");
+    assert (game_state == S_OPPONENT_TURN) else $error("One remaining character should still allow ending the turn");
+    pulse_opponent_turn_end;
+    assert (game_state == S_MY_TURN) else $error("Opponent TURN_END should return control after one remaining character");
 
-    pulse_final_result(1'b1);
-    assert (game_state == S_WIN) else $error("Correct final check should win");
+    pulse_left_char(5'd7);
+    assert (game_state == S_WAIT_GUESS_RESULT) else $error("Remaining character should be guessed only by left click");
+    assert (last_guess_id == 5'd7) else $error("Manual remaining-character guess should update last guess id");
+    assert (send_guess_id == 5'd7) else $error("Manual remaining-character guess should send GUESS id");
+    pulse_guess_result(1'b1);
+    assert (game_state == S_WIN) else $error("Correct manual guess after eliminations should win");
 
     pulse_reset_button;
     pulse_left_char(5'd2);

@@ -77,7 +77,6 @@ logic [CHAR_COUNT-1:0] char_mask;
 logic [CHAR_COUNT-1:0] last_guess_mask;
 logic [CHAR_COUNT-1:0] elim_after_click;
 logic [4:0] active_after_click;
-logic [CHAR_ID_W-1:0] remaining_id;
 logic valid_char;
 logic valid_opponent_char;
 logic valid_opponent_final_char;
@@ -95,20 +94,6 @@ begin
         end
     end
     count_active = count;
-end
-endfunction
-
-function automatic logic [CHAR_ID_W-1:0] find_active(input logic [CHAR_COUNT-1:0] mask);
-    logic [CHAR_ID_W-1:0] id;
-    int i;
-begin
-    id = '0;
-    for (i = 0; i < CHAR_COUNT; i++) begin
-        if (!mask[i]) begin
-            id = i[CHAR_ID_W-1:0];
-        end
-    end
-    find_active = id;
 end
 endfunction
 
@@ -131,7 +116,6 @@ end
 always_comb begin
     elim_after_click = eliminated_mask ^ char_mask;
     active_after_click = count_active(elim_after_click);
-    remaining_id = find_active(elim_after_click);
 end
 
 always_comb begin
@@ -233,14 +217,6 @@ always_comb begin
                 end else if (char_right_click && valid_char) begin
                     if (active_after_click != 5'd0) begin
                         eliminated_mask_nxt = elim_after_click;
-                    end
-
-                    if (active_after_click == 5'd1) begin
-                        last_guess_id_nxt = remaining_id;
-                        send_final_check = 1'b1;
-                        send_final_check_id = remaining_id;
-                        result_wait_cnt_nxt = '0;
-                        state_nxt = S_FINAL_CHECK;
                     end
                 end else if (start_click) begin
                     send_turn_end = 1'b1;
