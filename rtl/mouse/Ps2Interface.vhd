@@ -150,6 +150,9 @@ use UNISIM.VComponents.all;
 -- the ps2interface entity declaration
 -- read above for behavioral description and port definitions.
 entity Ps2Interface is
+generic(
+   SYSCLK_FREQUENCY_HZ : integer := 100000000
+);
 port(
    ps2_clk  : inout std_logic;
    ps2_data : inout std_logic;
@@ -183,17 +186,14 @@ architecture Behavioral of Ps2Interface is
 -- CONSTANTS
 ------------------------------------------------------------------------
 
--- Values are valid for a 100MHz clk. Please adjust for other
--- frequencies if necessary!
+-- Delay values are derived from the configured system clock frequency.
 
 -- upper limit for 100us delay counter.
--- 10000 * 10ns = 100us
-constant DELAY_100US : std_logic_vector(13 downto 0):= "10011100010000";
-                                                 -- 10000 clock periods
+constant DELAY_100US : std_logic_vector(13 downto 0) :=
+   conv_std_logic_vector(SYSCLK_FREQUENCY_HZ / 10000, 14);
 -- upper limit for 20us delay counter.
--- 2000 * 10ns = 20us
-constant DELAY_20US  : std_logic_vector(10 downto 0) := "11111010000";
-                                                  -- 2000 clock periods
+constant DELAY_20US : std_logic_vector(10 downto 0) :=
+   conv_std_logic_vector(SYSCLK_FREQUENCY_HZ / 50000, 11);
 -- upper limit for 63clk delay counter.
 constant DELAY_63CLK : std_logic_vector(6 downto 0)  := "1111111";
                                                     -- 63 clock periods
@@ -803,5 +803,4 @@ begin
    end process do_load_rx_data;
 
 end Behavioral;
-
 

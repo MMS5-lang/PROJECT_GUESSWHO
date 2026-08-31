@@ -11,34 +11,6 @@ set_property PACKAGE_PIN W5 [get_ports clk]
 # Clock period is defined in clk_wiz_0.xdc generated for the clocking IP.
 #	create_clock -add -name sys_clk_pin -period 10.00 -waveform {0 5} [get_ports clk]
 
-## Clock domain crossings
-set mouse_pos_sync_cells [get_cells -hierarchical -regexp {.*mouse_(xpos|ypos)_sync1_reg\[[0-9]+\]}]
-set mouse_pos_sync_pins [get_pins -of_objects $mouse_pos_sync_cells -filter {REF_PIN_NAME == D}]
-set_false_path -to $mouse_pos_sync_pins
-
-set mouse_btn_sync_cells [get_cells -hierarchical -regexp {.*mouse_(left|right)_sync1_reg}]
-set mouse_btn_sync_pins [get_pins -of_objects $mouse_btn_sync_cells -filter {REF_PIN_NAME == D}]
-set_false_path -to $mouse_btn_sync_pins
-
-set reset_release_sync_cells [get_cells -quiet -hierarchical -regexp {.*reset_released_65mhz_pipe_reg\[0\]}]
-set reset_release_sync_pins [get_pins -of_objects $reset_release_sync_cells -filter {REF_PIN_NAME == D}]
-set_false_path -quiet -to $reset_release_sync_pins
-
-set reset_sync_cells [get_cells -hierarchical -regexp {.*u_rst_(65mhz|100mhz)_sync/.*rst_pipe_reg\[[0-9]+\]}]
-set reset_sync_clr_pins [get_pins -of_objects $reset_sync_cells -filter {REF_PIN_NAME == CLR}]
-set_false_path -quiet -to $reset_sync_clr_pins
-
-set reset_release_cells [get_cells -quiet -hierarchical -regexp {.*(rst_(65mhz|100mhz)_n_reg|reset_released_65mhz_pipe_reg\[[0-9]+\])}]
-set reset_release_clr_pins [get_pins -of_objects $reset_release_cells -filter {REF_PIN_NAME == CLR}]
-set_false_path -quiet -to $reset_release_clr_pins
-
-set_false_path -quiet -from [get_ports {btnC JA3 PS2Clk PS2Data sw[0]}]
-set_false_path -quiet -to [get_ports {PS2Clk PS2Data}]
-
-set async_reset_pins [get_pins -hierarchical -filter {REF_PIN_NAME == CLR || REF_PIN_NAME == R}]
-set async_reset_nets [get_nets -quiet -of_objects $async_reset_pins]
-set_switching_activity -quiet -static_probability 0.0 -toggle_rate 0.0 $async_reset_nets
-
 ## Switches
 set_property PACKAGE_PIN V17 [get_ports {sw[0]}]
 	set_property IOSTANDARD LVCMOS33 [get_ports {sw[0]}]

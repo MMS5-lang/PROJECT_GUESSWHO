@@ -4,7 +4,7 @@
  * Author: Milosz M. Karolina M.
  *
  * Description:
- * Testbench for mouse signal synchronization and click pulse generation.
+ * Testbench for mouse adaptation and click pulse generation.
  */
 
 module mouse_adapter_tb;
@@ -79,39 +79,27 @@ initial begin
 
     mouse_x_raw = 12'd123;
     mouse_y_raw = 12'd456;
-    repeat (3) begin
-        wait_clk;
-    end
-    assert (mouse_x == 12'd123 && mouse_y == 12'd456) else $error("Mouse coordinates not synchronized");
+    wait_clk;
+    assert (mouse_x == 12'd123 && mouse_y == 12'd456) else $error("Mouse coordinates not captured");
 
     mouse_x_raw = 12'd1500;
     mouse_y_raw = 12'd900;
-    repeat (3) begin
-        wait_clk;
-    end
+    wait_clk;
     assert (mouse_x == HOR_PIXELS - 1) else $error("Mouse X was not clamped to screen width");
     assert (mouse_y == VER_PIXELS - 1) else $error("Mouse Y was not clamped to screen height");
 
     mouse_left_raw = 1'b1;
-    wait_clk;
-    assert (!left_click_pulse) else $error("Left click pulse appeared too early");
-    wait_clk;
-    assert (!left_click_pulse) else $error("Left click pulse appeared before synchronizer output");
     wait_clk;
     assert (left_click_pulse) else $error("Left click rising edge did not create a pulse");
     wait_clk;
     assert (!left_click_pulse) else $error("Held left click created a repeated pulse");
 
     mouse_left_raw = 1'b0;
-    repeat (3) begin
-        wait_clk;
-    end
+    wait_clk;
     assert (!left_click_pulse) else $error("Left release should not create a rising pulse");
 
     mouse_right_raw = 1'b1;
-    repeat (3) begin
-        wait_clk;
-    end
+    wait_clk;
     assert (right_click_pulse) else $error("Right click rising edge did not create a pulse");
     wait_clk;
     assert (!right_click_pulse) else $error("Held right click created a repeated pulse");

@@ -11,9 +11,7 @@
     import guess_who_pkg::*;
     (
         input  logic clk,
-        input  logic clk_100mhz,
         input  logic rst_n,
-        input  logic rst_100mhz_n,
         output logic pmod_uart_tx,
         output logic vs,
         output logic hs,
@@ -103,9 +101,11 @@
         .hblnk  (if_tim.hblnk)
     );
     
-    MouseCtl u_mouse_ctl (
-        .clk       (clk_100mhz),
-        .rst       (!rst_100mhz_n),
+    MouseCtl #(
+        .SYSCLK_FREQUENCY_HZ (65_000_000)
+    ) u_mouse_ctl (
+        .clk       (clk),
+        .rst       (!rst_n),
         .xpos      (mouse_xpos_raw),
         .ypos      (mouse_ypos_raw),
         .zpos      (),

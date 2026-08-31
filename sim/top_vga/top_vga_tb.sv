@@ -25,13 +25,11 @@ module top_vga_tb;
      * Local parameters
      */
     localparam real CLK_PERIOD = 15.384615;     // 65 MHz
-    localparam int CLK_100MHZ_PERIOD = 10;      // 100 MHz
  
     /**
      * Local variables and signals
      */
     logic clk;
-    logic clk_100mhz;
     logic rst_n;
     tri1  ps2_clk;
     tri1  ps2_data;
@@ -60,21 +58,12 @@ module top_vga_tb;
         end
     end
  
-    initial begin
-        clk_100mhz = 1'b0;
-        forever #(CLK_100MHZ_PERIOD / 2) begin
-            clk_100mhz = ~clk_100mhz;
-        end
-    end
- 
     /**
      * Submodule instances
      */
     top_vga dut (
         .clk        (clk),
-        .clk_100mhz (clk_100mhz),
         .rst_n      (rst_n),
-        .rst_100mhz_n (rst_n),
         .player_id      (1'b0),
         .pmod_uart_rx (1'b1),
         .ps2_clk    (ps2_clk),

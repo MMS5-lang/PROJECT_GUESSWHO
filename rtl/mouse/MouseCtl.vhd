@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- mouse_controller.vhd
 ------------------------------------------------------------------------
--- Author : Ulrich Zoltán
+-- Author : Ulrich ZoltÃ¡n
 --          Copyright 2006 Digilent, Inc.
 ------------------------------------------------------------------------
 -- This file contains a controller for a ps/2 compatible mouse device.
@@ -143,7 +143,7 @@
 ------------------------------------------------------------------------
 --  Port definitions
 ------------------------------------------------------------------------
--- clk            - global clock signal (100MHz)
+-- clk            - global clock signal (frequency set by SYSCLK_FREQUENCY_HZ)
 -- rst            - global reset signal
 -- xpos           - output pin, 10 bits
 --                - the x position of the mouse relative to the upper
@@ -210,6 +210,9 @@ architecture Behavioral of MouseCtl is
 -- Ps2 Interface component declaration
 ------------------------------------------------------------------------
 COMPONENT Ps2Interface
+GENERIC(
+   SYSCLK_FREQUENCY_HZ : integer := 100000000
+);
 PORT(
    ps2_clk        : inout std_logic;
    ps2_data       : inout std_logic;
@@ -259,8 +262,8 @@ constant DEFAULT_MAX_Y : std_logic_vector(11 downto 0) := x"3FF";
                                                       -- 1023
 
 -- Mouse check tick constants
-constant CHECK_PERIOD_CLOCKS   : integer := ((CHECK_PERIOD_MS*1000000)/(1000000000/SYSCLK_FREQUENCY_HZ));
-constant TIMEOUT_PERIOD_CLOCKS : integer := ((TIMEOUT_PERIOD_MS*1000000)/(1000000000/SYSCLK_FREQUENCY_HZ));
+constant CHECK_PERIOD_CLOCKS   : integer := (SYSCLK_FREQUENCY_HZ / 1000) * CHECK_PERIOD_MS;
+constant TIMEOUT_PERIOD_CLOCKS : integer := (SYSCLK_FREQUENCY_HZ / 1000) * TIMEOUT_PERIOD_MS;
 
 ------------------------------------------------------------------------
 -- SIGNALS
@@ -367,6 +370,10 @@ signal timeout            : STD_LOGIC := '0';
 begin
 
    Inst_Ps2Interface: Ps2Interface
+   GENERIC MAP
+   (
+      SYSCLK_FREQUENCY_HZ => SYSCLK_FREQUENCY_HZ
+   )
    PORT MAP
    (
       ps2_clk        => ps2_clk,

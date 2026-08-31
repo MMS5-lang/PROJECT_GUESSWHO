@@ -36,16 +36,12 @@ timeprecision 1ps;
 /**
  * Local variables and signals
  */
-logic clk_100mhz;
 logic clk_65mhz;
 logic clk_locked;
 logic pclk_mirror;
 logic rst_65mhz_n;
-logic rst_100mhz_n;
 logic clk_locked_65mhz_n;
-logic clk_locked_100mhz_n;
 logic reset_released_db;
-(* ASYNC_REG = "TRUE" *) logic [1:0] reset_released_65mhz_pipe;
 
 /**
  * Signal assignments
@@ -57,7 +53,7 @@ assign JA1   = pclk_mirror;
  */
 clk_wiz_0 u_clk_wiz (
     .clk        (clk),
-    .clk100MHz  (clk_100mhz),
+    .clk100MHz  (),
     .clk65MHz   (clk_65mhz),
     .locked     (clk_locked)
 );
@@ -65,7 +61,7 @@ clk_wiz_0 u_clk_wiz (
 debounce #(
     .N (RESET_DEBOUNCE_COUNTER_BITS)
 ) u_reset_debounce (
-    .clk      (clk_100mhz),
+    .clk      (clk_65mhz),
     .reset    (!clk_locked),
     .sw       (!btnC),
     .db_level (reset_released_db),
@@ -78,27 +74,11 @@ reset_sync u_rst_65mhz_sync (
     .rst_n  (clk_locked_65mhz_n)
 );
 
-reset_sync u_rst_100mhz_sync (
-    .clk    (clk_100mhz),
-    .arst_n (clk_locked),
-    .rst_n  (clk_locked_100mhz_n)
-);
-
-always_ff @(posedge clk_100mhz or negedge clk_locked_100mhz_n) begin
-    if (!clk_locked_100mhz_n) begin
-        rst_100mhz_n <= 1'b0;
-    end else begin
-        rst_100mhz_n <= reset_released_db;
-    end
-end
-
 always_ff @(posedge clk_65mhz or negedge clk_locked_65mhz_n) begin
     if (!clk_locked_65mhz_n) begin
-        reset_released_65mhz_pipe <= '0;
         rst_65mhz_n <= 1'b0;
     end else begin
-        reset_released_65mhz_pipe <= {reset_released_65mhz_pipe[0], reset_released_db};
-        rst_65mhz_n <= reset_released_65mhz_pipe[1];
+        rst_65mhz_n <= reset_released_db;
     end
 end
 
@@ -118,9 +98,7 @@ ODDR pclk_oddr (
  */
 top_vga u_top_vga (
     .clk        (clk_65mhz),
-    .clk_100mhz (clk_100mhz),
     .rst_n      (rst_65mhz_n),
-    .rst_100mhz_n (rst_100mhz_n),
     .player_id      (sw[0]),
     .pmod_uart_rx (JA3),
     .ps2_clk    (PS2Clk),
